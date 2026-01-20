@@ -425,6 +425,7 @@ async function handleSave() {
       quantity: Number(item.quantity),
       rate: Number(item.rate),
       total: Number(item.total),
+      image_url: item.image_url || null,
     }));
 
     const { error: itemsError } = await supabase
