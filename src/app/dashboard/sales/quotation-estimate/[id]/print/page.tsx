@@ -3,15 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-type Party = {
-  name: string;
-  billing_address?: string;
-  shipping_address?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  gstin?: string;
-};
 
 type QuotationItem = {
   id: string;
@@ -47,105 +38,71 @@ type Quotation = {
 
 export default function PrintQuotationPage() {
   const params = useParams();
-  const quotationId =
-    typeof params.id === "string" ? params.id : params.id?.[0];
+  const quotationId = typeof params.id === "string" ? params.id : params.id?.[0];
 
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const printedRef = useRef(false);
 
-useEffect(() => {
-  if (!quotationId) return;
+  useEffect(() => {
+    if (!quotationId) return;
 
- const fetchQuotation = async () => {
-  const { data, error } = await supabase
-    .from("quotations")
-    .select(`
-      id,
-      quotation_no,
-      quotation_date,
-      due_date,
-      subtotal,
-      discount,
-      gst_rate,
-      gst_amount,
-      additional_charge,
-      total_amount,
-      terms,
-      parties (
-        name,
-        billing_address,
-        shipping_address,
-        city,
-        state,
-        pincode,
-        gstin
-      ),
-      quotation_items (
-        id,
-        item_name,
-        quantity,
-        rate,
-        total,
-        hsn_sac
-      )
-    `)
-    .eq("id", quotationId)
-    .limit(1);
+    const fetchQuotation = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("quotations")
+          .select(`
+            *,
+            party:parties(id, name, billing_address, shipping_address, city, state, pincode, gstin),
+            quotation_items(*)
+          `)
+          .eq("id", quotationId)
+          .single();
 
-  if (error) {
-    console.error("Supabase error:", error);
-    return;
-  }
+        if (error) {
+          console.error("Supabase error:", error);
+          return;
+        }
 
-  if (!data || data.length === 0) {
-    console.error("Quotation not found");
-    return;
-  }
+        const party = data.party;
 
-  const quotationData = data[0]; // ✅ Grab the first element
-  const party =
-    quotationData.parties && Array.isArray(quotationData.parties)
-      ? quotationData.parties[0] ?? null
-      : null;
+        setQuotation({
+          id: data.id,
+          quotation_no: data.quotation_no,
+          quotation_date: data.quotation_date,
+          due_date: data.due_date ?? "",
+          party_name: party?.name ?? "—",
+          billing_address: party?.billing_address ?? "—",
+          shipping_address: party?.shipping_address ?? "—",
+          city: party?.city ?? "",
+          state: party?.state ?? "",
+          pincode: party?.pincode ?? "",
+          party_gstin: party?.gstin ?? "",
+          subtotal: data.subtotal ?? 0,
+          discount: data.discount ?? 0,
+          gst_rate: data.gst_rate ?? 0,
+          gst_amount: data.gst_amount ?? 0,
+          additional_charge: data.additional_charge ?? 0,
+          total_amount: data.total_amount ?? 0,
+          terms: data.terms ?? "",
+          items:
+            data.quotation_items?.map((i: any) => ({
+              id: i.id,
+              item_name: i.item_name,
+              quantity: Number(i.quantity ?? 0),
+              rate: Number(i.rate ?? 0),
+              total: Number(i.total ?? 0),
+              hsn_sac: i.hsn_sac ?? "—",
+              image_url: i.image_url ?? "",
+            })) ?? [],
+        });
+      } catch (err) {
+        console.error("Fetch quotation failed:", err);
+      }
+    };
 
-  setQuotation({
-    id: quotationData.id,
-    quotation_no: quotationData.quotation_no,
-    quotation_date: quotationData.quotation_date,
-    due_date: quotationData.due_date ?? "",
-    party_name: party?.name ?? "—",
-    billing_address: party?.billing_address ?? "",
-    shipping_address: party?.shipping_address ?? "",
-    city: party?.city ?? "",
-    state: party?.state ?? "",
-    pincode: party?.pincode ?? "",
-    party_gstin: party?.gstin ?? "",
-    subtotal: quotationData.subtotal ?? 0,
-    discount: quotationData.discount ?? 0,
-    gst_rate: quotationData.gst_rate ?? 0,
-    gst_amount: quotationData.gst_amount ?? 0,
-    additional_charge: quotationData.additional_charge ?? 0,
-    total_amount: quotationData.total_amount ?? 0,
-    terms: quotationData.terms ?? "",
-    items:
-      quotationData.quotation_items?.map((i: any) => ({
-        id: i.id,
-        item_name: i.item_name,
-        quantity: Number(i.quantity ?? 0),
-        rate: Number(i.rate ?? 0),
-        total: Number(i.total ?? 0),
-        hsn_sac: i.hsn_sac ?? "",
-      })) ?? [],
-  });
-};
+    fetchQuotation();
+  }, [quotationId]);
 
-  fetchQuotation();
-}, [quotationId]);
-
-
-
-
-  // ✅ Print only once
   useEffect(() => {
     if (quotation && !printedRef.current) {
       printedRef.current = true;
@@ -156,7 +113,6 @@ useEffect(() => {
   if (!quotation) {
     return <div className="p-6 text-center">Loading quotation…</div>;
   }
-
 
   return (
     <div className="p-6 max-w-5xl mx-auto font-sans text-sm">
@@ -188,7 +144,7 @@ useEffect(() => {
 
         <div className="w-1/2 text-right">
           <h2 className="font-semibold">Ship To</h2>
-          <p>{quotation.shipping_address || "—"}</p>
+          <p>{quotation.shipping_address}</p>
         </div>
       </div>
 
@@ -197,6 +153,7 @@ useEffect(() => {
         <thead className="bg-gray-100">
           <tr>
             <th className="border px-2">#</th>
+            <th className="border px-2">Image</th>
             <th className="border px-2">Item</th>
             <th className="border px-2">HSN</th>
             <th className="border px-2 text-right">Qty</th>
@@ -208,8 +165,19 @@ useEffect(() => {
           {quotation.items.map((item, idx) => (
             <tr key={item.id}>
               <td className="border px-2">{idx + 1}</td>
+              <td className="border px-2">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.item_name}
+                    className="h-10 w-10 object-contain"
+                  />
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="border px-2">{item.item_name}</td>
-              <td className="border px-2">{item.hsn_sac || "—"}</td>
+              <td className="border px-2">{item.hsn_sac}</td>
               <td className="border px-2 text-right">{item.quantity}</td>
               <td className="border px-2 text-right">₹{item.rate.toFixed(2)}</td>
               <td className="border px-2 text-right">₹{item.total.toFixed(2)}</td>

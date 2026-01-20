@@ -1,10 +1,11 @@
 
 "use client";
 import * as React from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Calendar, Plus, Barcode, X, CalendarIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -43,10 +44,82 @@ export default function CreateQuotationPage() {
   
 const [showPartyModal, setShowPartyModal] = React.useState(false);
 
-  const [quotationDate] = React.useState(new Date());
+  
   const [dueDate, setDueDate] = React.useState<Date>();
   
   const [terms, setTerms] = React.useState("");
+
+
+const searchParams = useSearchParams();
+const quotationId = searchParams.get("id");
+React.useEffect(() => {
+  if (!quotationId) return; // Creating new quotation, do nothing
+
+  const fetchQuotation = async () => {
+    setLoading(true);
+    try {
+      const { data: quotation, error: qError } = await supabase
+        .from("quotations")
+        .select(`
+          *,
+          quotation_items (*),
+          parties (*)
+        `)
+        .eq("id", quotationId)
+        .single();
+
+      if (qError) throw qError;
+      if (!quotation) throw new Error("Quotation not found");
+
+      // Populate party
+      setSelectedParty({
+        id: quotation.party_id,
+        ...quotation.parties,
+      });
+
+      // Populate dates & terms
+      setQuotationDate(new Date(quotation.quotation_date));
+      setDueDate(quotation.due_date ? new Date(quotation.due_date) : undefined);
+      setTerms(quotation.terms || "");
+
+      // Populate items
+      const loadedItems: InvoiceItem[] = quotation.quotation_items.map((item: any) => ({
+        id: crypto.randomUUID(),
+        item_id: item.item_id,
+        name: item.item_name,
+        hsn_sac: item.hsn_sac,
+        quantity: item.quantity,
+        rate: item.rate,
+        total: item.total,
+        unit: item.unit,
+        priceType: "selling",
+        prices: {
+          selling: item.rate,
+          mrp: item.rate,
+          wholesale: item.rate,
+        },
+        stock_qty: 0,
+        image_url: item.image_url,
+      }));
+
+      setItems(loadedItems);
+
+      // Optional: set discount, gstRate, additionalCharge, roundOff if stored in DB
+      setDiscountAmount(quotation.discount || 0);
+      setGstRate(quotation.gst_rate || 18);
+      setAdditionalCharge(quotation.additional_charge || 0);
+      setRoundOff(Boolean(quotation.round_off));
+
+    } catch (err) {
+      console.error("Failed to load quotation:", err);
+      alert("Failed to load quotation for editing");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchQuotation();
+}, [quotationId]);
 
 
   // Items state - FIXED
@@ -83,7 +156,7 @@ const [parties, setParties] = React.useState<Party[]>([]);
   const [roundOff, setRoundOff] = React.useState(false);
   const [items, setItems] = React.useState<InvoiceItem[]>([]);
 const [priceType, setPriceType] = React.useState<PriceType>("selling");
-
+const [quotationDate, setQuotationDate] = React.useState(new Date());
 
 
 /* ================= CALCULATIONS ================= */
@@ -284,37 +357,69 @@ async function handleSave() {
 
   setLoading(true);
   try {
-    // 1. Save quotation
-    const { data: quotation, error: quoteError } = await supabase
-      .from("quotations")
-      .insert({
-        party_id: selectedParty.id,
-        quotation_date: quotationDate,
-        due_date: dueDate ?? null,
-        terms: terms,
-        subtotal: Number(subtotal),
-        discount: Number(discount),
-        gst_rate: Number(gstRate),
-        gst_amount: Number(gstAmount),
-        additional_charge: Number(additionalCharge),
-        total_amount: Number(totalAmount),
-        round_off: roundOff ? 1 : 0,
-      })
-      .select()
-      .single();
+    let quotation;
 
-    if (quoteError) throw quoteError;
+    if (quotationId) {
+      // EDIT: Update existing quotation
+      const { data: updatedQuote, error: updateError } = await supabase
+        .from("quotations")
+        .update({
+          party_id: selectedParty.id,
+          quotation_date: quotationDate,
+          due_date: dueDate ?? null,
+          terms,
+          subtotal: subtotal,
+          discount: discount,
+          gst_rate: gstRate,
+          gst_amount: gstAmount,
+          additional_charge: additionalCharge,
+          total_amount: totalAmount,
+          round_off: roundOff ? 1 : 0,
+        })
+        .eq("id", quotationId)
+        .select()
+        .single();
 
-    // 2. Save quotation items
-    items.forEach((item) => {
-      if (!item.name) throw new Error("Missing name");
-      if (!item.rate) throw new Error("Missing rate");
-    });
+      if (updateError) throw updateError;
+      quotation = updatedQuote;
 
+      // Delete old items first
+      const { error: deleteItemsError } = await supabase
+        .from("quotation_items")
+        .delete()
+        .eq("quotation_id", quotationId);
+
+      if (deleteItemsError) throw deleteItemsError;
+
+    } else {
+      // CREATE: Insert new quotation
+      const { data: newQuote, error: insertError } = await supabase
+        .from("quotations")
+        .insert({
+          party_id: selectedParty.id,
+          quotation_date: quotationDate,
+          due_date: dueDate ?? null,
+          terms,
+          subtotal: subtotal,
+          discount: discount,
+          gst_rate: gstRate,
+          gst_amount: gstAmount,
+          additional_charge: additionalCharge,
+          total_amount: totalAmount,
+          round_off: roundOff ? 1 : 0,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      quotation = newQuote;
+    }
+
+    // Insert quotation items
     const lineItems = items.map((item) => ({
       quotation_id: quotation.id,
       item_id: item.item_id,
-      item_name: item.name, // ✅ REQUIRED
+      item_name: item.name,
       hsn_sac: item.hsn_sac,
       unit: item.unit || "PCS",
       quantity: Number(item.quantity),
@@ -329,19 +434,17 @@ async function handleSave() {
     if (itemsError) throw itemsError;
 
     alert("Quotation saved successfully ✅");
-    console.log("Saved:", quotation);
 
-    // ✅ Redirect to quotation list page
+    // Redirect to quotation list page
     router.push("/dashboard/sales/quotation-estimate");
 
-  } catch (error: any) {
-    console.error("Save error:", error);
-    alert(`Failed to save: ${error.message}`);
+  } catch (err: any) {
+    console.error("Save error:", err);
+    alert(`Failed to save quotation: ${err.message}`);
   } finally {
     setLoading(false);
   }
 }
-
 
 
 
@@ -360,7 +463,12 @@ async function handleSave() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline">Cancel</Button>
+         <Button
+  variant="outline"
+  onClick={() => router.push("/dashboard/sales/quotation-estimate")}
+>
+  Cancel
+</Button>
           <Button
             className="bg-blue-600 hover:bg-blue-700"
             onClick={handleSave}
