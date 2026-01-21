@@ -54,7 +54,6 @@ const [parties, setParties] = React.useState<Party[]>([]);
   const [additionalCharge, setAdditionalCharge] = React.useState(0);
   const [roundOff, setRoundOff] = React.useState(false);
   const [items, setItems] = React.useState<InvoiceItem[]>([]);
-const [priceType, setPriceType] = React.useState<PriceType>("selling");
 const [invoiceDate, setInvoiceDate] = React.useState(new Date());
   
   const [dueDate, setDueDate] = React.useState<Date>();
@@ -65,22 +64,26 @@ const [invoiceDate, setInvoiceDate] = React.useState(new Date());
 
 
 const searchParams = useSearchParams();
-const invoiceId = searchParams.get("id");
+const invoiceId = searchParams.get("invoiceId");
 React.useEffect(() => {
   if (!invoiceId) return;
 
   const fetchInvoice = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("sales_invoices")
-        .select(`
-          *,
-          sales_invoice_items (*),
-          parties (*)
-        `)
-        .eq("id", invoiceId)
-        .single();
+    const { data, error } = await supabase
+    
+  .from("sales_invoices")
+  .select(`
+    *,
+    parties (*),
+    sales_invoice_items (*)
+  `)
+
+
+  .eq("id", invoiceId)
+  .single();
+
 
       if (error) throw error;
 
@@ -92,27 +95,29 @@ React.useEffect(() => {
       setInvoiceDate(new Date(data.invoice_date));
       setDueDate(data.due_date ? new Date(data.due_date) : undefined);
       setTerms(data.terms || "");
+      setItems([]);
+setItems(
+  data.sales_invoice_items.map((item: any) => ({
+    id: crypto.randomUUID(),        // UI-only ID
+    item_id: item.item_id,
+    name: item.item_name,
+    hsn_sac: item.hsn_sac,
+    unit: item.unit ?? "PCS",
+    quantity: Number(item.quantity),
+    rate: Number(item.rate),
+    total: Number(item.total),
+    priceType: "selling",
+    prices: {
+      selling: Number(item.rate),
+      mrp: Number(item.rate),
+      wholesale: Number(item.rate),
+    },
+    stock_qty: 0,
+    image_url: item.image_url,
+  }))
+);
 
-      setItems(
-        data.sales_invoice_items.map((item: any) => ({
-          id: crypto.randomUUID(),
-          item_id: item.item_id,
-          name: item.item_name,
-          hsn_sac: item.hsn_sac,
-          unit: item.unit,
-          quantity: item.quantity,
-          rate: item.rate,
-          total: item.total,
-          priceType: "selling",
-          prices: {
-            selling: item.rate,
-            mrp: item.rate,
-            wholesale: item.rate,
-          },
-          stock_qty: 0,
-          image_url: item.image_url,
-        }))
-      );
+
 
       setDiscountAmount(data.discount || 0);
       setGstRate(data.gst_rate || 18);
@@ -353,33 +358,43 @@ async function handleSave() {
 
     if (invoiceId) {
       // UPDATE
-      const { data, error } = await supabase
-        .from("sales_invoices")
-        .update({
-          party_id: selectedParty.id,
-          invoice_date: invoiceDate,
-          due_date: dueDate ?? null,
-          terms,
-          subtotal,
-          discount,
-          gst_rate: gstRate,
-          gst_amount: gstAmount,
-          additional_charge: additionalCharge,
-          additional_charge_label: additionalChargeLabel,
-          total_amount: totalAmount,
-          round_off: roundOff ? 1 : 0,
-        })
-        .eq("id", invoiceId)
-        .select()
-        .single();
+     const { data, error } = await supabase
+  .from("sales_invoices")
+  .update({
+    party_id: selectedParty.id,
+    invoice_date: invoiceDate,
+    due_date: dueDate ?? null,
+    terms,
+    subtotal,
+    discount,
+    gst_rate: gstRate,
+    gst_amount: gstAmount,
+    additional_charge: additionalCharge,
+    additional_charge_label: additionalChargeLabel,
+    total_amount: totalAmount,
+    round_off: roundOff ? 1 : 0,
+  })
+  .eq("id", invoiceId)
+  .select(`
+    *,
+    parties (*),
+    sales_invoice_items (*)
+  `)
+  .single();
 
-      if (error) throw error;
+
+     if (error) {
+  console.error("Supabase error:", error);
+  throw error;
+}
+
       invoice = data;
 
       await supabase
-        .from("sales_invoice_items")
-        .delete()
-        .eq("invoice_id", invoiceId);
+  .from("sales_invoice_items")
+  .delete()
+  .eq("sales_invoice_id", invoiceId);
+
 
     } else {
       // CREATE
@@ -406,33 +421,45 @@ async function handleSave() {
       invoice = data;
     }
 
-    const invoiceItems = items.map((item) => ({
-      invoice_id: invoice.id,
-      item_id: item.item_id,
-      item_name: item.name,
-      hsn_sac: item.hsn_sac,
-      unit: item.unit,
-      quantity: item.quantity,
-      rate: item.rate,
-      total: item.total,
-      image_url: item.image_url,
-    }));
+const invoiceItems = items.map((item) => ({
+  sales_invoice_id: invoice.id, // ✅ MUST use this
+  item_id: item.item_id,
+  item_name: item.name,
+  hsn_sac: item.hsn_sac,
+  unit: item.unit,
+  quantity: item.quantity,
+  rate: item.rate,
+  total: item.total,
+  image_url: item.image_url ?? null,
+}));
 
-    const { error } = await supabase
-      .from("sales_invoice_items")
-      .insert(invoiceItems);
 
-    if (error) throw error;
+
+
+
+const { error } = await supabase
+  .from("sales_invoice_items")
+  .insert(invoiceItems);
+
+if (error) throw error;
+
 
     alert("Invoice saved successfully ✅");
     router.push("/dashboard/sales/sales-invoices");
 
-  } catch (err: any) {
-    console.error(err);
-    alert(err.message);
-  } finally {
-    setLoading(false);
-  }
+  } 
+  
+ catch (err: any) {
+  console.error("Supabase error:", err);
+
+  alert(
+    err?.message ||
+    err?.details ||
+    err?.hint ||
+    "Failed to save invoice"
+  );
+}
+
 }
 
 
