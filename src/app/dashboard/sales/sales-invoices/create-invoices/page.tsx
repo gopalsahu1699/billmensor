@@ -36,7 +36,7 @@ import { Calendar as DateCalendar } from "@/components/ui/calendar";
 
 
 /* ================= Page ================= */
-export default function CreateQuotationPage() {
+export default function CreateSalesInvoicePage() {
   /* ================= STATE ================= */
   const [loading, setLoading] = React.useState(false);
   const [selectedParty, setSelectedParty] = React.useState<any>(null);
@@ -55,7 +55,7 @@ const [parties, setParties] = React.useState<Party[]>([]);
   const [roundOff, setRoundOff] = React.useState(false);
   const [items, setItems] = React.useState<InvoiceItem[]>([]);
 const [priceType, setPriceType] = React.useState<PriceType>("selling");
-const [quotationDate, setQuotationDate] = React.useState(new Date());
+const [invoiceDate, setInvoiceDate] = React.useState(new Date());
   
   const [dueDate, setDueDate] = React.useState<Date>();
   
@@ -65,76 +65,71 @@ const [quotationDate, setQuotationDate] = React.useState(new Date());
 
 
 const searchParams = useSearchParams();
-const quotationId = searchParams.get("id");
+const invoiceId = searchParams.get("id");
 React.useEffect(() => {
-  if (!quotationId) return; // Creating new quotation, do nothing
+  if (!invoiceId) return;
 
-  const fetchQuotation = async () => {
+  const fetchInvoice = async () => {
     setLoading(true);
     try {
-      const { data: quotation, error: qError } = await supabase
-        .from("quotations")
+      const { data, error } = await supabase
+        .from("sales_invoices")
         .select(`
           *,
-          quotation_items (*),
+          sales_invoice_items (*),
           parties (*)
         `)
-        .eq("id", quotationId)
+        .eq("id", invoiceId)
         .single();
 
-      if (qError) throw qError;
-      if (!quotation) throw new Error("Quotation not found");
+      if (error) throw error;
 
-      // Populate party
       setSelectedParty({
-        id: quotation.party_id,
-        ...quotation.parties,
+        id: data.party_id,
+        ...data.parties,
       });
 
-      // Populate dates & terms
-      setQuotationDate(new Date(quotation.quotation_date));
-      setDueDate(quotation.due_date ? new Date(quotation.due_date) : undefined);
-      setTerms(quotation.terms || "");
+      setInvoiceDate(new Date(data.invoice_date));
+      setDueDate(data.due_date ? new Date(data.due_date) : undefined);
+      setTerms(data.terms || "");
 
-      // Populate items
-      const loadedItems: InvoiceItem[] = quotation.quotation_items.map((item: any) => ({
-        id: crypto.randomUUID(),
-        item_id: item.item_id,
-        name: item.item_name,
-        hsn_sac: item.hsn_sac,
-        quantity: item.quantity,
-        rate: item.rate,
-        total: item.total,
-        unit: item.unit,
-        priceType: "selling",
-        prices: {
-          selling: item.rate,
-          mrp: item.rate,
-          wholesale: item.rate,
-        },
-        stock_qty: 0,
-        image_url: item.image_url,
-      }));
+      setItems(
+        data.sales_invoice_items.map((item: any) => ({
+          id: crypto.randomUUID(),
+          item_id: item.item_id,
+          name: item.item_name,
+          hsn_sac: item.hsn_sac,
+          unit: item.unit,
+          quantity: item.quantity,
+          rate: item.rate,
+          total: item.total,
+          priceType: "selling",
+          prices: {
+            selling: item.rate,
+            mrp: item.rate,
+            wholesale: item.rate,
+          },
+          stock_qty: 0,
+          image_url: item.image_url,
+        }))
+      );
 
-      setItems(loadedItems);
-
-      // Optional: set discount, gstRate, additionalCharge, roundOff if stored in DB
-      setDiscountAmount(quotation.discount || 0);
-      setGstRate(quotation.gst_rate || 18);
-      setAdditionalCharge(quotation.additional_charge || 0);
-      setAdditionalChargeLabel(quotation.additional_charge_label || null);
-      setRoundOff(Boolean(quotation.round_off));
+      setDiscountAmount(data.discount || 0);
+      setGstRate(data.gst_rate || 18);
+      setAdditionalCharge(data.additional_charge || 0);
+      setRoundOff(Boolean(data.round_off));
 
     } catch (err) {
-      console.error("Failed to load quotation:", err);
-      alert("Failed to load quotation for editing");
+      console.error(err);
+      alert("Failed to load invoice");
     } finally {
       setLoading(false);
     }
   };
 
-  fetchQuotation();
-}, [quotationId]);
+  fetchInvoice();
+}, [invoiceId]);
+
 
 
   // Items state - FIXED
@@ -349,30 +344,24 @@ const router = useRouter(); // inside your component
 
 /* ================= SAVE TO SUPABASE ================= */
 async function handleSave() {
-  if (items.length === 0) {
-    alert("Please add at least one item");
-    return;
-  }
-  if (!selectedParty) {
-    alert("Please select a party");
-    return;
-  }
+  if (!selectedParty) return alert("Select party");
+  if (!items.length) return alert("Add items");
 
   setLoading(true);
   try {
-    let quotation;
+    let invoice;
 
-    if (quotationId) {
-      // EDIT: Update existing quotation
-      const { data: updatedQuote, error: updateError } = await supabase
-        .from("quotations")
+    if (invoiceId) {
+      // UPDATE
+      const { data, error } = await supabase
+        .from("sales_invoices")
         .update({
           party_id: selectedParty.id,
-          quotation_date: quotationDate,
+          invoice_date: invoiceDate,
           due_date: dueDate ?? null,
           terms,
-          subtotal: subtotal,
-          discount: discount,
+          subtotal,
+          discount,
           gst_rate: gstRate,
           gst_amount: gstAmount,
           additional_charge: additionalCharge,
@@ -380,32 +369,29 @@ async function handleSave() {
           total_amount: totalAmount,
           round_off: roundOff ? 1 : 0,
         })
-        .eq("id", quotationId)
+        .eq("id", invoiceId)
         .select()
         .single();
 
-      if (updateError) throw updateError;
-      quotation = updatedQuote;
+      if (error) throw error;
+      invoice = data;
 
-      // Delete old items first
-      const { error: deleteItemsError } = await supabase
-        .from("quotation_items")
+      await supabase
+        .from("sales_invoice_items")
         .delete()
-        .eq("quotation_id", quotationId);
-
-      if (deleteItemsError) throw deleteItemsError;
+        .eq("invoice_id", invoiceId);
 
     } else {
-      // CREATE: Insert new quotation
-      const { data: newQuote, error: insertError } = await supabase
-        .from("quotations")
+      // CREATE
+      const { data, error } = await supabase
+        .from("sales_invoices")
         .insert({
           party_id: selectedParty.id,
-          quotation_date: quotationDate,
+          invoice_date: invoiceDate,
           due_date: dueDate ?? null,
           terms,
-          subtotal: subtotal,
-          discount: discount,
+          subtotal,
+          discount,
           gst_rate: gstRate,
           gst_amount: gstAmount,
           additional_charge: additionalCharge,
@@ -416,41 +402,39 @@ async function handleSave() {
         .select()
         .single();
 
-      if (insertError) throw insertError;
-      quotation = newQuote;
+      if (error) throw error;
+      invoice = data;
     }
 
-    // Insert quotation items
-    const lineItems = items.map((item) => ({
-      quotation_id: quotation.id,
+    const invoiceItems = items.map((item) => ({
+      invoice_id: invoice.id,
       item_id: item.item_id,
       item_name: item.name,
       hsn_sac: item.hsn_sac,
-      unit: item.unit || "PCS",
-      quantity: Number(item.quantity),
-      rate: Number(item.rate),
-      total: Number(item.total),
-      image_url: item.image_url || null,
+      unit: item.unit,
+      quantity: item.quantity,
+      rate: item.rate,
+      total: item.total,
+      image_url: item.image_url,
     }));
 
-    const { error: itemsError } = await supabase
-      .from("quotation_items")
-      .insert(lineItems);
+    const { error } = await supabase
+      .from("sales_invoice_items")
+      .insert(invoiceItems);
 
-    if (itemsError) throw itemsError;
+    if (error) throw error;
 
-    alert("Quotation saved successfully ✅");
-
-    // Redirect to quotation list page
-    router.push("/dashboard/sales/quotation-estimate");
+    alert("Invoice saved successfully ✅");
+    router.push("/dashboard/sales/sales-invoices");
 
   } catch (err: any) {
-    console.error("Save error:", err);
-    alert(`Failed to save quotation: ${err.message}`);
+    console.error(err);
+    alert(err.message);
   } finally {
     setLoading(false);
   }
 }
+
 
 
 
@@ -462,16 +446,16 @@ async function handleSave() {
       {/* ================= Header ================= */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Create Quotation</h1>
-          <p className="text-sm text-muted-foreground">
-            Home / Quotation / Create
-          </p>
+         <h1 className="text-2xl font-semibold">Create Sales Invoice</h1>
+<p className="text-sm text-muted-foreground">
+  Home / Sales / Invoice / Create
+</p>
         </div>
 
         <div className="flex gap-2">
          <Button
   variant="outline"
-  onClick={() => router.push("/dashboard/sales/quotation-estimate")}
+  onClick={() => router.push("/dashboard/sales/sales-invoices")}
 >
   Cancel
 </Button>
@@ -502,12 +486,13 @@ async function handleSave() {
   {/* Date Card stays as-is */}
    <Card className="p-6 space-y-4">
     <div>
-      <label className="text-sm font-medium">Quotation Date</label>
+      <label className="text-sm font-medium">Invoice Date</label>
       <div className="relative mt-1">
         <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           readOnly
-          value={format(quotationDate, "dd MMM yyyy")}
+         value={format(invoiceDate, "dd MMM yyyy")}
+
           className="pl-9"
         />
       </div>

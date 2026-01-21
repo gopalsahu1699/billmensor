@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-export default function InvoiceDueDatePicker({
+export default function DueDatePicker({
   date,
   setDate,
 }: {
@@ -26,7 +26,7 @@ export default function InvoiceDueDatePicker({
           className="w-full justify-start text-left font-normal"
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "dd MMM yyyy") : "Invoice due date"}
+          {date ? format(date, "dd MMM yyyy") : "Select due date"}
         </Button>
       </PopoverTrigger>
 

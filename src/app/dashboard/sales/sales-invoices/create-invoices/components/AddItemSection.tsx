@@ -7,7 +7,6 @@ import { Barcode, X } from "lucide-react";
 
 type PriceType = "selling" | "mrp" | "wholesale";
 
-/* ================= DB ITEM ================= */
 interface DBItem {
   id: string;
   name: string;
@@ -21,7 +20,6 @@ interface DBItem {
   image_url?: string;
 }
 
-/* ================= INVOICE ITEM ================= */
 interface InvoiceItem {
   id: string;
   item_id: string;
@@ -39,7 +37,7 @@ interface InvoiceItem {
   total: number;
 }
 
-interface InvoiceItemSectionProps {
+interface AddItemSectionProps {
   items: InvoiceItem[];
   subtotal: number;
   availableItems: DBItem[];
@@ -53,8 +51,7 @@ interface InvoiceItemSectionProps {
   updateItemPriceType: (id: string, priceType: PriceType) => void;
 }
 
-/* ================= COMPONENT ================= */
-export default function InvoiceItemSection({
+export default function AddItemSection({
   items,
   subtotal,
   availableItems,
@@ -66,7 +63,7 @@ export default function InvoiceItemSection({
   deleteItem,
   updateItemQuantity,
   updateItemPriceType,
-}: InvoiceItemSectionProps) {
+}: AddItemSectionProps) {
   return (
     <Card className="p-4">
       <h3 className="font-medium mb-3">Invoice Items</h3>
@@ -75,14 +72,12 @@ export default function InvoiceItemSection({
         <Button variant="outline" onClick={() => setShowItemSearch(true)}>
           Add Items
         </Button>
-
         <Button variant="outline" disabled>
           <Barcode className="h-4 w-4 mr-2" />
           Scan Barcode
         </Button>
       </div>
 
-      {/* ================= ITEM SEARCH MODAL ================= */}
       {showItemSearch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-2xl max-h-[80vh] flex flex-col">
@@ -126,7 +121,6 @@ export default function InvoiceItemSection({
         </div>
       )}
 
-      {/* ================= ITEM TABLE ================= */}
       {items.length > 0 && (
         <table className="w-full border text-sm">
           <thead>
@@ -162,13 +156,10 @@ export default function InvoiceItemSection({
                 <td className="text-right">
                   <Input
                     type="number"
-                    min={1}
                     value={item.quantity}
+                    min={1}
                     onChange={(e) =>
-                      updateItemQuantity(
-                        item.id,
-                        Math.max(1, +e.target.value)
-                      )
+                      updateItemQuantity(item.id, Math.max(1, +e.target.value))
                     }
                     className="w-20 text-right"
                   />
@@ -178,19 +169,14 @@ export default function InvoiceItemSection({
                   <select
                     value={item.priceType}
                     onChange={(e) =>
-                      updateItemPriceType(
-                        item.id,
-                        e.target.value as PriceType
-                      )
+                      updateItemPriceType(item.id, e.target.value as PriceType)
                     }
                     className="border rounded px-2 py-1 text-xs"
                   >
                     <option value="selling">
                       Selling ₹{item.prices.selling}
                     </option>
-                    <option value="mrp">
-                      MRP ₹{item.prices.mrp}
-                    </option>
+                    <option value="mrp">MRP ₹{item.prices.mrp}</option>
                     <option value="wholesale">
                       Wholesale ₹{item.prices.wholesale}
                     </option>
