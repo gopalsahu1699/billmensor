@@ -38,12 +38,19 @@ type Quotation = {
   items: QuotationItem[];
 };
 
+type Company = {
+  company_name: string;
+  logo_url?: string;
+};
+
 export default function PrintQuotationPage() {
   const params = useParams();
   const quotationId = typeof params.id === "string" ? params.id : params.id?.[0];
 
+const [company, setCompany] = useState<Company | null>(null);
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const printedRef = useRef(false);
+  
 
   useEffect(() => {
     if (!quotationId) return;
@@ -106,6 +113,31 @@ export default function PrintQuotationPage() {
     fetchQuotation();
   }, [quotationId]);
 
+
+// Fetch company info
+ useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("company_settings")
+          .select("company_name, logo_url")
+          .single();
+
+        if (error) {
+          console.error("Error fetching company settings:", error);
+          return;
+        }
+
+        setCompany(data);
+      } catch (err) {
+        console.error("Failed to fetch company:", err);
+      }
+    };
+
+    fetchCompany();
+  }, []);
+
+   // ---------- AUTO PRINT ----------
   useEffect(() => {
     if (quotation && !printedRef.current) {
       printedRef.current = true;
@@ -113,37 +145,8 @@ export default function PrintQuotationPage() {
     }
   }, [quotation]);
 
-  if (!quotation) {
-    return <div className="p-6 text-center">Loading quotation…</div>;
-  }
-  const handlePrint = () => {
-  if (!quotation) return;
 
-  const printContent = document.getElementById("print-container")?.innerHTML;
-  if (!printContent) return;
-
-  const newWin = window.open("", "_blank");
-  if (!newWin) return;
-
-  newWin.document.write(`
-    <html>
-      <head>
-        <title>Quotation #${quotation.quotation_no}</title>
-        <style>
-          body { font-family: sans-serif; margin: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          table, th, td { border: 1px solid #ccc; }
-          th, td { padding: 4px; text-align: left; }
-        </style>
-      </head>
-      <body>${printContent}</body>
-    </html>
-  `);
-  newWin.document.close();
-  newWin.focus();
-  newWin.print();
-  newWin.close();
-};
+if (!quotation) return <div className="p-6 text-center">Loading quotation…</div>;
 
 
   return (
@@ -160,10 +163,17 @@ export default function PrintQuotationPage() {
           <p>Date: {quotation.quotation_date}</p>
           {quotation.due_date && <p>Due Date: {quotation.due_date}</p>}
         </div>
-        <div className="text-right">
-          <img src="/logo.png" alt="Logo" className="h-16 mb-1" />
-          <p className="font-medium">Your Company Name</p>
-        </div>
+       <div className="text-right">
+  {company?.logo_url && (
+    <img
+      src={company.logo_url}
+      alt="Company Logo"
+      className="w-40 object-contain"
+    />
+  )}
+  <p className="font-medium">{company?.company_name}</p>
+</div>
+
       </div>
 
       {/* Addresses */}
