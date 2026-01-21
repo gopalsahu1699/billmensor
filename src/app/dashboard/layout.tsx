@@ -1,5 +1,5 @@
 import Sidebar from "@/components/sidebar";
-import Header from "@/components/header";
+
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col">
-        <Header />
+       
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>

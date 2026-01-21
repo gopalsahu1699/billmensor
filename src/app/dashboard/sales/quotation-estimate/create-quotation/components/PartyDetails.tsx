@@ -7,6 +7,8 @@ import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+import Link from "next/link";
+
 export type Party = {
   id: string;
   name: string;
@@ -34,58 +36,9 @@ export default function PartyDetails({
   availableParties: Party[];
 }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newPartyName, setNewPartyName] = useState("");
-  const [newPartyPhone, setNewPartyPhone] = useState("");
-  const [newPartyGstin, setNewPartyGstin] = useState("");
-  const [loading, setLoading] = useState(false);
+
 
   /* ---------------- CREATE PARTY ---------------- */
-  const createParty = async () => {
-    if (!newPartyName.trim()) {
-      alert("Business name is required");
-      return;
-    }
-
-    setLoading(true);
-
-    const payload = {
-      name: newPartyName,                // ✅ IMPORTANT
-      business_name: newPartyName,
-      phone: newPartyPhone || null,
-      gstin: newPartyGstin || null,
-      party_type: "customer",            // ✅ satisfies CHECK
-      party_category: "customer",
-      is_active: true,
-    };
-
-    const { data, error } = await supabase
-      .from("parties")
-      .insert([payload])
-      .select()
-      .single();
-
-    setLoading(false);
-
-    if (error) {
-      console.error(error);
-      alert(error.message);
-      return;
-    }
-
-    setSelectedParty({
-      id: data.id,
-      name: data.business_name || data.name,
-      phone: data.phone,
-      gstin: data.gstin,
-      party_type: data.party_type,
-    });
-
-    setShowPartyModal(false);
-    setShowCreateForm(false);
-    setNewPartyName("");
-    setNewPartyPhone("");
-    setNewPartyGstin("");
-  };
 
   /* ---------------- UI ---------------- */
   return (
@@ -153,88 +106,58 @@ export default function PartyDetails({
               </Button>
             </div>
 
-            {!showCreateForm ? (
-              <>
-                <div className="p-4">
-                  <Input
-                    placeholder="Search by name, phone, GSTIN..."
-                    value={partySearch}
-                    onChange={(e) => setPartySearch(e.target.value)}
-                    autoFocus
-                  />
-                </div>
+           {/* Inline create party form disabled – redirecting to Parties page */}
+{!showCreateForm && (
+  <>
+    <div className="p-4">
+      <Input
+        placeholder="Search by name, phone, GSTIN..."
+        value={partySearch}
+        onChange={(e) => setPartySearch(e.target.value)}
+        autoFocus
+      />
+    </div>
 
-                <div className="flex-1 overflow-auto p-4 space-y-2">
-                  {availableParties.map((party) => (
-                    <Button
-                      key={party.id}
-                      variant="ghost"
-                      className="justify-start h-auto py-3 text-left w-full"
-                      onClick={() => {
-                        setSelectedParty(party);
-                        setShowPartyModal(false);
-                        setPartySearch("");
-                      }}
-                    >
-                      <div className="space-y-1">
-                        <div className="font-medium">{party.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {party.phone}
-                          {party.gstin && ` | GST: ${party.gstin}`}
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
+    <div className="flex-1 overflow-auto p-4 space-y-2">
+      {availableParties.map((party) => (
+        <Button
+          key={party.id}
+          variant="ghost"
+          className="justify-start h-auto py-3 text-left w-full"
+          onClick={() => {
+            setSelectedParty(party);
+            setShowPartyModal(false);
+            setPartySearch("");
+          }}
+        >
+          <div className="space-y-1">
+            <div className="font-medium">{party.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {party.phone}
+              {party.gstin && ` | GST: ${party.gstin}`}
+            </div>
+          </div>
+        </Button>
+      ))}
+    </div>
 
-                <div className="p-4 border-t">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setShowCreateForm(true)}
-                  >
-                    + Create New Party
-                  </Button>
-                </div>
-              </>
-            ) : (
-              /* CREATE FORM */
-              <div className="p-4 space-y-4">
-                <Input
-                  placeholder="Business Name *"
-                  value={newPartyName}
-                  onChange={(e) => setNewPartyName(e.target.value)}
-                  autoFocus
-                />
-                <Input
-                  placeholder="Phone"
-                  value={newPartyPhone}
-                  onChange={(e) => setNewPartyPhone(e.target.value)}
-                />
-                <Input
-                  placeholder="GSTIN"
-                  value={newPartyGstin}
-                  onChange={(e) => setNewPartyGstin(e.target.value)}
-                />
+    <div className="p-4 border-t">
+      <Link
+        href="/dashboard/parties/create-party"
+        className="w-full"
+        onClick={() => {
+          setShowPartyModal(false);
+          setPartySearch("");
+        }}
+      >
+        <Button variant="outline" className="w-full">
+          + Create New Party
+        </Button>
+      </Link>
+    </div>
+  </>
+)}
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setShowCreateForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={createParty}
-                    disabled={loading}
-                  >
-                    {loading ? "Saving..." : "Save Party"}
-                  </Button>
-                </div>
-              </div>
-            )}
           </Card>
         </div>
       )}

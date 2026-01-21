@@ -43,11 +43,25 @@ export default function CreateQuotationPage() {
   const [partySearch, setPartySearch] = React.useState("");
   
 const [showPartyModal, setShowPartyModal] = React.useState(false);
+ const [searchTerm, setSearchTerm] = React.useState("");
+  const [showItemSearch, setShowItemSearch] = React.useState(false);
+  const [availableItems, setAvailableItems] = React.useState<any[]>([]);
+const [parties, setParties] = React.useState<Party[]>([]);
 
+  const [discountPercent, setDiscountPercent] = React.useState(0);
+  const [discountAmount, setDiscountAmount] = React.useState(0);
+  const [gstRate, setGstRate] = React.useState(18);
+  const [additionalCharge, setAdditionalCharge] = React.useState(0);
+  const [roundOff, setRoundOff] = React.useState(false);
+  const [items, setItems] = React.useState<InvoiceItem[]>([]);
+const [priceType, setPriceType] = React.useState<PriceType>("selling");
+const [quotationDate, setQuotationDate] = React.useState(new Date());
   
   const [dueDate, setDueDate] = React.useState<Date>();
   
   const [terms, setTerms] = React.useState("");
+  const [additionalChargeLabel, setAdditionalChargeLabel] = React.useState("");
+
 
 
 const searchParams = useSearchParams();
@@ -108,6 +122,7 @@ React.useEffect(() => {
       setDiscountAmount(quotation.discount || 0);
       setGstRate(quotation.gst_rate || 18);
       setAdditionalCharge(quotation.additional_charge || 0);
+      setAdditionalChargeLabel(quotation.additional_charge_label || null);
       setRoundOff(Boolean(quotation.round_off));
 
     } catch (err) {
@@ -144,19 +159,7 @@ interface InvoiceItem {
   unit: string;
 }
 
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [showItemSearch, setShowItemSearch] = React.useState(false);
-  const [availableItems, setAvailableItems] = React.useState<any[]>([]);
-const [parties, setParties] = React.useState<Party[]>([]);
-
-  const [discountPercent, setDiscountPercent] = React.useState(0);
-  const [discountAmount, setDiscountAmount] = React.useState(0);
-  const [gstRate, setGstRate] = React.useState(18);
-  const [additionalCharge, setAdditionalCharge] = React.useState(0);
-  const [roundOff, setRoundOff] = React.useState(false);
-  const [items, setItems] = React.useState<InvoiceItem[]>([]);
-const [priceType, setPriceType] = React.useState<PriceType>("selling");
-const [quotationDate, setQuotationDate] = React.useState(new Date());
+ 
 
 
 /* ================= CALCULATIONS ================= */
@@ -373,6 +376,7 @@ async function handleSave() {
           gst_rate: gstRate,
           gst_amount: gstAmount,
           additional_charge: additionalCharge,
+          additional_charge_label: additionalChargeLabel,
           total_amount: totalAmount,
           round_off: roundOff ? 1 : 0,
         })
@@ -405,6 +409,7 @@ async function handleSave() {
           gst_rate: gstRate,
           gst_amount: gstAmount,
           additional_charge: additionalCharge,
+          additional_charge_label: additionalChargeLabel,
           total_amount: totalAmount,
           round_off: roundOff ? 1 : 0,
         })
@@ -606,23 +611,31 @@ async function handleSave() {
             <X className="h-4 w-4 text-muted-foreground" />
           </div>
 
-          {/* Additional Charges */}
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Enter charge (ex. Transport)"
-              onChange={(e) => setAdditionalCharge(+e.target.value || 0)}
-            />
-            <Input
-              placeholder="0"
-              className="w-24"
-              value={additionalCharge}
-              readOnly
-            />
-            <X
-              className="cursor-pointer"
-              onClick={() => setAdditionalCharge(0)}
-            />
-          </div>
+      
+        {/* Additional Charges */}
+<div className="flex items-center gap-2">
+  <Input
+    placeholder="Enter charge (ex. Transport)"
+    value={additionalChargeLabel}
+    onChange={(e) => setAdditionalChargeLabel(e.target.value)}
+  />
+
+  <Input
+    placeholder="0"
+    className="w-24"
+    value={additionalCharge}
+    onChange={(e) => setAdditionalCharge(Number(e.target.value) || 0)}
+  />
+
+  <X
+    className="cursor-pointer"
+    onClick={() => {
+      setAdditionalCharge(0);
+      setAdditionalChargeLabel("");
+    }}
+  />
+</div>
+
 
           {/* Round Off */}
           <div className="flex items-center gap-2">

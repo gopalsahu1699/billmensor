@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Head from "next/head";
 
 type QuotationItem = {
   id: string;
@@ -31,6 +32,7 @@ type Quotation = {
   gst_rate: number;
   gst_amount: number;
   additional_charge: number;
+  additional_charge_label: string;
   total_amount: number;
   terms?: string;
   items: QuotationItem[];
@@ -82,6 +84,7 @@ export default function PrintQuotationPage() {
           gst_rate: data.gst_rate ?? 0,
           gst_amount: data.gst_amount ?? 0,
           additional_charge: data.additional_charge ?? 0,
+          additional_charge_label : data.additional_charge_label  ?? "-",
           total_amount: data.total_amount ?? 0,
           terms: data.terms ?? "",
           items:
@@ -113,10 +116,43 @@ export default function PrintQuotationPage() {
   if (!quotation) {
     return <div className="p-6 text-center">Loading quotation…</div>;
   }
+  const handlePrint = () => {
+  if (!quotation) return;
+
+  const printContent = document.getElementById("print-container")?.innerHTML;
+  if (!printContent) return;
+
+  const newWin = window.open("", "_blank");
+  if (!newWin) return;
+
+  newWin.document.write(`
+    <html>
+      <head>
+        <title>Quotation #${quotation.quotation_no}</title>
+        <style>
+          body { font-family: sans-serif; margin: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          table, th, td { border: 1px solid #ccc; }
+          th, td { padding: 4px; text-align: left; }
+        </style>
+      </head>
+      <body>${printContent}</body>
+    </html>
+  `);
+  newWin.document.close();
+  newWin.focus();
+  newWin.print();
+  newWin.close();
+};
+
 
   return (
-    <div className="p-6 max-w-5xl mx-auto font-sans text-sm">
-      {/* Header */}
+    <>
+    <Head>
+  <title>Quotation #{quotation?.quotation_no}</title>
+</Head>
+    <div id="print-container" className="p-6 max-w-5xl mx-auto font-sans text-sm">
+   
       <div className="flex justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Quotation</h1>
@@ -186,27 +222,47 @@ export default function PrintQuotationPage() {
         </tbody>
       </table>
 
-      {/* Totals */}
-      <div className="mt-4 flex justify-end">
-        <div className="w-1/3 space-y-1">
-          <p className="flex justify-between">
-            <span>Subtotal</span>
-            <span>₹{quotation.subtotal.toFixed(2)}</span>
-          </p>
-          <p className="flex justify-between">
-            <span>Discount</span>
-            <span>₹{quotation.discount.toFixed(2)}</span>
-          </p>
-          <p className="flex justify-between">
-            <span>GST ({quotation.gst_rate}%)</span>
-            <span>₹{quotation.gst_amount.toFixed(2)}</span>
-          </p>
-          <p className="flex justify-between font-bold text-lg">
-            <span>Total</span>
-            <span>₹{quotation.total_amount.toFixed(2)}</span>
-          </p>
-        </div>
-      </div>
+      
+   {/* Totals */}
+<div className="mt-4 flex justify-end">
+  <div className="w-1/3 space-y-1">
+    <p className="flex justify-between">
+      <span>Subtotal</span>
+      <span>₹{quotation.subtotal.toFixed(2)}</span>
+    </p>
+
+   {quotation.discount > 0 && (
+  <p className="flex justify-between">
+    <span>Discount</span>
+    <span>₹{quotation.discount.toFixed(2)}</span>
+  </p>
+)}
+    <p className="flex justify-between">
+      <span>GST ({quotation.gst_rate}%)</span>
+      <span>₹{quotation.gst_amount.toFixed(2)}</span>
+    </p>
+
+    {quotation.additional_charge > 0 && (
+      
+      <p className="flex justify-between">
+        <span>
+      {quotation.additional_charge_label || "Additional Charges"}
+    </span>
+        <span>₹{quotation.additional_charge.toFixed(2)}</span>
+      </p>
+    )}
+
+
+
+    <hr className="my-1" />
+
+    <p className="flex justify-between font-bold text-lg">
+      <span>Total</span>
+      <span>₹{quotation.total_amount.toFixed(2)}</span>
+    </p>
+  </div>
+</div>
+
 
       {quotation.terms && (
         <div className="mt-6">
@@ -215,5 +271,25 @@ export default function PrintQuotationPage() {
         </div>
       )}
     </div>
+
+    <style jsx global>{`
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #print-container,
+    #print-container * {
+      visibility: visible;
+    }
+    #print-container {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+  }
+`}</style>
+</>
   );
+  
 }

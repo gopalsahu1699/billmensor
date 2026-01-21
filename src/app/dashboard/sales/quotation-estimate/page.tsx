@@ -193,6 +193,17 @@ const handleDelete = async (id: string) => {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
+                      <button
+  onClick={() =>
+    router.push(
+      `/dashboard/sales/sales-invoice/create?quotation_id=${q.id}`
+    )
+  }
+  className="p-2 rounded-md border hover:bg-gray-100"
+  title="Generate Invoice"
+>
+  Generate Invoice
+</button>
   <button
   onClick={() => handleDelete(q.id)}
   className="p-2 rounded-md border hover:bg-gray-100"
