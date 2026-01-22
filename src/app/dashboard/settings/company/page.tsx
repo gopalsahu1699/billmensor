@@ -27,6 +27,7 @@ export default function CompanySettingsPage() {
   business_type: string;
   industry_type: string;
   phone_number: string;
+  email_id: string;
   billing_address: string;
   place_of_supply: string;
  
@@ -50,6 +51,7 @@ const [bankLoading, setBankLoading] = useState(false);
   business_type: "",
   industry_type: "",
   phone_number: "",
+  email_id: "",
   billing_address: "",
   place_of_supply: "",
   terms_and_conditions: "",
@@ -92,6 +94,7 @@ const [bankLoading, setBankLoading] = useState(false);
       business_type: companyData.business_type ?? "",
       industry_type: companyData.industry_type ?? "",
       phone_number: companyData.phone_number ?? "",
+      email_id: companyData.email_id ?? "",
       billing_address: companyData.billing_address ?? "",
       place_of_supply: companyData.place_of_supply ?? "",
       terms_and_conditions: companyData.terms_and_conditions ?? "",
@@ -434,6 +437,29 @@ function removeId(index: number) {
                 </SelectContent>
               </Select>
 
+ <Input
+                placeholder="Email ID"
+                value={company.email_id}
+                onChange={(e) =>
+                  setCompany({ ...company, email_id: e.target.value })
+                }
+              />
+ <Select
+                value={company.place_of_supply || undefined}
+                onValueChange={(v) =>
+                  setCompany({ ...company, place_of_supply: v })
+                }
+              >
+                <SelectTrigger >
+                  <SelectValue placeholder="Place of Supply" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 - Chhattisgarh</SelectItem>
+                  <SelectItem value="24">24 - Gujarat</SelectItem>
+                  <SelectItem value="27">27 - Maharashtra</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Textarea
                 className="md:col-span-2"
                 placeholder="Billing Address"
@@ -443,21 +469,7 @@ function removeId(index: number) {
                 }
               />
 
-              <Select
-                value={company.place_of_supply || undefined}
-                onValueChange={(v) =>
-                  setCompany({ ...company, place_of_supply: v })
-                }
-              >
-                <SelectTrigger className="md:col-span-2">
-                  <SelectValue placeholder="Place of Supply" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 - Chhattisgarh</SelectItem>
-                  <SelectItem value="24">24 - Gujarat</SelectItem>
-                  <SelectItem value="27">27 - Maharashtra</SelectItem>
-                </SelectContent>
-              </Select>
+             
             </CardContent>
           </Card>
 
