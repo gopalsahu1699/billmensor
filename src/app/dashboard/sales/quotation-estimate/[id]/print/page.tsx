@@ -40,17 +40,33 @@ type Quotation = {
 
 type Company = {
   company_name: string;
-  logo_url?: string;
+  company_address?: string | null;
+  phone_number?: string | null;
+  email_id?: string | null;
+  logo_url?: string | null;
 };
 
-export default function PrintQuotationPage() {
+type BankDetails = {
+  account_number: string;
+  account_holder_name: string;
+  ifsc_code: string;
+  bank_branch_name: string;
+  upi_id?: string | null;
+};
+
+
+export default  function PrintQuotationPage() {
   const params = useParams();
   const quotationId = typeof params.id === "string" ? params.id : params.id?.[0];
+const [bank, setBank] = useState<BankDetails | null>(null);
 
 const [company, setCompany] = useState<Company | null>(null);
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const printedRef = useRef(false);
-  
+  const [ids, setIds] = useState<
+  { id_type: string; id_value: string; show_on_invoice: boolean }[]
+>([]);
+
 
   useEffect(() => {
     if (!quotationId) return;
@@ -120,7 +136,7 @@ const [company, setCompany] = useState<Company | null>(null);
       try {
         const { data, error } = await supabase
           .from("company_settings")
-          .select("company_name, logo_url")
+          .select("company_name, company_address, phone_number, email_id, logo_url")
           .single();
 
         if (error) {
@@ -136,6 +152,36 @@ const [company, setCompany] = useState<Company | null>(null);
 
     fetchCompany();
   }, []);
+
+useEffect(() => {
+  if (!company) return;
+
+  const fetchBank = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company_bank_details")
+        .select(
+          "account_number, account_holder_name, ifsc_code, bank_branch_name, upi_id"
+        )
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Bank fetch error:", error);
+        return;
+      }
+
+      setBank(data ?? null);
+    } catch (err) {
+      console.error("Failed to fetch bank:", err);
+    }
+  };
+
+  fetchBank();
+}, [company]);
+
+
+
+
 
    // ---------- AUTO PRINT ----------
   useEffect(() => {
@@ -163,16 +209,39 @@ if (!quotation) return <div className="p-6 text-center">Loading quotation…</di
           <p>Date: {quotation.quotation_date}</p>
           {quotation.due_date && <p>Due Date: {quotation.due_date}</p>}
         </div>
-       <div className="text-right">
+      <div className="text-right space-y-1">
   {company?.logo_url && (
     <img
       src={company.logo_url}
       alt="Company Logo"
-      className="w-40 object-contain"
+      className="w-40 ml-auto object-contain mb-2"
     />
   )}
-  <p className="font-medium">{company?.company_name}</p>
+
+  <p className="font-sm">
+    {company?.company_name}
+  </p>
+
+ 
+  {company?.company_address && (
+    <p className="text-sm  whitespace-pre-line">
+      {company.company_address}
+    </p>
+  )}
+
+  {company?.phone_number && (
+    <p className="text-sm">
+      📞 {company.phone_number}
+    </p>
+  )}
+
+  {company?.email_id && (
+    <p className="text-sm">
+      ✉️ {company.email_id}
+    </p>
+  )}
 </div>
+
 
       </div>
 
@@ -233,36 +302,67 @@ if (!quotation) return <div className="p-6 text-center">Loading quotation…</di
       </table>
 
       
-   {/* Totals */}
-<div className="mt-4 flex justify-end">
-  <div className="w-1/3 space-y-1">
+<div className="mt-6 flex justify-between items-start gap-8">
+  {/* LEFT – Bank Details */}
+ {bank && (
+  <div className="w-1/2 text-sm space-y-1">
+    <p className="font-semibold">Bank Details</p>
+
+    <p>
+      <span className="font-medium">Account Name:</span>{" "}
+      {bank.account_holder_name}
+    </p>
+
+    <p>
+      <span className="font-medium">Account No:</span>{" "}
+      {bank.account_number}
+    </p>
+
+    <p>
+      <span className="font-medium">IFSC:</span> {bank.ifsc_code}
+    </p>
+
+    <p>
+      <span className="font-medium">Bank:</span>{" "}
+      {bank.bank_branch_name}
+    </p>
+
+    {bank.upi_id && (
+      <p>
+        <span className="font-medium">UPI:</span> {bank.upi_id}
+      </p>
+    )}
+  </div>
+)}
+
+
+  {/* RIGHT – Totals */}
+  <div className="w-1/3 space-y-1 text-sm">
     <p className="flex justify-between">
       <span>Subtotal</span>
       <span>₹{quotation.subtotal.toFixed(2)}</span>
     </p>
 
-   {quotation.discount > 0 && (
-  <p className="flex justify-between">
-    <span>Discount</span>
-    <span>₹{quotation.discount.toFixed(2)}</span>
-  </p>
-)}
+    {quotation.discount > 0 && (
+      <p className="flex justify-between">
+        <span>Discount</span>
+        <span>₹{quotation.discount.toFixed(2)}</span>
+      </p>
+    )}
+
     <p className="flex justify-between">
       <span>GST ({quotation.gst_rate}%)</span>
       <span>₹{quotation.gst_amount.toFixed(2)}</span>
     </p>
 
     {quotation.additional_charge > 0 && (
-      
       <p className="flex justify-between">
         <span>
-      {quotation.additional_charge_label || "Additional Charges"}
-    </span>
+          {quotation.additional_charge_label || "Additional Charges"}
+        </span>
         <span>₹{quotation.additional_charge.toFixed(2)}</span>
       </p>
     )}
-
-
 
     <hr className="my-1" />
 
@@ -272,6 +372,7 @@ if (!quotation) return <div className="p-6 text-center">Loading quotation…</di
     </p>
   </div>
 </div>
+
 
 
       {quotation.terms && (

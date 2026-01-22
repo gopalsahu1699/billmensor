@@ -28,7 +28,7 @@ export default function CompanySettingsPage() {
   industry_type: string;
   phone_number: string;
   email_id: string;
-  billing_address: string;
+  company_address: string;
   place_of_supply: string;
  
   terms_and_conditions: string;
@@ -52,7 +52,7 @@ const [bankLoading, setBankLoading] = useState(false);
   industry_type: "",
   phone_number: "",
   email_id: "",
-  billing_address: "",
+  company_address: "",
   place_of_supply: "",
   terms_and_conditions: "",
   logo_url: null,
@@ -95,7 +95,7 @@ const [bankLoading, setBankLoading] = useState(false);
       industry_type: companyData.industry_type ?? "",
       phone_number: companyData.phone_number ?? "",
       email_id: companyData.email_id ?? "",
-      billing_address: companyData.billing_address ?? "",
+      company_address: companyData.company_address ?? "",
       place_of_supply: companyData.place_of_supply ?? "",
       terms_and_conditions: companyData.terms_and_conditions ?? "",
       logo_url: companyData.logo_url ?? null,
@@ -462,10 +462,10 @@ function removeId(index: number) {
 
               <Textarea
                 className="md:col-span-2"
-                placeholder="Billing Address"
-                value={company.billing_address}
+                placeholder="Company Address"
+                value={company.company_address}
                 onChange={(e) =>
-                  setCompany({ ...company, billing_address: e.target.value })
+                  setCompany({ ...company, company_address: e.target.value })
                 }
               />
 
