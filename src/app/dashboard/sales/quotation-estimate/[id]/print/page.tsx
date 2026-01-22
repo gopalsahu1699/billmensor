@@ -40,6 +40,7 @@ type Quotation = {
 
 type Company = {
   company_name: string;
+  gst_value: string;
   company_address?: string | null;
   phone_number?: string | null;
   email_id?: string | null;
@@ -136,7 +137,7 @@ const [company, setCompany] = useState<Company | null>(null);
       try {
         const { data, error } = await supabase
           .from("company_settings")
-          .select("company_name, company_address, phone_number, email_id, logo_url")
+          .select("company_name, company_address, phone_number, email_id, logo_url, gst_value")
           .single();
 
         if (error) {
@@ -223,6 +224,11 @@ if (!quotation) return <div className="p-6 text-center">Loading quotation…</di
   </p>
 
  
+  {company?.company_address && (
+    <p className="text-sm  whitespace-pre-line">
+      {company.gst_value}
+    </p>
+  )}
   {company?.company_address && (
     <p className="text-sm  whitespace-pre-line">
       {company.company_address}
