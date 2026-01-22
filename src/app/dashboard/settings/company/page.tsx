@@ -29,7 +29,7 @@ export default function CompanySettingsPage() {
   phone_number: string;
   billing_address: string;
   place_of_supply: string;
-  upi_id: string;
+ 
   terms_and_conditions: string;
 
   // 👇 ADD THESE
@@ -41,6 +41,7 @@ export default function CompanySettingsPage() {
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+const [bankLoading, setBankLoading] = useState(false);
 
   const [company, setCompany] = useState<CompanySettings>({
   company_name: "",
@@ -51,7 +52,6 @@ export default function CompanySettingsPage() {
   phone_number: "",
   billing_address: "",
   place_of_supply: "",
-  upi_id: "",
   terms_and_conditions: "",
   logo_url: null,
   signature_url: null,
@@ -63,6 +63,7 @@ export default function CompanySettingsPage() {
     account_holder_name: "",
     ifsc_code: "",
     bank_branch_name: "",
+    upi_id : "",
   });
 
   const [ids, setIds] = useState<
@@ -84,7 +85,19 @@ export default function CompanySettingsPage() {
       .single();
 
     if (companyData) {
-      setCompany(companyData);
+    setCompany({
+      company_name: companyData.company_name ?? "",
+      designation: companyData.designation ?? "",
+      company_website: companyData.company_website ?? "",
+      business_type: companyData.business_type ?? "",
+      industry_type: companyData.industry_type ?? "",
+      phone_number: companyData.phone_number ?? "",
+      billing_address: companyData.billing_address ?? "",
+      place_of_supply: companyData.place_of_supply ?? "",
+      terms_and_conditions: companyData.terms_and_conditions ?? "",
+      logo_url: companyData.logo_url ?? null,
+      signature_url: companyData.signature_url ?? null,
+    });
       setCompanyId(companyData.id);
 
       const { data: bankData } = await supabase
@@ -93,18 +106,36 @@ export default function CompanySettingsPage() {
         .eq("company_id", companyData.id)
         .single();
 
-      if (bankData) setBank(bankData);
+      if (bankData) {
+      setBank({
+        account_number: bankData.account_number ?? "",
+        account_holder_name: bankData.account_holder_name ?? "",
+        ifsc_code: bankData.ifsc_code ?? "",
+        bank_branch_name: bankData.bank_branch_name ?? "",
+        upi_id: bankData.upi_id ?? "",
+      });
+    }
 
       const { data: idData } = await supabase
         .from("company_identification_numbers")
         .select("*")
         .eq("company_id", companyData.id);
 
-      if (idData) setIds(idData);
+      if (idData) {
+  setIds(
+    idData.map((item) => ({
+      id_type: item.id_type ?? "",
+      id_value: item.id_value ?? "",
+      show_on_invoice: item.show_on_invoice ?? false,
+    }))
+  );
+}
     }
 
     setLoading(false);
   }
+
+
 async function uploadToCloudinary(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -183,6 +214,86 @@ async function handleSave() {
     setLoading(false);
   }
 }
+
+
+async function handleBankSave() {
+  if (!companyId) {
+    alert("Please save company details first");
+    return;
+  }
+
+  try {
+    setBankLoading(true);
+
+    const { data: existingBank } = await supabase
+      .from("company_bank_details")
+      .select("id")
+      .eq("company_id", companyId)
+      .single();
+
+    if (existingBank) {
+      // UPDATE
+      const { error } = await supabase
+        .from("company_bank_details")
+        .update({
+          account_number: bank.account_number,
+          account_holder_name: bank.account_holder_name,
+          ifsc_code: bank.ifsc_code,
+          bank_branch_name: bank.bank_branch_name,
+          upi_id: bank.upi_id,
+        })
+        .eq("company_id", companyId);
+
+      if (error) throw error;
+    } else {
+      // INSERT
+      const { error } = await supabase
+        .from("company_bank_details")
+        .insert({
+          company_id: companyId,
+          account_number: bank.account_number,
+          account_holder_name: bank.account_holder_name,
+          ifsc_code: bank.ifsc_code,
+          bank_branch_name: bank.bank_branch_name,
+          upi_id: bank.upi_id,
+        });
+
+      if (error) throw error;
+    }
+
+    alert("Bank details saved successfully");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save bank details");
+  } finally {
+    setBankLoading(false);
+  }
+}
+
+
+function addId() {
+  setIds((prev) => [
+    ...prev,
+    { id_type: "", id_value: "", show_on_invoice: false },
+  ]);
+}
+
+function updateId(
+  index: number,
+  key: "id_type" | "id_value" | "show_on_invoice",
+  value: string | boolean
+) {
+  setIds((prev) =>
+    prev.map((item, i) =>
+      i === index ? { ...item, [key]: value } : item
+    )
+  );
+}
+
+function removeId(index: number) {
+  setIds((prev) => prev.filter((_, i) => i !== index));
+}
+
 
   /* ---------------- UI ---------------- */
 
@@ -263,7 +374,7 @@ async function handleSave() {
               />
 
               <Select
-                value={company.designation}
+                value={company.designation || undefined}
                 onValueChange={(v) =>
                   setCompany({ ...company, designation: v })
                 }
@@ -286,7 +397,7 @@ async function handleSave() {
               />
 
               <Select
-                value={company.business_type}
+                value={company.business_type || undefined}
                 onValueChange={(v) =>
                   setCompany({ ...company, business_type: v })
                 }
@@ -333,7 +444,7 @@ async function handleSave() {
               />
 
               <Select
-                value={company.place_of_supply}
+                value={company.place_of_supply || undefined}
                 onValueChange={(v) =>
                   setCompany({ ...company, place_of_supply: v })
                 }
@@ -342,6 +453,7 @@ async function handleSave() {
                   <SelectValue placeholder="Place of Supply" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="10">10 - Chhattisgarh</SelectItem>
                   <SelectItem value="24">24 - Gujarat</SelectItem>
                   <SelectItem value="27">27 - Maharashtra</SelectItem>
                 </SelectContent>
@@ -351,37 +463,68 @@ async function handleSave() {
 
           {/* Business Identification Numbers (UI unchanged) */}
           <Card className="rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Business Identification Numbers</CardTitle>
-              <Button size="icon" variant="outline">
-                <Plus />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="CIN / GSTIN" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cin">CIN</SelectItem>
-                    <SelectItem value="gst">GSTIN</SelectItem>
-                  </SelectContent>
-                </Select>
+  <CardHeader className="flex flex-row items-center justify-between">
+    <CardTitle>Business Identification Numbers</CardTitle>
+    <Button size="icon" variant="outline" onClick={addId}>
+      <Plus />
+    </Button>
+  </CardHeader>
 
-                <Input placeholder="Enter Number" />
+  <CardContent className="space-y-4">
+    {ids.length === 0 && (
+      <p className="text-sm text-muted-foreground">
+        No identification numbers added
+      </p>
+    )}
 
-                <div className="flex items-center gap-2">
-                  <Switch />
-                  <span className="text-sm">Show on Invoice</span>
-                </div>
+    {ids.map((item, index) => (
+      <div
+        key={index}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center"
+      >
+        <Select
+          value={item.id_type || undefined}
+          onValueChange={(v) => updateId(index, "id_type", v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="CIN / GSTIN" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cin">CIN</SelectItem>
+            <SelectItem value="gst">GSTIN</SelectItem>
+          </SelectContent>
+        </Select>
 
-                <Button size="icon" variant="destructive">
-                  <Trash2 />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <Input
+          placeholder="Enter Number"
+          value={item.id_value}
+          onChange={(e) =>
+            updateId(index, "id_value", e.target.value)
+          }
+        />
+
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={item.show_on_invoice}
+            onCheckedChange={(v) =>
+              updateId(index, "show_on_invoice", v)
+            }
+          />
+          <span className="text-sm">Show on Invoice</span>
+        </div>
+
+        <Button
+          size="icon"
+          variant="destructive"
+          onClick={() => removeId(index)}
+        >
+          <Trash2 />
+        </Button>
+      </div>
+    ))}
+  </CardContent>
+</Card>
+
         </div>
 
         {/* RIGHT SECTION */}
@@ -394,6 +537,7 @@ async function handleSave() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 className="md:col-span-2"
+                disabled={!companyId}
                 placeholder="Account Number"
                 value={bank.account_number}
                 onChange={(e) =>
@@ -431,20 +575,33 @@ async function handleSave() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>UPI Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                placeholder="Enter UPI ID"
-                value={company.upi_id}
-                onChange={(e) =>
-                  setCompany({ ...company, upi_id: e.target.value })
-                }
-              />
-            </CardContent>
-          </Card>
+         <Card className="rounded-2xl">
+  <CardHeader>
+    <CardTitle>UPI Details</CardTitle>
+  </CardHeader>
+
+  <CardContent className="space-y-4">
+    <Input
+      placeholder="Enter UPI ID"
+      value={bank.upi_id}
+      onChange={(e) =>
+        setBank({ ...bank, upi_id: e.target.value })
+      }
+      disabled={!companyId}
+    />
+
+    <div className="flex justify-end">
+      <Button
+        size="sm"
+        onClick={handleBankSave}
+        disabled={bankLoading || !companyId}
+      >
+        {bankLoading ? "Saving..." : "Save UPI"}
+      </Button>
+    </div>
+  </CardContent>
+</Card>
+
 
           <Card className="rounded-2xl">
             <CardHeader>
