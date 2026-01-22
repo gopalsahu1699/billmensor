@@ -354,7 +354,7 @@ useEffect(() => {
     {invoice.additional_charge > 0 && (
       <p className="flex justify-between">
         <span>
-          {invoice.additional_charge_label || "Additional Charges"}
+          {invoice.additional_charge_label}
         </span>
         <span>₹{invoice.additional_charge.toFixed(2)}</span>
       </p>

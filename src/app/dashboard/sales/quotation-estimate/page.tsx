@@ -196,7 +196,7 @@ const handleDelete = async (id: string) => {
                       <button
   onClick={() =>
     router.push(
-      `/dashboard/sales/sales-invoice/create?quotation_id=${q.id}`
+      `/dashboard/sales/sales-invoices/create-invoices?quotation_id=${q.id}`
     )
   }
   className="p-2 rounded-md border hover:bg-gray-100"

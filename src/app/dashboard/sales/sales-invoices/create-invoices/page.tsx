@@ -65,6 +65,104 @@ const [invoiceDate, setInvoiceDate] = React.useState(new Date());
 
 const searchParams = useSearchParams();
 const invoiceId = searchParams.get("invoiceId");
+const quotationId = searchParams.get("quotation_id");
+
+React.useEffect(() => {
+  if (!quotationId || invoiceId) return;
+
+  const fetchQuotation = async () => {
+    setLoading(true);
+
+    try {
+      // 1️⃣ Fetch quotation
+      const { data: quotation, error: qErr } = await supabase
+        .from("quotations")
+        .select("*")
+        .eq("id", quotationId)
+        .single();
+
+      if (qErr) {
+  console.error("Quotation fetch error:", qErr);
+  throw qErr;
+}
+
+if (!quotation) {
+  throw new Error("Quotation not found");
+}
+
+
+      // 2️⃣ Fetch party
+      const { data: party, error: pErr } = await supabase
+        .from("parties")
+        .select("*")
+        .eq("id", quotation.party_id)
+        .single();
+
+      if (pErr) throw pErr;
+
+      // 3️⃣ Fetch quotation items
+      const { data: qItems, error: iErr } = await supabase
+        .from("quotation_items")
+        .select("*")
+        .eq("quotation_id", quotationId);
+
+      if (iErr) throw iErr;
+
+      /* ================= PREFILL STATE ================= */
+
+      setSelectedParty({
+        id: quotation.party_id,
+        ...party,
+      });
+
+      setInvoiceDate(new Date());
+      setDueDate(undefined);
+      setTerms(quotation.terms || "");
+
+      setItems(
+        (qItems || []).map((item: any) => ({
+          id: crypto.randomUUID(),
+          item_id: item.item_id,
+          name: item.item_name,
+          hsn_sac: item.hsn_sac,
+          unit: item.unit ?? "PCS",
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          total: Number(item.total),
+          priceType: "selling",
+          prices: {
+            selling: Number(item.rate),
+            mrp: Number(item.rate),
+            wholesale: Number(item.rate),
+          },
+          stock_qty: 0,
+          image_url: item.image_url,
+        }))
+      );
+
+      setDiscountAmount(quotation.discount || 0);
+      setDiscountPercent(0);
+      setGstRate(quotation.gst_rate || 18);
+      setAdditionalCharge(quotation.additional_charge || 0);
+      setAdditionalChargeLabel(
+        quotation.additional_charge_label || ""
+      );
+      setRoundOff(false);
+
+    } catch (err) {
+      console.error("Quotation load failed:", err);
+      alert("Failed to load quotation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchQuotation();
+}, [quotationId, invoiceId]);
+
+
+
+
 React.useEffect(() => {
   if (!invoiceId) return;
 
@@ -473,7 +571,14 @@ if (error) throw error;
       {/* ================= Header ================= */}
       <div className="flex items-center justify-between">
         <div>
-         <h1 className="text-2xl font-semibold">Create Sales Invoice</h1>
+         <h1 className="text-2xl font-semibold">
+  {invoiceId
+    ? "Edit Sales Invoice"
+    : quotationId
+    ? "Create Invoice from Quotation"
+    : "Create Sales Invoice"}
+</h1>
+
 <p className="text-sm text-muted-foreground">
   Home / Sales / Invoice / Create
 </p>
