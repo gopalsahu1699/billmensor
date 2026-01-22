@@ -41,6 +41,24 @@ type SalesInvoice = {
   items: InvoiceItem[];
 };
 
+type Company = {
+  company_name: string;
+  gst_value: string;
+  company_address?: string | null;
+  phone_number?: string | null;
+  email_id?: string | null;
+  logo_url?: string | null;
+};
+
+type BankDetails = {
+  account_number: string;
+  account_holder_name: string;
+  ifsc_code: string;
+  bank_branch_name: string;
+  upi_id?: string | null;
+};
+
+
 export default function PrintSalesInvoicePage() {
   const params = useParams();
   const invoiceId =
@@ -48,6 +66,27 @@ export default function PrintSalesInvoicePage() {
 
   const [invoice, setInvoice] = useState<SalesInvoice | null>(null);
   const printedRef = useRef(false);
+const [bank, setBank] = useState<BankDetails | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+
+useEffect(() => {
+  const fetchCompany = async () => {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("company_name, company_address, phone_number, email_id, logo_url, gst_value")
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch company:", error);
+      return;
+    }
+
+    setCompany(data);
+  };
+
+  fetchCompany();
+}, []);
+
 
   /* ================= FETCH INVOICE ================= */
   useEffect(() => {
@@ -119,6 +158,33 @@ export default function PrintSalesInvoicePage() {
     fetchInvoice();
   }, [invoiceId]);
 
+
+  useEffect(() => {
+  if (!company) return;
+
+  const fetchBank = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company_bank_details")
+        .select(
+          "account_number, account_holder_name, ifsc_code, bank_branch_name, upi_id"
+        )
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Bank fetch error:", error);
+        return;
+      }
+
+      setBank(data ?? null);
+    } catch (err) {
+      console.error("Failed to fetch bank:", err);
+    }
+  };
+
+  fetchBank();
+}, [company]);
+
   /* ================= AUTO PRINT ================= */
   useEffect(() => {
     if (invoice && !printedRef.current) {
@@ -150,10 +216,21 @@ export default function PrintSalesInvoicePage() {
             {invoice.due_date && <p>Due Date: {invoice.due_date}</p>}
           </div>
 
-          <div className="text-right">
-            <img src="/logo.png" alt="Logo" className="h-16 mb-1" />
-            <p className="font-medium">Your Company Name</p>
-          </div>
+         <div className="text-right space-y-1">
+  {company?.logo_url && (
+    <img
+      src={company.logo_url}
+      alt="Company Logo"
+      className="w-40 ml-auto object-contain mb-2"
+    />
+  )}
+  <p className="font-medium">{company?.company_name}</p>
+  {company?.gst_value && <p>GSTIN: {company.gst_value}</p>}
+  {company?.company_address && <p>{company.company_address}</p>}
+  {company?.phone_number && <p>📞 {company.phone_number}</p>}
+  {company?.email_id && <p>✉️ {company.email_id}</p>}
+</div>
+
         </div>
 
         {/* ================= ADDRESSES ================= */}
@@ -221,43 +298,76 @@ export default function PrintSalesInvoicePage() {
           </tbody>
         </table>
 
-        {/* ================= TOTALS ================= */}
-        <div className="mt-4 flex justify-end">
-          <div className="w-1/3 space-y-1">
-            <p className="flex justify-between">
-              <span>Subtotal</span>
-              <span>₹{invoice.subtotal.toFixed(2)}</span>
-            </p>
+      <div className="mt-6 flex justify-between items-start gap-8">
+  {/* LEFT – Bank Details */}
+ {bank && (
+  <div className="w-1/2 text-sm space-y-1">
+    <p className="font-semibold">Bank Details</p>
 
-            {invoice.discount > 0 && (
-              <p className="flex justify-between">
-                <span>Discount</span>
-                <span>₹{invoice.discount.toFixed(2)}</span>
-              </p>
-            )}
+    <p>
+      <span className="font-medium">Account Name:</span>{" "}
+      {bank.account_holder_name}
+    </p>
 
-            <p className="flex justify-between">
-              <span>GST ({invoice.gst_rate}%)</span>
-              <span>₹{invoice.gst_amount.toFixed(2)}</span>
-            </p>
+    <p>
+      <span className="font-medium">Account No:</span>{" "}
+      {bank.account_number}
+    </p>
 
-            {invoice.additional_charge > 0 && (
-              <p className="flex justify-between">
-                <span>{invoice.additional_charge_label}</span>
-                <span>
-                  ₹{invoice.additional_charge.toFixed(2)}
-                </span>
-              </p>
-            )}
+    <p>
+      <span className="font-medium">IFSC:</span> {bank.ifsc_code}
+    </p>
 
-            <hr />
+    <p>
+      <span className="font-medium">Bank:</span>{" "}
+      {bank.bank_branch_name}
+    </p>
 
-            <p className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span>₹{invoice.total_amount.toFixed(2)}</span>
-            </p>
-          </div>
-        </div>
+    {bank.upi_id && (
+      <p>
+        <span className="font-medium">UPI:</span> {bank.upi_id}
+      </p>
+    )}
+  </div>
+)}
+
+
+  {/* RIGHT – Totals */}
+  <div className="w-1/3 space-y-1 text-sm">
+    <p className="flex justify-between">
+      <span>Subtotal</span>
+      <span>₹{invoice.subtotal.toFixed(2)}</span>
+    </p>
+
+    {invoice.discount > 0 && (
+      <p className="flex justify-between">
+        <span>Discount</span>
+        <span>₹{invoice.discount.toFixed(2)}</span>
+      </p>
+    )}
+
+    <p className="flex justify-between">
+      <span>GST ({invoice.gst_rate}%)</span>
+      <span>₹{invoice.gst_amount.toFixed(2)}</span>
+    </p>
+
+    {invoice.additional_charge > 0 && (
+      <p className="flex justify-between">
+        <span>
+          {invoice.additional_charge_label || "Additional Charges"}
+        </span>
+        <span>₹{invoice.additional_charge.toFixed(2)}</span>
+      </p>
+    )}
+
+    <hr className="my-1" />
+
+    <p className="flex justify-between font-bold text-lg">
+      <span>Total</span>
+      <span>₹{invoice.total_amount.toFixed(2)}</span>
+    </p>
+  </div>
+</div>
 
         {/* ================= TERMS ================= */}
         {invoice.terms && (

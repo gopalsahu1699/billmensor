@@ -226,7 +226,7 @@ if (!quotation) return <div className="p-6 text-center">Loading quotation…</di
  
   {company?.company_address && (
     <p className="text-sm  whitespace-pre-line">
-      {company.gst_value}
+      GSTIN : {company.gst_value}
     </p>
   )}
   {company?.company_address && (
