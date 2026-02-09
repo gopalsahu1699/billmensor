@@ -1,21 +1,22 @@
+"use client";
+
+import { useState } from "react";
 import Sidebar from "@/components/sidebar";
+import Header from "@/components/header";
 
-
-interface DashboardLayoutProps {
+export default function DashboardLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
+}) {
+  const [open, setOpen] = useState(false);
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-screen bg-muted/40">
-      {/* Sidebar */}
-      <aside className="hidden md:block">
-        <Sidebar />
-      </aside>
+      <Sidebar open={open} setOpen={setOpen} />
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col">
-       
+        <Header onMenuClick={() => setOpen(true)} />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
