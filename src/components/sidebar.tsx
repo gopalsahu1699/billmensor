@@ -39,7 +39,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 min-h-screen bg-slate-900 text-white">
       <div className="p-4 text-xl font-bold border-b border-white/10">
-        Khata Billing
+        Billmensor
       </div>
 
       <nav className="p-2 space-y-1 text-sm">
