@@ -1,9 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, Pencil, Printer, Trash } from "lucide-react";
+import { Search, Plus, Pencil, Printer, Trash, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useSearchParams  } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
 
 /* ================= Types ================= */
 type Quotation = {
@@ -18,12 +31,10 @@ type Quotation = {
 export default function QuotationEstimateClient() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState(true);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-const id = searchParams.get("id"); // will be null if creating
 
   /* ================= Fetch Quotations ================= */
   const fetchQuotations = async () => {
@@ -44,6 +55,7 @@ const id = searchParams.get("id"); // will be null if creating
 
     if (error) {
       console.error("Supabase error:", error.message);
+      toast.error("Failed to load quotations");
       setLoading(false);
       return;
     }
@@ -71,160 +83,194 @@ const id = searchParams.get("id"); // will be null if creating
       q.quotation_no?.toLowerCase().includes(search.toLowerCase()) ||
       q.party_name?.toLowerCase().includes(search.toLowerCase())
   );
-/* ================= Delete Quotation ================= */
-const handleDelete = async (id: string) => {
-  if (!confirm("Are you sure you want to delete this quotation?")) return;
 
-  const { error } = await supabase
-    .from("quotations")
-    .delete()
-    .eq("id", id);
+  /* ================= Delete Quotation ================= */
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this quotation?")) return;
 
-  if (error) {
-    console.error("Failed to delete quotation:", error.message);
-    alert("Failed to delete quotation");
-    return;
-  }
+    const { error } = await supabase.from("quotations").delete().eq("id", id);
 
-  // Remove from local state
-  setQuotations((prev) => prev.filter((q) => q.id !== id));
-};
+    if (error) {
+      console.error("Failed to delete quotation:", error.message);
+      toast.error("Failed to delete quotation");
+      return;
+    }
+
+    // Remove from local state
+    setQuotations((prev) => prev.filter((q) => q.id !== id));
+    toast.success("Quotation deleted successfully");
+  };
 
   /* ================= UI ================= */
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-800">Quotation</h1>
-        <p className="text-sm text-gray-500">
-          <span className="text-blue-600">Home</span> / Quotation
+        <h1 className="text-2xl font-semibold tracking-tight">Quotations</h1>
+        <p className="text-sm text-muted-foreground">
+          Home / Sales / Quotations
         </p>
       </div>
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search quotation"
-            className="w-full border rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search quotation..."
+            className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <button
+        <Button
           onClick={() =>
-            router.push(
-              "/dashboard/sales/quotation-estimate/create-quotation"
-            )
+            router.push("/dashboard/sales/quotation-estimate/create-quotation")
           }
-          className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Create New Quotation
-        </button>
+        </Button>
+      </div>
+
+      {/* Summary Cards (Optional - calculated from client state) */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Quotations
+            </CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{quotations.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+            <span className="text-muted-foreground font-bold">₹</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{" "}
+              {quotations
+                .reduce((sum, q) => sum + (q.total_amount || 0), 0)
+                .toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Table */}
-      <div className="bg-white border rounded-md overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left px-4 py-3 border-b">Date</th>
-              <th className="text-left px-4 py-3 border-b">Quotation No</th>
-              <th className="text-left px-4 py-3 border-b">Party Name</th>
-              <th className="text-right px-4 py-3 border-b">Amount</th>
-              <th className="text-center px-4 py-3 border-b">Actions</th>
-            </tr>
-          </thead>
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>Date</TableHead>
+              <TableHead>Quotation No</TableHead>
+              <TableHead>Party Name</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody>
+          <TableBody>
             {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-6 text-gray-500">
+              <TableRow>
+                <TableCell colSpan={5} className="text-center h-24">
                   Loading quotations...
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-6 text-gray-500">
-                  No data available
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center h-24">
+                  No quotations found.
+                </TableCell>
+              </TableRow>
             ) : (
               filtered.map((q) => (
-                <tr key={q.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">
+                <TableRow key={q.id}>
+                  <TableCell>
                     {new Date(q.quotation_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-blue-600 font-medium">
+                  </TableCell>
+                  <TableCell className="font-medium text-blue-600">
                     {q.quotation_no}
-                  </td>
-                  <td className="px-4 py-3">{q.party_name}</td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell>{q.party_name}</TableCell>
+                  <TableCell className="text-right font-medium">
                     ₹ {q.total_amount.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center gap-2">
-                      {/* View */}
-                 <button
-  onClick={() =>
-    router.push(`/dashboard/sales/quotation-estimate/create-quotation?id=${q.id}`)
-  }
-  className="p-2 rounded-md border hover:bg-gray-100"
-  title="Edit Quotation"
->
-  <Pencil className="h-4 w-4" />
-</button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/sales/quotation-estimate/create-quotation?id=${q.id}`
+                          )
+                        }
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
 
-
-                      {/* Print */}
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() =>
                           window.open(
                             `/dashboard/sales/quotation-estimate/${q.id}/print`,
                             "_blank"
                           )
                         }
-                        className="p-2 rounded-md border hover:bg-gray-100"
-                        title="Print Quotation"
+                        title="Print"
                       >
-                        <Printer className="h-4 w-4" />
-                      </button>
-                      <button
-  onClick={() =>
-    router.push(
-      `/dashboard/sales/sales-invoices/create-invoices?quotation_id=${q.id}`
-    )
-  }
-  className="p-2 rounded-md border hover:bg-gray-100"
-  title="Generate Invoice"
->
-  Generate Invoice
-</button>
-  <button
-  onClick={() => handleDelete(q.id)}
-  className="p-2 rounded-md border hover:bg-gray-100"
-  title="Delete Quotation"
->
-  <Trash className="h-4 w-4" />
-</button>
+                        <Printer className="h-4 w-4 text-muted-foreground" />
+                      </Button>
 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/sales/sales-invoices/create-invoices?quotation_id=${q.id}`
+                          )
+                        }
+                        title="Convert to Invoice"
+                        className="hidden md:inline-flex text-xs h-8"
+                      >
+                        Convert to Invoice
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(q.id)}
+                        title="Delete"
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
 
-      {/* Footer */}
-      <div className="flex justify-end text-sm font-medium">
-        Total {filtered.length} records
-      </div>
+        {/* Footer */}
+        <div className="bg-muted/20 p-4 border-t text-xs text-muted-foreground text-right">
+          Showing {filtered.length} records
+        </div>
+      </Card>
     </div>
   );
 }
