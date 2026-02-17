@@ -1,5 +1,4 @@
 "use client";
-import { UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
@@ -18,6 +17,9 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { ThemeToggle } from "./theme-toggle";
 
 /* ================= TYPES ================= */
 
@@ -53,6 +55,7 @@ interface SubLinkProps {
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [salesOpen, setSalesOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -106,21 +109,24 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-100 w-80 max-w-[calc(100vw-2rem)] min-h-screen
-          bg-slate-900/95 backdrop-blur-xl border-r border-white/10 shadow-2xl
+          bg-slate-900 dark:bg-slate-950 border-r border-slate-200 dark:border-white/10 shadow-2xl
           transform transition-all duration-300 ease-out
           ${isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
-          md:translate-x-0 md:static md:w-64 md:shadow-none md:border-r-0
+          md:translate-x-0 md:static md:w-64 md:shadow-none md:border-r
           supports-[backdrop-filter:blur(20px)]:backdrop-blur-xl
         `}
       >
         {/* Header */}
-        <div className="sticky top-0 z-20 p-6 pb-4 text-xl font-bold bg-slate-900 border-b border-white/10">
-          <div className="flex items-center gap-3 text-white">Billmensor</div>
+        <div className="sticky top-0 z-20 p-6 pb-6 bg-slate-900 dark:bg-slate-950 border-b border-slate-200 dark:border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20 text-white">B</div>
+            <span className="text-xl font-bold tracking-tight text-white">BillMensor</span>
+          </div>
         </div>
 
         {/* Navigation */}
         <nav className="p-4 pt-2 space-y-2 text-sm overflow-y-auto h-[calc(100vh-8rem)] scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900 md:h-auto md:pb-8">
-          
+
           {/* Main Links */}
           <div className="space-y-1.5 mb-4">
             <SidebarLink
@@ -227,14 +233,30 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               <SubLink href="/dashboard/settings/business-card" label="Business Card 👑" onClick={closeMobileMenu} />
             </Dropdown>
           </div>
-          <div className="mt-6 pt-6 border-t border-white/10">
-          <UserButton afterSignOutUrl="/" />
+
+          <div className="mt-2 space-y-1">
+            <ThemeToggle />
           </div>
-          
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            {/* Placeholder for Logout */}
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.refresh();
+                router.push('/login');
+              }}
+              className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 text-slate-300 hover:bg-white/5 hover:text-white"
+            >
+              <div className="shrink-0 w-5 h-5"><X size={18} strokeWidth={2} /></div>
+              <span>Logout</span>
+            </button>
+          </div>
+
         </nav>
-         
+
       </aside>
-      
+
     </>
   );
 }
@@ -319,8 +341,8 @@ function SubLink({ href, label, onClick }: SubLinkProps) {
     >
       <span className="truncate">{label}</span>
     </Link>
-    
-    
+
+
   );
-  
+
 }

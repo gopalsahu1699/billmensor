@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CompanySettingsPage() {
   type CompanySettings = {
@@ -142,17 +143,17 @@ export default function CompanySettingsPage() {
         const { error } = await supabase.from("company_settings").update(company).eq("id", companyId);
         if (error) throw error;
       }
-      alert("Company settings saved successfully");
+      toast.success("Company settings saved successfully");
     } catch (err) {
       console.error(err);
-      alert("Failed to save company settings");
+      toast.error("Failed to save company settings");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleBankSave() {
-    if (!companyId) return alert("Please save company details first");
+    if (!companyId) return toast.error("Please save company details first");
     try {
       setBankLoading(true);
       const { data: existingBank } = await supabase
@@ -174,10 +175,10 @@ export default function CompanySettingsPage() {
         if (error) throw error;
       }
 
-      alert("Bank details saved successfully");
+      toast.success("Bank details saved successfully");
     } catch (err) {
       console.error(err);
-      alert("Failed to save bank details");
+      toast.error("Failed to save bank details");
     } finally {
       setBankLoading(false);
     }

@@ -115,11 +115,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+@layer utilities {
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl;
   }
-  body {
-    @apply bg-background text-foreground;
+  
+  .glass-dark {
+    @apply bg-slate-950/50 backdrop-blur-2xl border border-white/10 shadow-2xl;
   }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-linear-to-b from-white to-slate-400;
+  }
+
+  .premium-shadow {
+    box-shadow: 0 0 50px -12px rgba(59, 130, 246, 0.25);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
