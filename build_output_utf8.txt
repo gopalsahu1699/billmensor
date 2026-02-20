@@ -1,0 +1,1877 @@
+﻿
+> billmensor-app@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.1.6
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+node.exe : 
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (:String) [], Remo  
+  teException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+Failed to compile.
+
+./src/app/dashboard/customers/crea
+te/page.tsx
+29:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchCustomer'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+50:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+82:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/customers/page
+.tsx
+11:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+28:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+47:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/customers/[id]
+/page.tsx
+8:57  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+15:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+20:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchCustomerDetails'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+41:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/delivery-chall
+ans/create/page.tsx
+8:10  Warning: 'Truck' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+14:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+33:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+34:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+55:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchChallanForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+106:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+110:31  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+122:74  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+168:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+318:121  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+318:130  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+
+./src/app/dashboard/delivery-chall
+ans/page.tsx
+8:24  Warning: 'Download' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:34  Warning: 'Edit' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+13:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+40:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/delivery-chall
+ans/[id]/page.tsx
+7:8  Warning: 'Link' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'Card' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:40  Warning: 'Share2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+10:69  Warning: 'Package' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+16:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+17:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchChallan'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+44:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+44:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+57:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+76:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+148:37  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+199:64  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/expenses/creat
+e/page.tsx
+26:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchExpense'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+44:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+80:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/expenses/page.
+tsx
+11:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+32:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+51:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/expenses/[id]/
+page.tsx
+18:5  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+19:5  Warning: 'Hash' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+25:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+30:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchExpense'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+43:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+43:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+64:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/invoices/creat
+e/page.tsx
+6:10  Warning: 'Button' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'Receipt' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:19  Warning: 'Save' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+15:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+43:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+44:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+74:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchInvoiceForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+97:62  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+110:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+110:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+120:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'calculateTotals'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+130:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+130:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+156:31  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+293:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/invoices/page.
+tsx
+11:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+31:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/invoices/[id]/
+page.tsx
+8:40  Warning: 'RotateCcw' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+18:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+19:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+20:52  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+21:40  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+58:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchInvoiceDetails'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+110:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+128:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+137:26  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+167:27  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+186:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+214:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+378:45  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+541:57  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/page.tsx
+6:10  Warning: 'Loader2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:29  Warning: 'Send' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+6:35  Warning: 'CreditCard' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:47  Warning: 'Wallet' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:67  Warning: 'TrendingUp' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:79  Warning: 'TrendingDown' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+15:58  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+16:58  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+37:68  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+37:79  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+38:64  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+38:75  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+49:50  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+371:81  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+393:45  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+402:24  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-in/cr
+eate/page.tsx
+8:10  Warning: 'Wallet' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:64  Warning: 'Hash' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+18:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+37:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchPaymentForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+122:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-in/pa
+ge.tsx
+8:47  Warning: 'CreditCard' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+13:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+40:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-in/[i
+d]/page.tsx
+15:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+16:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+24:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchPayment'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+54:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+54:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+76:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+122:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-out/c
+reate/page.tsx
+8:10  Warning: 'Wallet' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+18:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+37:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchPaymentForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+123:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-out/p
+age.tsx
+8:56  Warning: 'CreditCard' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+13:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+40:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/payments-out/[
+id]/page.tsx
+15:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+16:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+24:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchPayment'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+54:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+54:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+76:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+111:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+124:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/pos/page.tsx
+13:5  Warning: 'User' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+18:5  Warning: 'CreditCard' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+19:5  Warning: 'Wallet' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+20:5  Warning: 'Banknote' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+24:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+27:11  Warning: 'router' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+28:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+29:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+30:38  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+32:12  Warning: 'loading' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+33:62  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+53:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+65:33  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+145:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/print/CompactT
+emplate.tsx
+6:11  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+7:14  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+8:12  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+9:15  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/products/adjus
+tments/page.tsx
+8:16  Warning: 'Package' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:45  Warning: 'History' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+18:52  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+19:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+43:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+85:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/products/creat
+e/page.tsx
+35:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchProduct'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+61:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+93:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+139:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+186:41  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/products/page.
+tsx
+11:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+28:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+47:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/products/[id]/
+page.tsx
+11:5  Warning: 'Package' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+18:5  Warning: 'Trash2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+19:5  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+20:5  Warning: 'Tag' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+21:5  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+23:5  Warning: 'CheckCircle2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+42:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+48:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchProductData'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+151:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/purchases/crea
+te/page.tsx
+6:10  Warning: 'Button' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:24  Warning: 'Save' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:30  Warning: 'ShoppingCart' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:44  Warning: 'Search' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:52  Warning: 'User' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:58  Warning: 'Package' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:67  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+15:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+36:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+37:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+59:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchPurchaseForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+76:63  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+87:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+87:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+97:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'calculateTotals'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+107:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+107:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+127:31  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+285:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/purchases/page
+.tsx
+11:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+31:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/purchases/[id]
+/page.tsx
+7:8  Warning: 'Link' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'Card' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:68  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+10:78  Warning: 'Hash' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:84  Warning: 'Truck' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+16:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+17:40  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+18:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+23:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchPurchase'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+53:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+53:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+71:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+81:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+101:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+177:37  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/quotations/cre
+ate/page.tsx
+34:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+35:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+64:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 
+'fetchQuotationForEdit'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+86:62  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+99:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+99:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+109:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'calculateTotals'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+119:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+119:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+145:31  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+275:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/quotations/pag
+e.tsx
+10:50  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/quotations/[id
+]/page.tsx
+10:65  Warning: 'FileText' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+18:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+19:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+20:40  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+55:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchQuotation'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+90:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+90:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+171:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+183:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+192:26  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+222:27  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+259:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+420:45  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+539:151  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+553:57  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/reports/ca-aud
+it/page.tsx
+7:10  Warning: 'Card' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+8:40  Warning: 'Share2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:81  Warning: 'Filter' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:89  Warning: 'Banknote' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+15:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:122  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+23:74  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+24:105  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+25:49  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+25:66  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+31:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchAuditData'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+74:122  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+91:70  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+106:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+106:63  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+137:103  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+147:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+147:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+158:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+333:97  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+354:37  Error: `"` can be escaped 
+with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+354:214  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+
+./src/app/dashboard/reports/expens
+es/page.tsx
+7:10  Warning: 'Wallet' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchExpenses'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+36:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+60:27  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+68:70  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+68:78  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+148:67  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/gstr1-
+json/page.tsx
+7:37  Warning: 'Download' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:47  Warning: 'Filter' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:55  Warning: 'Search' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchInvoices'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+45:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+88:34  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+91:51  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+115:61  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+142:58  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+164:18  Warning: 'err' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+
+./src/app/dashboard/reports/gstr3b
+/page.tsx
+7:46  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:59  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:12  Warning: 'profile' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+14:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+19:50  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+27:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchTaxSummary'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+151:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+151:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/page.t
+sx
+203:118  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+203:126  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+203:131  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+203:137  Error: `"` can be 
+escaped with `&quot;`, `&ldquo;`, 
+`&#34;`, `&rdquo;`.  
+react/no-unescaped-entities
+212:24  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/party-
+ledgers/page.tsx
+7:10  Warning: 'Users' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+7:17  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:59  Warning: 'ArrowRightLeft' 
+is defined but never used.  
+@typescript-eslint/no-unused-vars
+7:89  Warning: 'CreditCard' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+16:42  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+58:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/pl-inv
+oice/page.tsx
+7:36  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:72  Warning: 'Search' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:80  Warning: 'Filter' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+24:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchPLData'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+61:51  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+91:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+117:11  Warning: 'totalMargin' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+267:24  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/pl-sto
+ck/page.tsx
+7:10  Warning: 'PieChart' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:32  Warning: 'TrendingDown' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:46  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:59  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+29:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'calculateStockPL'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+98:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+
+./src/app/dashboard/reports/sales-
+performance/page.tsx
+7:31  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+14:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchItemStats'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+44:29  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+67:64  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+74:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/reports/stock-
+summary/page.tsx
+6:16  Warning: 'CardHeader' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:28  Warning: 'CardTitle' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+6:52  Warning: 'CardDescription' 
+is defined but never used.  
+@typescript-eslint/no-unused-vars
+14:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+31:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+31:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+214:24  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/returns/create
+/page.tsx
+6:10  Warning: 'Button' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:24  Warning: 'Save' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:30  Warning: 'RotateCcw' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:41  Warning: 'Search' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+9:49  Warning: 'IndianRupee' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+20:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+21:12  Warning: 'customers' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+21:23  Warning: 'setCustomers' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+21:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+22:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+27:40  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+44:8  Warning: React Hook 
+useEffect has missing 
+dependencies: 'fetchInitialData', 
+'fetchReturnForEdit', and 
+'generateReturnNumber'. Either 
+include them or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+61:61  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+72:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+72:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+82:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'calculateTotals'. 
+Either include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+93:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+93:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+115:31  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+129:50  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+250:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/returns/page.t
+sx
+11:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+31:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/dashboard/returns/[id]/p
+age.tsx
+7:8  Warning: 'Link' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+9:10  Warning: 'Card' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:65  Warning: 'Calendar' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+10:75  Warning: 'Hash' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:81  Warning: 'User' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+16:48  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+17:40  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+18:44  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+23:8  Warning: React Hook 
+useEffect has a missing 
+dependency: 'fetchReturn'. Either 
+include it or remove the 
+dependency array.  
+react-hooks/exhaustive-deps
+53:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+53:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+66:18  Warning: 'error' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+83:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+151:37  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/settings/accou
+nt/page.tsx
+10:5  Warning: 'Globe' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+20:5  Warning: 'Briefcase' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+21:5  Warning: 'Factory' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+32:12  Warning: 'profileId' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+126:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+156:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+190:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+225:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+317:41  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+328:41  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/dashboard/settings/print
+/page.tsx
+22:10  Warning: 'Button' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+23:10  Warning: 'Card' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+23:16  Warning: 'CardContent' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+88:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+113:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+256:65  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/layout.tsx
+30:9  Warning: Custom fonts not 
+added in `pages/_document.js` 
+will only load for a single page. 
+This is discouraged. See: https://
+nextjs.org/docs/messages/no-page-c
+ustom-font  
+@next/next/no-page-custom-font
+31:9  Warning: Custom fonts not 
+added in `pages/_document.js` 
+will only load for a single page. 
+This is discouraged. See: https://
+nextjs.org/docs/messages/no-page-c
+ustom-font  
+@next/next/no-page-custom-font
+
+./src/app/login/page.tsx
+33:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/app/page.tsx
+8:22  Warning: 'CheckCircle2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+8:60  Warning: 'Users' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+8:67  Warning: 'Star' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+11:36  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+137:15  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/app/register/page.tsx
+25:21  Warning: 'data' is 
+assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+39:25  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/components/layout/navbar.tsx
+5:45  Warning: 'User' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+7:10  Warning: 'cn' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+10:38  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/components/layout/sidebar.ts
+x
+9:5  Warning: 'Tag' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+17:5  Warning: 'Menu' is defined 
+but never used.  
+@typescript-eslint/no-unused-vars
+25:10  Warning: 'ThemeToggle' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+47:11  Warning: 'DropdownProps' 
+is defined but never used.  
+@typescript-eslint/no-unused-vars
+57:11  Warning: 'SubLinkProps' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+74:9  Error: Error: Calling 
+setState synchronously within an 
+effect can trigger cascading 
+renders
+
+Effects are intended to 
+synchronize state between React 
+and external systems such as 
+manually updating the DOM, state 
+management libraries, or other 
+platform APIs. In general, the 
+body of an effect should do one 
+or both of the following:
+* Update external systems with 
+the latest state from React.
+* Subscribe for updates from some 
+external system, calling setState 
+in a callback function when 
+external state changes.
+
+Calling setState synchronously 
+within an effect body causes 
+cascading renders that can hurt 
+performance, and is not 
+recommended. (https://react.dev/le
+arn/you-might-not-need-an-effect).
+
+D:\web software developement\khata
+\src\components\layout\sidebar.tsx
+:74:9
+  72 |
+  73 |     useEffect(() => {
+> 74 |         setIsMounted(true);
+     |         ^^^^^^^^^^^^ Avoid 
+calling setState() directly 
+within an effect
+  75 |         setSalesOpen(pathna
+me.startsWith("/dashboard/sales") 
+|| pathname.includes("/invoices") 
+|| 
+pathname.includes("/quotations"));
+  76 |         setPurchaseOpen(pat
+hname.startsWith("/dashboard/purch
+ase") || 
+pathname.includes("/purchases"));
+  77 |         setSettingsOpen(pat
+hname.startsWith("/dashboard/setti
+ngs"));  
+react-hooks/set-state-in-effect
+312:98  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+363:51  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+./src/components/layout/theme-togg
+le.tsx
+12:9  Error: Error: Calling 
+setState synchronously within an 
+effect can trigger cascading 
+renders
+
+Effects are intended to 
+synchronize state between React 
+and external systems such as 
+manually updating the DOM, state 
+management libraries, or other 
+platform APIs. In general, the 
+body of an effect should do one 
+or both of the following:
+* Update external systems with 
+the latest state from React.
+* Subscribe for updates from some 
+external system, calling setState 
+in a callback function when 
+external state changes.
+
+Calling setState synchronously 
+within an effect body causes 
+cascading renders that can hurt 
+performance, and is not 
+recommended. (https://react.dev/le
+arn/you-might-not-need-an-effect).
+
+D:\web software developement\khata
+\src\components\layout\theme-toggl
+e.tsx:12:9
+  10 |         const isDark = 
+localStorage.getItem('theme') === 
+'dark' ||
+  11 |             
+(!localStorage.getItem('theme') 
+&& window.matchMedia('(prefers-col
+or-scheme: dark)').matches)
+> 12 |         setDarkMode(isDark)
+     |         ^^^^^^^^^^^ Avoid 
+calling setState() directly 
+within an effect
+  13 |         if (isDark) {
+  14 |             document.docume
+ntElement.classList.add('dark')
+  15 |         }  
+react-hooks/set-state-in-effect
+
+./src/components/print/CompactTemp
+late.tsx
+6:11  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+7:14  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+8:19  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+9:12  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+10:15  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+32:25  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+226:37  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/components/print/Professiona
+lTemplate.tsx
+4:10  Warning: 'QrCode' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+7:11  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+8:14  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+9:19  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+10:12  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+11:15  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+26:25  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+205:116  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+233:37  Warning: Using `<img>` 
+could result in slower LCP and 
+higher bandwidth. Consider using 
+`<Image />` from `next/image` or 
+a custom image loader to 
+automatically optimize images. 
+This may incur additional usage 
+or cost from your provider. See: h
+ttps://nextjs.org/docs/messages/no
+-img-element  
+@next/next/no-img-element
+
+./src/components/ui/input.tsx
+9:18  Error: An interface 
+declaring no members is 
+equivalent to its supertype.  @typ
+escript-eslint/no-empty-object-typ
+e
+
+./src/components/ui/SelectorModal.
+tsx
+5:21  Warning: 'Loader2' is 
+defined but never used.  
+@typescript-eslint/no-unused-vars
+39:13  Error: Error: Calling 
+setState synchronously within an 
+effect can trigger cascading 
+renders
+
+Effects are intended to 
+synchronize state between React 
+and external systems such as 
+manually updating the DOM, state 
+management libraries, or other 
+platform APIs. In general, the 
+body of an effect should do one 
+or both of the following:
+* Update external systems with 
+the latest state from React.
+* Subscribe for updates from some 
+external system, calling setState 
+in a callback function when 
+external state changes.
+
+Calling setState synchronously 
+within an effect body causes 
+cascading renders that can hurt 
+performance, and is not 
+recommended. (https://react.dev/le
+arn/you-might-not-need-an-effect).
+
+D:\web software developement\khata
+\src\components\ui\SelectorModal.t
+sx:39:13
+  37 |     useEffect(() => {
+  38 |         if (isOpen) {
+> 39 |             setSearch('')
+     |             ^^^^^^^^^ 
+Avoid calling setState() directly 
+within an effect
+  40 |             
+setFilteredItems(items)
+  41 |             setTimeout(() 
+=> inputRef.current?.focus(), 100)
+  42 |         }  
+react-hooks/set-state-in-effect
+48:13  Error: Error: Calling 
+setState synchronously within an 
+effect can trigger cascading 
+renders
+
+Effects are intended to 
+synchronize state between React 
+and external systems such as 
+manually updating the DOM, state 
+management libraries, or other 
+platform APIs. In general, the 
+body of an effect should do one 
+or both of the following:
+* Update external systems with 
+the latest state from React.
+* Subscribe for updates from some 
+external system, calling setState 
+in a callback function when 
+external state changes.
+
+Calling setState synchronously 
+within an effect body causes 
+cascading renders that can hurt 
+performance, and is not 
+recommended. (https://react.dev/le
+arn/you-might-not-need-an-effect).
+
+D:\web software developement\khata
+\src\components\ui\SelectorModal.t
+sx:48:13
+  46 |         const query = 
+search.toLowerCase()
+  47 |         if (!query) {
+> 48 |             
+setFilteredItems(items)
+     |             
+^^^^^^^^^^^^^^^^ Avoid calling 
+setState() directly within an 
+effect
+  49 |             return
+  50 |         }
+  51 |  
+react-hooks/set-state-in-effect
+
+./src/components/ui/textarea.tsx
+4:18  Error: An interface 
+declaring no members is 
+equivalent to its supertype.  @typ
+escript-eslint/no-empty-object-typ
+e
+
+./src/lib/excel-utils.ts
+5:37  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+35:46  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+42:35  Error: Unexpected any. 
+Specify a different type.  
+@typescript-eslint/no-explicit-any
+
+info  - Need to disable some 
+ESLint rules? Learn more here: htt
+ps://nextjs.org/docs/app/api-refer
+ence/config/eslint#disabling-rules

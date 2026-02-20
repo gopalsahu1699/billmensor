@@ -2,18 +2,34 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3, Users, Star } from "lucide-react";
 
 export default function LandingPage() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/30">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-slate-950/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20">B</div>
-            <span className="text-2xl font-bold tracking-tight">BillMensor</span>
+          <div className="flex items-center gap-2 text-blue-500">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20 text-white">B</div>
+            <span className="text-2xl font-bold tracking-tight">Billmensor</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
@@ -21,12 +37,22 @@ export default function LandingPage() {
             <a href="#about" className="hover:text-blue-400 transition-colors">About</a>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 px-6">Get Started</Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 px-6">
+                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Sign In</Button>
+                </Link>
+                <Link href="/register">
+                  <Button className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 px-6">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -76,17 +102,28 @@ export default function LandingPage() {
             transition={{ delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/signup">
-              <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
-                Start Free Trial
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link href="/demo">
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-2xl border-white/10 hover:bg-white/5">
-                View Live Demo
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/register">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
+                    Start Free Trial
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+                <Link href="/demo">
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-2xl border-white/10 hover:bg-white/5 hover:text-white">
+                    View Live Demo
+                  </Button>
+                </Link>
+              </>
+            )}
           </motion.div>
 
           {/* Dashboard Preview */}
@@ -168,9 +205,9 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-20 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold">B</div>
-            <span className="text-xl font-bold">BillMensor</span>
+          <div className="flex items-center justify-center gap-2 mb-8 text-blue-500">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">B</div>
+            <span className="text-xl font-bold">Billmensor</span>
           </div>
           <p className="text-slate-500 text-sm mb-8 italic">Crafted with precision for modern Indian entrepreneurs.</p>
           <div className="flex justify-center gap-8 text-sm text-slate-400">
@@ -183,3 +220,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
