@@ -271,7 +271,8 @@ function CreateQuotationForm() {
                     igst: 0, // Placeholder
                     tax_amount: item.tax_amount,
                     discount: item.discount,
-                    total: item.total
+                    total: item.total,
+                    image_url: item.image_url || null,
                 }))
             }
 

@@ -75,9 +75,13 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
                     throw new Error('Invalid document type')
             }
 
+            const selectQuery = tableName === 'purchases'
+                ? '*, suppliers:customers!supplier_id(*)'
+                : '*, customers(*)';
+
             const { data: docData, error: docError } = await supabase
                 .from(tableName as 'invoices' | 'quotations' | 'delivery_challans' | 'purchases' | 'returns')
-                .select('*, customers(*), suppliers:supplier_id(*)')
+                .select(selectQuery)
                 .eq('id', id)
                 .single()
 
