@@ -173,9 +173,17 @@ export function ModernTemplate({
                                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 mb-1">
                                     Terms & Conditions
                                 </p>
-                                <p className="text-[11px] text-slate-700">
-                                    {profile?.terms_and_conditions || 'Goods once sold will not be taken back.'}
-                                </p>
+                                <div className="text-[11px] text-slate-700">
+                                    {profile?.terms_and_conditions ? (
+                                        <ul className="list-disc pl-3 space-y-0.5">
+                                            {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                                <li key={i}>{term.trim()}</li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p>Goods once sold will not be taken back.</p>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

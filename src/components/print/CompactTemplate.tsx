@@ -60,6 +60,14 @@ export function CompactTemplate({
                             (isInvoice ? data.invoice_date : data.quotation_date) || new Date()
                         ).toLocaleDateString('en-IN')}
                     </p>
+                    {isInvoice && (
+                        <div className={`mt-2 inline-block px-3 py-0.5 border rounded-full text-[11px] font-bold uppercase ${data.payment_status?.toLowerCase() === 'paid'
+                                ? 'bg-green-50 border-green-200 text-green-700'
+                                : 'bg-orange-50 border-orange-200 text-orange-700'
+                            }`}>
+                            {data.payment_status || 'Unpaid'}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -165,7 +173,17 @@ export function CompactTemplate({
                     {settings.show_terms && (
                         <>
                             <h4 className="font-bold mt-3">Terms & Conditions:</h4>
-                            <p>{profile?.terms_and_conditions}</p>
+                            <div className="text-[12px]">
+                                {profile?.terms_and_conditions ? (
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                            <li key={i}>{term.trim()}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p>Goods once sold will not be taken back.</p>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>

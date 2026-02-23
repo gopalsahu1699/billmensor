@@ -163,10 +163,17 @@ export function ProfessionalTemplate({
                     {settings.show_terms && (
                         <div>
                             <p className="font-bold text-[14px] mb-2">Terms & Conditions:</p>
-                            <p className="text-[12px] leading-relaxed">
-                                {profile?.terms_and_conditions ||
-                                    '1. Goods once sold will not be taken back. 2. Payment due within 15 days.'}
-                            </p>
+                            <div className="text-[12px] leading-relaxed">
+                                {profile?.terms_and_conditions ? (
+                                    <ul className="list-decimal pl-4 space-y-1">
+                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                            <li key={i}>{term.trim()}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p>1. Goods once sold will not be taken back.</p>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
