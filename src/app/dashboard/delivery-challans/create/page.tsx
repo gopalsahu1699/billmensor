@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 
 interface ChallanItem {
@@ -15,6 +16,12 @@ interface ChallanItem {
     name: string
     quantity: number
     unit_price: number
+    tax_rate: number
+    cgst: number
+    sgst: number
+    igst: number
+    tax_amount: number
+    discount: number
     total: number
 }
 
@@ -47,6 +54,7 @@ function CreateChallanForm() {
     const [loading, setLoading] = useState(false)
     const [customers, setCustomers] = useState<Customer[]>([])
     const [products, setProducts] = useState<Product[]>([])
+    const [profile, setProfile] = useState<Profile | null>(null)
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [challanNumber, setChallanNumber] = useState('')
@@ -55,19 +63,60 @@ function CreateChallanForm() {
     const [items, setItems] = useState<ChallanItem[]>([])
     const [notes, setNotes] = useState('')
 
+    // Totals
+    const [subtotal, setSubtotal] = useState(0)
+    const [taxTotal, setTaxTotal] = useState(0)
+    const [cgstTotal, setCgstTotal] = useState(0)
+    const [sgstTotal, setSgstTotal] = useState(0)
+    const [igstTotal, setIgstTotal] = useState(0)
+    const [discount, setDiscount] = useState(0)
+    const [roundOff, setRoundOff] = useState(0)
+    const [grandTotal, setGrandTotal] = useState(0)
+
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
 
-    const totalAmount = items.reduce((acc, item) => acc + item.total, 0)
+    const calculateTotals = React.useCallback(() => {
+        let taxableTotal = 0
+        let t = 0
+        let cgst = 0
+        let sgst = 0
+        let igst = 0
+
+        items.forEach(item => {
+            const itemTaxable = (item.unit_price * item.quantity) - (item.discount || 0)
+            taxableTotal += itemTaxable
+            t += item.tax_amount
+            cgst += item.cgst || 0
+            sgst += item.sgst || 0
+            igst += item.igst || 0
+        })
+
+        setSubtotal(taxableTotal)
+        setTaxTotal(t)
+        setCgstTotal(cgst)
+        setSgstTotal(sgst)
+        setIgstTotal(igst)
+
+        // Grand Total = Sum of (Taxable Amount + Tax) - General Discount + Round Off
+        const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
+        setGrandTotal(itemsTotal - discount + roundOff)
+    }, [items, discount, roundOff])
+
+    useEffect(() => {
+        calculateTotals()
+    }, [calculateTotals])
 
     const fetchInitialData = React.useCallback(async () => {
         try {
-            const [custRes, prodRes] = await Promise.all([
+            const [custRes, prodRes, profileRes] = await Promise.all([
                 supabase.from('customers').select('*').order('name'),
-                supabase.from('products').select('*').order('name')
+                supabase.from('products').select('*').order('name'),
+                supabase.from('profiles').select('*').single()
             ])
             setCustomers((custRes.data as Customer[]) || [])
             setProducts((prodRes.data as Product[]) || [])
+            setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
             toast.error('Failed to load data')
@@ -87,7 +136,7 @@ function CreateChallanForm() {
 
         if (data && data.length > 0) {
             const parts = data[0].challan_number.split('-')
-            const lastCounter = parseInt(parts[2]) || 0
+            const lastCounter = parseInt(parts[parts.length - 1]) || 0
             setChallanNumber(`${prefix}${(lastCounter + 1).toString().padStart(3, '0')}`)
         } else {
             setChallanNumber(`${prefix}001`)
@@ -111,8 +160,16 @@ function CreateChallanForm() {
             setChallanDate(data.challan_date)
             setStatus(data.status)
             setNotes(data.notes || '')
-            // items stored in DB as JSONB
-            setItems((data.items || []).map((item: ChallanItem) => ({ ...item, id: item.id || Math.random().toString(36).substr(2, 9) })))
+            setItems((data.items || []).map((item: ChallanItem) => ({
+                ...item,
+                id: item.id || Math.random().toString(36).substr(2, 9),
+                cgst: item.cgst || 0,
+                sgst: item.sgst || 0,
+                igst: item.igst || 0,
+                discount: item.discount || 0
+            })))
+            setDiscount(data.discount || 0)
+            setRoundOff(data.round_off || 0)
         } catch (error: unknown) {
             console.error('Fetch challan for edit error:', error)
             toast.error('Failed to load challan for editing')
@@ -138,16 +195,44 @@ function CreateChallanForm() {
             name: product.name,
             quantity: 1,
             unit_price: product.price,
-            total: product.price
+            tax_rate: product.tax_rate,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
+            tax_amount: (product.price * product.tax_rate) / 100,
+            discount: 0,
+            total: product.price + (product.price * product.tax_rate) / 100
         }
         setItems(prev => [...prev, newItem])
     }
 
-    const updateItem = (itemId: string, field: keyof ChallanItem, value: string | number) => {
+    const updateItem = (itemId: string, updates: Partial<ChallanItem>) => {
         setItems(prev => prev.map(item => {
             if (item.id !== itemId) return item
-            const updated = { ...item, [field]: value }
-            updated.total = (updated.quantity || 0) * (updated.unit_price || 0)
+            const updated = { ...item, ...updates }
+
+            // Calculate item total
+            const base = updated.quantity * updated.unit_price
+            const taxableAmount = base - (updated.discount || 0)
+            const tax = (taxableAmount * updated.tax_rate) / 100
+
+            // Determine CGST/SGST vs IGST
+            const customer = customers.find(c => c.id === selectedCustomerId)
+            const isInterState = profile?.state && customer?.supply_place &&
+                profile.state.toLowerCase() !== customer.supply_place.toLowerCase()
+
+            if (isInterState) {
+                updated.igst = Number(tax.toFixed(2))
+                updated.cgst = 0
+                updated.sgst = 0
+            } else {
+                updated.igst = 0
+                updated.cgst = Number((tax / 2).toFixed(2))
+                updated.sgst = Number((tax / 2).toFixed(2))
+            }
+
+            updated.tax_amount = Number(tax.toFixed(2))
+            updated.total = Number((taxableAmount + tax).toFixed(2))
             return updated
         }))
     }
@@ -171,7 +256,14 @@ function CreateChallanForm() {
                 challan_number: challanNumber,
                 challan_date: challanDate,
                 status,
-                total_amount: totalAmount,
+                subtotal,
+                tax_total: taxTotal,
+                cgst_total: cgstTotal,
+                sgst_total: sgstTotal,
+                igst_total: igstTotal,
+                discount,
+                round_off: roundOff,
+                total_amount: grandTotal,
                 items,
                 billing_address: customer?.billing_address || null,
                 shipping_address: customer?.shipping_address || null,
@@ -257,8 +349,8 @@ function CreateChallanForm() {
                                     searchKeys={['name', 'phone', 'email']}
                                     valueKey="id"
                                     selectedValue={selectedCustomerId}
-                                    onSelect={(c) => setSelectedCustomerId(c.id)}
-                                    renderItem={(c) => (
+                                    onSelect={(c: Customer) => setSelectedCustomerId(c.id)}
+                                    renderItem={(c: Customer) => (
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.name}</span>
                                             <span className="text-xs text-slate-500">{c.phone || 'No phone'} • {c.email || 'No email'}</span>
@@ -313,7 +405,7 @@ function CreateChallanForm() {
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
-                                                        onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
                                                     />
                                                 </td>
@@ -321,7 +413,7 @@ function CreateChallanForm() {
                                                     <input
                                                         type="number"
                                                         value={item.unit_price}
-                                                        onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
                                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
                                                     />
                                                 </td>
@@ -372,10 +464,38 @@ function CreateChallanForm() {
                                     <option value="cancelled">Cancelled</option>
                                 </select>
                             </div>
+                            <div className="flex justify-between text-slate-300">
+                                <span>Subtotal</span>
+                                <span>₹ {subtotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-300">
+                                <span>Tax Total</span>
+                                <span>₹ {taxTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="space-y-3 pt-4 border-t border-slate-700">
+                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                    <span className="text-blue-400">Extra Discount</span>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
+                                        value={discount}
+                                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                    <span className="text-slate-400">Round Off</span>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
+                                        value={roundOff}
+                                        onChange={(e) => setRoundOff(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                            </div>
                             <div className="flex items-center justify-between pt-4 border-t border-slate-700">
-                                <span className="text-xl font-bold">Total Value</span>
+                                <span className="text-xl font-bold">Grand Total</span>
                                 <span className="text-2xl font-bold text-blue-400">
-                                    ₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </CardContent>
@@ -404,8 +524,8 @@ function CreateChallanForm() {
                 items={products}
                 searchKeys={['name', 'sku']}
                 valueKey="id"
-                onSelect={(p) => addItem(p)}
-                renderItem={(p) => (
+                onSelect={(p: Product) => addItem(p)}
+                renderItem={(p: Product) => (
                     <div className="flex justify-between items-center">
                         <div className="flex flex-col">
                             <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{p.name}</span>

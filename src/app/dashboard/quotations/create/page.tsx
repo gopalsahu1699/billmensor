@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 import { ChevronDown, Plus, Trash2, Package } from 'lucide-react'
 import { quotationService } from '@/services/quotation.service'
@@ -18,6 +19,9 @@ interface QuotationItem {
     unit_price: number
     tax_rate: number
     tax_amount: number
+    cgst: number
+    sgst: number
+    igst: number
     discount: number
     total: number
     image_url?: string
@@ -59,6 +63,7 @@ function CreateQuotationForm() {
     const [loading, setLoading] = useState(false)
     const [customers, setCustomers] = useState<Customer[]>([])
     const [products, setProducts] = useState<Product[]>([])
+    const [profile, setProfile] = useState<Profile | null>(null)
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [quotationNumber, setQuotationNumber] = useState('')
@@ -70,10 +75,14 @@ function CreateQuotationForm() {
     const [installationCharges, setInstallationCharges] = useState(0)
     const [customCharges, setCustomCharges] = useState<CustomCharge[]>([])
     const [discount, setDiscount] = useState(0)
+    const [roundOff, setRoundOff] = useState(0)
 
     // Totals
     const [subtotal, setSubtotal] = useState(0)
     const [taxTotal, setTaxTotal] = useState(0)
+    const [cgstTotal, setCgstTotal] = useState(0)
+    const [sgstTotal, setSgstTotal] = useState(0)
+    const [igstTotal, setIgstTotal] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
 
     // Modal States
@@ -82,17 +91,32 @@ function CreateQuotationForm() {
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
     const calculateTotals = React.useCallback(() => {
-        let s = 0
+        let taxableTotal = 0
         let t = 0
+        let cgst = 0
+        let sgst = 0
+        let igst = 0
+
         items.forEach(item => {
-            s += item.unit_price * item.quantity
+            const itemTaxable = (item.unit_price * item.quantity) - (item.discount || 0)
+            taxableTotal += itemTaxable
             t += item.tax_amount
+            cgst += item.cgst || 0
+            sgst += item.sgst || 0
+            igst += item.igst || 0
         })
+
         const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
-        setSubtotal(s)
+        setSubtotal(taxableTotal)
         setTaxTotal(t)
-        setGrandTotal(s + t + transportCharges + installationCharges + customTotal - discount)
-    }, [items, transportCharges, installationCharges, customCharges, discount])
+        setCgstTotal(cgst)
+        setSgstTotal(sgst)
+        setIgstTotal(igst)
+
+        // Grand Total = Sum of (Taxable Amount + Tax) + Charges - General Discount + Round Off
+        const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
+        setGrandTotal(itemsTotal + transportCharges + installationCharges + customTotal - discount + roundOff)
+    }, [items, transportCharges, installationCharges, customCharges, discount, roundOff])
 
     useEffect(() => {
         calculateTotals()
@@ -100,13 +124,14 @@ function CreateQuotationForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
-            const [custRes, prodRes] = await Promise.all([
+            const [custRes, prodRes, profileRes] = await Promise.all([
                 supabase.from('customers').select('*').order('name'),
                 supabase.from('products').select('*').order('name'),
-
+                supabase.from('profiles').select('*').single()
             ])
             setCustomers((custRes.data as Customer[]) || [])
             setProducts((prodRes.data as Product[]) || [])
+            setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
             toast.error('Failed to load data')
@@ -196,6 +221,9 @@ function CreateQuotationForm() {
             unit_price: product.price,
             tax_rate: product.tax_rate,
             tax_amount: (product.price * product.tax_rate) / 100,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
             discount: 0,
             total: product.price + (product.price * product.tax_rate) / 100,
             image_url: product.image_url || '',
@@ -225,6 +253,21 @@ function CreateQuotationForm() {
             const base = updated.quantity * updated.unit_price
             const taxableAmount = base - (updated.discount || 0)
             const tax = (taxableAmount * updated.tax_rate) / 100
+
+            // Determine CGST/SGST vs IGST
+            const customer = customers.find(c => c.id === selectedCustomerId)
+            const isInterState = profile?.state && customer?.supply_place &&
+                profile.state.toLowerCase() !== customer.supply_place.toLowerCase()
+
+            if (isInterState) {
+                updated.igst = Number(tax.toFixed(2))
+                updated.cgst = 0
+                updated.sgst = 0
+            } else {
+                updated.igst = 0
+                updated.cgst = Number((tax / 2).toFixed(2))
+                updated.sgst = Number((tax / 2).toFixed(2))
+            }
 
             updated.tax_amount = Number(tax.toFixed(2))
             updated.total = Number((taxableAmount + tax).toFixed(2))
@@ -257,14 +300,15 @@ function CreateQuotationForm() {
                 expiry_date: validUntil || null,
                 subtotal,
                 tax_total: taxTotal,
-                cgst_total: 0, // Placeholder
-                sgst_total: 0, // Placeholder
-                igst_total: 0, // Placeholder
+                cgst_total: cgstTotal,
+                sgst_total: sgstTotal,
+                igst_total: igstTotal,
                 billing_address: customer?.billing_address || null,
                 shipping_address: customer?.shipping_address || null,
                 supply_place: customer?.supply_place || null,
                 total_amount: grandTotal,
                 discount: discount,
+                round_off: roundOff,
                 notes,
                 status: 'draft',
                 items: items.map(item => ({
@@ -274,9 +318,9 @@ function CreateQuotationForm() {
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     tax_rate: item.tax_rate,
-                    cgst: 0, // Placeholder
-                    sgst: 0, // Placeholder
-                    igst: 0, // Placeholder
+                    cgst: item.cgst || 0,
+                    sgst: item.sgst || 0,
+                    igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount,
                     total: item.total,
@@ -589,6 +633,15 @@ function CreateQuotationForm() {
                                         className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
                                         value={discount}
                                         onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                    <span className="text-slate-400">Round Off</span>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
+                                        value={roundOff}
+                                        onChange={(e) => setRoundOff(parseFloat(e.target.value) || 0)}
                                     />
                                 </div>
                             </div>

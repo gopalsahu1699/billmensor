@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 import { invoiceService } from '@/services/invoice.service'
 import { invoiceSchema } from '@/lib/validators'
@@ -20,6 +21,9 @@ interface InvoiceItem {
     unit_price: number
     tax_rate: number
     tax_amount: number
+    cgst: number
+    sgst: number
+    igst: number
     discount: number
     total: number
     image_url?: string
@@ -60,6 +64,7 @@ function CreateInvoiceForm() {
     const [loading, setLoading] = useState(false)
     const [customers, setCustomers] = useState<Customer[]>([])
     const [products, setProducts] = useState<Product[]>([])
+    const [profile, setProfile] = useState<Profile | null>(null)
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [invoiceNumber, setInvoiceNumber] = useState('')
@@ -75,6 +80,9 @@ function CreateInvoiceForm() {
     // Subtotals
     const [subtotal, setSubtotal] = useState(0)
     const [taxTotal, setTaxTotal] = useState(0)
+    const [cgstTotal, setCgstTotal] = useState(0)
+    const [sgstTotal, setSgstTotal] = useState(0)
+    const [igstTotal, setIgstTotal] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
 
     // Modal States
@@ -83,17 +91,32 @@ function CreateInvoiceForm() {
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
     const calculateTotals = React.useCallback(() => {
-        let s = 0
+        let taxableTotal = 0
         let t = 0
+        let cgst = 0
+        let sgst = 0
+        let igst = 0
+
         items.forEach(item => {
-            s += item.unit_price * item.quantity
+            const itemTaxable = (item.unit_price * item.quantity) - (item.discount || 0)
+            taxableTotal += itemTaxable
             t += item.tax_amount
+            cgst += item.cgst || 0
+            sgst += item.sgst || 0
+            igst += item.igst || 0
         })
 
         const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
-        setSubtotal(s)
+        setSubtotal(taxableTotal)
         setTaxTotal(t)
-        setGrandTotal(s + t - generalDiscount + roundOff + transportCharges + installationCharges + customTotal)
+        setCgstTotal(cgst)
+        setSgstTotal(sgst)
+        setIgstTotal(igst)
+
+        // Grand Total = Sum of (Taxable Amount + Tax) + Charges - General Discount + Round Off
+        // Note: items.total is already (taxableAmount + tax)
+        const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
+        setGrandTotal(itemsTotal - generalDiscount + roundOff + transportCharges + installationCharges + customTotal)
     }, [items, generalDiscount, roundOff, transportCharges, installationCharges, customCharges])
 
     useEffect(() => {
@@ -102,12 +125,14 @@ function CreateInvoiceForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
-            const [custRes, prodRes] = await Promise.all([
+            const [custRes, prodRes, profileRes] = await Promise.all([
                 supabase.from('customers').select('*').order('name'),
-                supabase.from('products').select('*').order('name')
+                supabase.from('products').select('*').order('name'),
+                supabase.from('profiles').select('*').single()
             ])
             setCustomers((custRes.data as Customer[]) || [])
             setProducts((prodRes.data as Product[]) || [])
+            setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
             toast.error('Failed to load data')
@@ -166,6 +191,9 @@ function CreateInvoiceForm() {
                 unit_price: number
                 tax_rate: number
                 tax_amount: number
+                cgst: number
+                sgst: number
+                igst: number
                 discount: number
                 total: number
                 image_url?: string
@@ -180,6 +208,9 @@ function CreateInvoiceForm() {
                 unit_price: item.unit_price,
                 tax_rate: item.tax_rate,
                 tax_amount: item.tax_amount,
+                cgst: item.cgst || 0,
+                sgst: item.sgst || 0,
+                igst: item.igst || 0,
                 discount: item.discount || 0,
                 total: item.total,
                 image_url: item.image_url || '',
@@ -214,6 +245,9 @@ function CreateInvoiceForm() {
             unit_price: product.price,
             tax_rate: product.tax_rate,
             tax_amount: (product.price * product.tax_rate) / 100,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
             discount: 0,
             total: product.price + (product.price * product.tax_rate) / 100,
             image_url: product.image_url || '',
@@ -222,36 +256,51 @@ function CreateInvoiceForm() {
     }
 
 
-   const updateItem = (itemId: string, updates: Partial<InvoiceItem>) => {
-  setItems(prev =>
-    prev.map(item => {
-      if (item.id !== itemId) return item
+    const updateItem = (itemId: string, updates: Partial<InvoiceItem>) => {
+        setItems(prev =>
+            prev.map(item => {
+                if (item.id !== itemId) return item
 
-      const updated = { ...item, ...updates }
+                const updated = { ...item, ...updates }
 
-      // Auto-fill from product selection
-      if (updates.product_id) {
-        const product = products.find(p => p.id === updates.product_id)
-        if (product) {
-          updated.name = product.name
-          updated.hsn_code = product.hsn_code || ''
-          updated.unit_price = product.price
-          updated.tax_rate = product.tax_rate
-        }
-      }
+                // Auto-fill from product selection
+                if (updates.product_id) {
+                    const product = products.find(p => p.id === updates.product_id)
+                    if (product) {
+                        updated.name = product.name
+                        updated.hsn_code = product.hsn_code || ''
+                        updated.unit_price = product.price
+                        updated.tax_rate = product.tax_rate
+                    }
+                }
 
-      // ✅ CORRECT GST LOGIC
-      const base = updated.quantity * updated.unit_price
-      const taxableAmount = base - (updated.discount || 0)
-      const tax = (taxableAmount * updated.tax_rate) / 100
+                // ✅ CORRECT GST LOGIC
+                const base = updated.quantity * updated.unit_price
+                const taxableAmount = base - (updated.discount || 0)
+                const tax = (taxableAmount * updated.tax_rate) / 100
 
-      updated.tax_amount = Number(tax.toFixed(2))
-      updated.total = Number((taxableAmount + tax).toFixed(2))
+                // Determine CGST/SGST vs IGST
+                const customer = customers.find(c => c.id === selectedCustomerId)
+                const isInterState = profile?.state && customer?.supply_place &&
+                    profile.state.toLowerCase() !== customer.supply_place.toLowerCase()
 
-      return updated
-    })
-  )
-}
+                if (isInterState) {
+                    updated.igst = Number(tax.toFixed(2))
+                    updated.cgst = 0
+                    updated.sgst = 0
+                } else {
+                    updated.igst = 0
+                    updated.cgst = Number((tax / 2).toFixed(2))
+                    updated.sgst = Number((tax / 2).toFixed(2))
+                }
+
+                updated.tax_amount = Number(tax.toFixed(2))
+                updated.total = Number((taxableAmount + tax).toFixed(2))
+
+                return updated
+            })
+        )
+    }
     const removeItem = (itemId: string) => {
         setItems(items.filter(item => item.id !== itemId))
     }
@@ -273,9 +322,9 @@ function CreateInvoiceForm() {
                 invoice_date: invoiceDate,
                 subtotal,
                 tax_total: taxTotal,
-                cgst_total: 0, // Placeholder
-                sgst_total: 0, // Placeholder
-                igst_total: 0, // Placeholder
+                cgst_total: cgstTotal,
+                sgst_total: sgstTotal,
+                igst_total: igstTotal,
                 discount: generalDiscount,
                 round_off: roundOff,
                 transport_charges: transportCharges,
@@ -297,9 +346,9 @@ function CreateInvoiceForm() {
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     tax_rate: item.tax_rate,
-                    cgst: 0, // Placeholder
-                    sgst: 0, // Placeholder
-                    igst: 0, // Placeholder
+                    cgst: item.cgst || 0,
+                    sgst: item.sgst || 0,
+                    igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount,
                     total: item.total,

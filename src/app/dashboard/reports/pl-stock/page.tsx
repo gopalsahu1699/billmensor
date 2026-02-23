@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { PieChart, TrendingUp, TrendingDown, IndianRupee, Calendar, ChevronLeft, Download, RefreshCw, FileText } from 'lucide-react'
+import { TrendingUp, ChevronLeft, Download, RefreshCw, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -24,11 +24,7 @@ export default function ProfitLossStockReport() {
         margin: 0
     })
 
-    useEffect(() => {
-        calculateStockPL()
-    }, [dateRange])
-
-    const calculateStockPL = async () => {
+    const calculateStockPL = React.useCallback(async () => {
         try {
             setLoading(true)
 
@@ -47,12 +43,12 @@ export default function ProfitLossStockReport() {
 
             const { data: purReturns } = await supabase
                 .from('returns')
-                .select('total_amount, type')
+                .select('subtotal, type')
                 .eq('type', 'purchase_return')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            const totalPurReturns = (purReturns || []).reduce((acc, r) => acc + (Number(r.total_amount) / 1.18), 0)
+            const totalPurReturns = (purReturns || []).reduce((acc, r) => acc + Number(r.subtotal || 0), 0)
 
             const netPurchases = totalPurchasesRaw - totalPurReturns
 
@@ -62,25 +58,22 @@ export default function ProfitLossStockReport() {
                 .select('subtotal')
                 .gte('invoice_date', dateRange.start)
                 .lte('invoice_date', dateRange.end)
-                .not('status', 'in', '("void", "draft")')
+                .not('status', 'in', '("void", "draft", "cancelled")')
 
             const totalSalesRaw = invoices?.reduce((acc, inv) => acc + Number(inv.subtotal || 0), 0) || 0
 
             const { data: salesReturns } = await supabase
                 .from('returns')
-                .select('total_amount, type')
+                .select('subtotal, type')
                 .eq('type', 'sales_return')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            const totalSalesReturns = (salesReturns || []).reduce((acc, r) => acc + (Number(r.total_amount) / 1.18), 0)
+            const totalSalesReturns = (salesReturns || []).reduce((acc, r) => acc + Number(r.subtotal || 0), 0)
 
             const netSales = totalSalesRaw - totalSalesReturns
 
             // 4. Calculate Opening Stock (Derived from lifetime history before current period)
-            // For a perfect calculation, we need Opening = Current Stock - Purchases(period) + Sales(period)
-            // But since this is a simplified view, we'll assume Opening Stock is 0 or needs manual adjustment.
-            // For now, let's keep it simple as a Trading Account for the selected period.
             const openingStock = 0
 
             const grossProfit = (netSales + closingStock) - (openingStock + netPurchases)
@@ -95,12 +88,16 @@ export default function ProfitLossStockReport() {
                 margin
             })
 
-        } catch (error) {
-            toast.error('Error calculating Stock P&L')
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error calculating Stock P&L')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        calculateStockPL()
+    }, [calculateStockPL])
 
     const exportToXLS = () => {
         const headers = ["Description", "Amount (₹)"]

@@ -55,13 +55,12 @@ export default function ProfitLossInvoiceReport() {
             // 2. Fetch Sales Returns for the same period
             const { data: retData } = await supabase
                 .from('returns')
-                .select('total_amount')
+                .select('total_amount, subtotal')
                 .eq('type', 'sales_return')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            const totalReturns = (retData || []).reduce((acc, r) => acc + Number(r.total_amount), 0)
-            const returnsTaxable = totalReturns / 1.18
+            const returnsTaxable = (retData || []).reduce((acc, r) => acc + Number(r.subtotal || 0), 0)
 
             // 3. Process Data
             const processed = (invData || []).map(inv => {
@@ -71,7 +70,7 @@ export default function ProfitLossInvoiceReport() {
                     costPriceTotal += (buyPrice * item.quantity)
                 })
 
-                const taxableValue = inv.subtotal || (inv.total_amount - inv.tax_total)
+                const taxableValue = Number(inv.subtotal || 0)
                 const profit = taxableValue - costPriceTotal
                 const margin = taxableValue > 0 ? (profit / taxableValue) * 100 : 0
 

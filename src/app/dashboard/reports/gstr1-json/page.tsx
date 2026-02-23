@@ -13,10 +13,23 @@ type InvoiceData = {
     id: string;
     invoice_number: string;
     invoice_date: string;
-    total_amount: number;
+    subtotal: number;
     tax_total: number;
+    total_amount: number;
+    cgst_total: number;
+    sgst_total: number;
+    igst_total: number;
     customers?: { name: string; gstin: string; billing_address: string; supply_place: string };
-    invoice_items?: { hsn_code?: string; quantity: number | string; total: number; tax_amount: number; tax_rate: number }[];
+    invoice_items?: {
+        hsn_code?: string;
+        quantity: number | string;
+        total: number;
+        tax_amount: number;
+        tax_rate: number;
+        cgst?: number;
+        sgst?: number;
+        igst?: number;
+    }[];
 };
 
 export default function GSTR1Report() {
@@ -77,9 +90,9 @@ export default function GSTR1Report() {
     const b2cInvoices = invoices.filter(inv => !inv.customers?.gstin)
 
     const totals = invoices.reduce((acc, inv) => ({
-        taxable: acc.taxable + (inv.total_amount - inv.tax_total),
-        tax: acc.tax + inv.tax_total,
-        total: acc.total + inv.total_amount
+        taxable: acc.taxable + Number(inv.subtotal || 0),
+        tax: acc.tax + Number(inv.tax_total || 0),
+        total: acc.total + Number(inv.total_amount || 0)
     }), { taxable: 0, tax: 0, total: 0 })
 
     const exportToXLS = () => {
@@ -89,7 +102,7 @@ export default function GSTR1Report() {
             inv.invoice_date,
             inv.customers?.name,
             inv.customers?.gstin || 'Unregistered',
-            (inv.total_amount - inv.tax_total).toFixed(2),
+            (inv.subtotal || 0).toFixed(2),
             inv.tax_total.toFixed(2),
             inv.total_amount.toFixed(2),
             inv.customers?.supply_place || '-'
@@ -136,12 +149,14 @@ export default function GSTR1Report() {
                         idt: inv.invoice_date.split('-').reverse().join('-'),
                         val: inv.total_amount,
                         pos: inv.customers?.supply_place || "00",
-                        itms: inv.invoice_items?.map((item: { hsn_code?: string; quantity: number | string; total: number; tax_amount: number; tax_rate: number }, idx: number) => ({
+                        itms: inv.invoice_items?.map((item, idx: number) => ({
                             num: idx + 1,
                             itm_det: {
-                                txval: item.total - item.tax_amount,
-                                rt: item.tax_rate,
-                                iamt: Number(item.tax_amount)
+                                txval: Number(item.total - item.tax_amount),
+                                rt: Number(item.tax_rate),
+                                iamt: Number(item.igst || 0),
+                                camt: Number(item.cgst || 0),
+                                samt: Number(item.sgst || 0)
                             }
                         }))
                     }]
@@ -149,11 +164,13 @@ export default function GSTR1Report() {
                 b2cs: b2cInvoices.map(inv => ({
                     pos: inv.customers?.supply_place || "00",
                     typ: "OE",
-                    itms: [{
-                        rt: 18, // Simplified for B2C
-                        txval: inv.total_amount - inv.tax_total,
-                        iamt: inv.tax_total
-                    }]
+                    itms: inv.invoice_items?.map((item) => ({
+                        rt: Number(item.tax_rate),
+                        txval: Number(item.total - item.tax_amount),
+                        iamt: Number(item.igst || 0),
+                        camt: Number(item.cgst || 0),
+                        samt: Number(item.sgst || 0)
+                    })) || []
                 })),
                 cdnr: (returnsData || []).filter(r => r.customers?.gstin).map(r => ({
                     ctin: r.customers?.gstin,

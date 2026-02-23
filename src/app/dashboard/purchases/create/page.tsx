@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Plus, Trash2, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 import { purchaseService } from '@/services/purchase.service'
 import { purchaseSchema } from '@/lib/validators'
@@ -20,7 +21,11 @@ interface PurchaseItem {
     quantity: number
     unit_price: number
     tax_rate: number
+    cgst: number
+    sgst: number
+    igst: number
     tax_amount: number
+    discount: number
     total: number
 }
 
@@ -54,6 +59,7 @@ function CreatePurchaseForm() {
     const [loading, setLoading] = useState(false)
     const [suppliers, setSuppliers] = useState<Customer[]>([])
     const [products, setProducts] = useState<Product[]>([])
+    const [profile, setProfile] = useState<Profile | null>(null)
 
     const [selectedSupplierId, setSelectedSupplierId] = useState('')
     const [purchaseNumber, setPurchaseNumber] = useState('')
@@ -63,23 +69,42 @@ function CreatePurchaseForm() {
     // Totals
     const [subtotal, setSubtotal] = useState(0)
     const [taxTotal, setTaxTotal] = useState(0)
+    const [cgstTotal, setCgstTotal] = useState(0)
+    const [sgstTotal, setSgstTotal] = useState(0)
+    const [igstTotal, setIgstTotal] = useState(0)
+    const [discount, setDiscount] = useState(0)
+    const [roundOff, setRoundOff] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
     const calculateTotals = React.useCallback(() => {
-        let s = 0
+        let taxableTotal = 0
         let t = 0
+        let cgst = 0
+        let sgst = 0
+        let igst = 0
+
         items.forEach(item => {
-            s += item.unit_price * item.quantity
+            const itemTaxable = (item.unit_price * item.quantity) - (item.discount || 0)
+            taxableTotal += itemTaxable
             t += item.tax_amount
+            cgst += item.cgst || 0
+            sgst += item.sgst || 0
+            igst += item.igst || 0
         })
 
-        setSubtotal(s)
+        setSubtotal(taxableTotal)
         setTaxTotal(t)
-        setGrandTotal(s + t)
-    }, [items])
+        setCgstTotal(cgst)
+        setSgstTotal(sgst)
+        setIgstTotal(igst)
+
+        // Grand Total = Sum of (Taxable Amount + Tax) - General Discount + Round Off
+        const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
+        setGrandTotal(itemsTotal - discount + roundOff)
+    }, [items, discount, roundOff])
 
     useEffect(() => {
         calculateTotals()
@@ -87,12 +112,14 @@ function CreatePurchaseForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
-            const [suppRes, prodRes] = await Promise.all([
+            const [suppRes, prodRes, profileRes] = await Promise.all([
                 supabase.from('customers').select('*').in('type', ['supplier', 'both']).order('name'),
-                supabase.from('products').select('*').order('name')
+                supabase.from('products').select('*').order('name'),
+                supabase.from('profiles').select('*').single()
             ])
             setSuppliers((suppRes.data as Customer[]) || [])
             setProducts((prodRes.data as Product[]) || [])
+            setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
             toast.error('Failed to load data')
@@ -130,17 +157,23 @@ function CreatePurchaseForm() {
             setPurchaseNumber(pur.purchase_number)
             setPurchaseDate(pur.purchase_date)
 
-            const mappedItems = pur.purchase_items.map((item: { id: string, product_id?: string, name: string, quantity: number, unit_price: number, tax_rate: number, tax_amount: number, total: number }) => ({
+            const mappedItems = pur.purchase_items.map((item: PurchaseItem) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
                 quantity: item.quantity,
                 unit_price: item.unit_price,
                 tax_rate: item.tax_rate,
+                cgst: item.cgst || 0,
+                sgst: item.sgst || 0,
+                igst: item.igst || 0,
                 tax_amount: item.tax_amount,
+                discount: item.discount || 0,
                 total: item.total
             }))
             setItems(mappedItems)
+            setDiscount(pur.discount || 0)
+            setRoundOff(pur.round_off || 0)
         } catch (error: unknown) {
             console.error('Fetch purchase for edit error:', error)
             toast.error('Failed to load purchase for editing')
@@ -167,7 +200,11 @@ function CreatePurchaseForm() {
             quantity: 1,
             unit_price: product.purchase_price || 0,
             tax_rate: product.tax_rate,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
             tax_amount: ((product.purchase_price || 0) * product.tax_rate) / 100,
+            discount: 0,
             total: (product.purchase_price || 0) + ((product.purchase_price || 0) * product.tax_rate) / 100
         }
         setItems([...items, newItem])
@@ -190,9 +227,26 @@ function CreatePurchaseForm() {
 
                 // Calculate item total
                 const base = updated.quantity * updated.unit_price
-                const tax = (base * updated.tax_rate) / 100
-                updated.tax_amount = tax
-                updated.total = base + tax
+                const taxableAmount = base - (updated.discount || 0)
+                const tax = (taxableAmount * updated.tax_rate) / 100
+
+                // Determine CGST/SGST vs IGST
+                const supplier = suppliers.find(s => s.id === selectedSupplierId)
+                const isInterState = profile?.state && supplier?.supply_place &&
+                    profile.state.toLowerCase() !== supplier.supply_place.toLowerCase()
+
+                if (isInterState) {
+                    updated.igst = Number(tax.toFixed(2))
+                    updated.cgst = 0
+                    updated.sgst = 0
+                } else {
+                    updated.igst = 0
+                    updated.cgst = Number((tax / 2).toFixed(2))
+                    updated.sgst = Number((tax / 2).toFixed(2))
+                }
+
+                updated.tax_amount = Number(tax.toFixed(2))
+                updated.total = Number((taxableAmount + tax).toFixed(2))
                 return updated
             }
             return item
@@ -220,9 +274,11 @@ function CreatePurchaseForm() {
                 purchase_date: purchaseDate,
                 subtotal,
                 tax_total: taxTotal,
-                cgst_total: 0, // Placeholder
-                sgst_total: 0, // Placeholder
-                igst_total: 0, // Placeholder
+                cgst_total: cgstTotal,
+                sgst_total: sgstTotal,
+                igst_total: igstTotal,
+                discount,
+                round_off: roundOff,
                 total_amount: grandTotal,
                 billing_address: supplier?.billing_address || null,
                 shipping_address: supplier?.shipping_address || null,
@@ -235,10 +291,11 @@ function CreatePurchaseForm() {
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     tax_rate: item.tax_rate,
-                    cgst: 0, // Placeholder
-                    sgst: 0, // Placeholder
-                    igst: 0, // Placeholder
+                    cgst: item.cgst || 0,
+                    sgst: item.sgst || 0,
+                    igst: item.igst || 0,
                     tax_amount: item.tax_amount,
+                    discount: item.discount || 0,
                     total: item.total
                 }))
             }
@@ -488,6 +545,26 @@ function CreatePurchaseForm() {
                             <div className="flex justify-between text-slate-300">
                                 <span>Tax Total</span>
                                 <span>₹ {taxTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="space-y-3 pt-4 border-t border-slate-700">
+                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                    <span className="text-blue-400">Extra Discount</span>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
+                                        value={discount}
+                                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                    <span className="text-slate-400">Round Off</span>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
+                                        value={roundOff}
+                                        onChange={(e) => setRoundOff(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
                             </div>
                             <div className="flex items-center justify-between pt-4 border-t border-slate-700">
                                 <span className="text-xl font-bold">Grand Total</span>

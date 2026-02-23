@@ -42,7 +42,6 @@ export default function CAAuditReportPage() {
             // 1. Fetch Profile
             const { data: profData } = await supabase.from('profiles').select('*').single()
             setProfile(profData)
-            const businessState = profData?.place_of_supply?.toLowerCase()
 
             // 2. Fetch Sales (Invoices)
             const { data: invoices } = await supabase
@@ -53,23 +52,21 @@ export default function CAAuditReportPage() {
                 .not('status', 'in', '("void", "draft")')
 
             const salesAgg = (invoices || []).reduce((acc, inv) => {
-                const tax = Number(inv.tax_total || 0)
-                const isInterState = inv.supply_place && businessState && inv.supply_place.toLowerCase() !== businessState
+                const igst = Number(inv.igst_total || 0)
+                const cgst = Number(inv.cgst_total || 0)
+                const sgst = Number(inv.sgst_total || 0)
+                const taxable = Number(inv.subtotal || 0)
 
-                let igst = 0, cgst = 0, sgst = 0
-                if (isInterState) {
-                    igst = tax
-                    acc.igstTaxable += Number(inv.subtotal || 0)
+                if (igst > 0) {
+                    acc.igstTaxable += taxable
                 } else {
-                    cgst = tax / 2
-                    sgst = tax / 2
-                    acc.localTaxable += Number(inv.subtotal || 0)
+                    acc.localTaxable += taxable
                 }
 
                 return {
                     ...acc,
                     total: acc.total + Number(inv.total_amount || 0),
-                    taxable: acc.taxable + Number(inv.subtotal || 0),
+                    taxable: acc.taxable + taxable,
                     igst: acc.igst + igst,
                     cgst: acc.cgst + cgst,
                     sgst: acc.sgst + sgst,
@@ -90,10 +87,13 @@ export default function CAAuditReportPage() {
                     total: acc.total + Number(pur.total_amount || 0),
                     taxable: acc.taxable + Number(pur.subtotal || 0),
                     tax: acc.tax + Number(pur.tax_total || 0),
+                    cgst: (acc.cgst || 0) + Number(pur.cgst_total || 0),
+                    sgst: (acc.sgst || 0) + Number(pur.sgst_total || 0),
+                    igst: (acc.igst || 0) + Number(pur.igst_total || 0),
                     count: acc.count + 1,
                     list: [...acc.list, pur]
                 }
-            }, { total: 0, taxable: 0, tax: 0, count: 0, list: [] as AuditRecord[] })
+            }, { total: 0, taxable: 0, tax: 0, cgst: 0, sgst: 0, igst: 0, count: 0, list: [] as AuditRecord[] })
 
             // 4. Fetch Expenses
             const { data: expenses } = await supabase
@@ -110,24 +110,16 @@ export default function CAAuditReportPage() {
                 return acc
             }, { total: 0, categories: {} as Record<string, number>, list: [] as AuditRecord[] })
 
-            // 5. Fetch Returns & Precise Return Items
+            // 5. Fetch Returns
             const { data: returnsData } = await supabase
                 .from('returns')
                 .select('*, customers:customer_id(name)')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            // Fetch return items for all returns to get exact taxable/tax
-            const returnIds = (returnsData || []).map(r => r.id)
-            const { data: returnItems } = await supabase
-                .from('return_items')
-                .select('*')
-                .in('return_id', returnIds)
-
             const retAgg = (returnsData || []).reduce((acc, ret) => {
-                const items = (returnItems || []).filter(item => item.return_id === ret.id)
-                const taxable = items.reduce((sum, i) => sum + Number(i.total - i.tax_amount), 0)
-                const tax = items.reduce((sum, i) => sum + Number(i.tax_amount), 0)
+                const taxable = Number(ret.subtotal || 0)
+                const tax = Number(ret.tax_total || 0)
 
                 if (ret.type === 'sales_return') {
                     acc.sales += Number(ret.total_amount || 0)

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { INDIAN_STATES } from '@/lib/constants'
 
 export default function CreateCustomerPage() {
     const router = useRouter()
@@ -24,11 +25,7 @@ export default function CreateCustomerPage() {
         type: 'customer',
     })
 
-    useEffect(() => {
-        if (editId) fetchCustomer()
-    }, [editId])
-
-    async function fetchCustomer() {
+    const fetchCustomer = React.useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('customers')
@@ -47,13 +44,17 @@ export default function CreateCustomerPage() {
                 gstin: data.gstin || '',
                 type: data.type || 'customer',
             })
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'An error occurred')
             router.push('/dashboard/customers')
         } finally {
             setFetching(false)
         }
-    }
+    }, [editId, router])
+
+    useEffect(() => {
+        if (editId) fetchCustomer()
+    }, [editId, fetchCustomer])
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -79,8 +80,8 @@ export default function CreateCustomerPage() {
                 toast.success('Customer added successfully')
             }
             router.push('/dashboard/customers')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'An error occurred')
         } finally {
             setLoading(false)
         }
@@ -199,12 +200,17 @@ export default function CreateCustomerPage() {
                             <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Place of Supply</label>
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">pin_drop</span>
-                                <input
+                                <select
                                     value={form.supply_place}
                                     onChange={(e) => setForm({ ...form, supply_place: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                    placeholder="e.g. Maharashtra"
-                                />
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-10 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 appearance-none"
+                                >
+                                    <option value="">Select Place of Supply</option>
+                                    {INDIAN_STATES.map(s => (
+                                        <option key={s.code} value={s.name}>{s.name}</option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
                             </div>
                         </div>
                     </div>

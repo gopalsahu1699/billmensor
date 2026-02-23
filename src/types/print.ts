@@ -7,6 +7,8 @@ export interface Profile {
     logo_url?: string
     signature_url?: string
     terms_and_conditions?: string
+    city?: string
+    state?: string
     print_template?: string
     show_transport?: boolean
     show_installation?: boolean

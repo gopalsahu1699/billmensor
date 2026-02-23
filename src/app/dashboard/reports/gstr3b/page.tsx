@@ -4,118 +4,104 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { FileText, TrendingUp, TrendingDown, IndianRupee, Calendar, ChevronLeft, Download, FileCheck } from 'lucide-react'
+import { FileText, TrendingUp, TrendingDown, ChevronLeft, Download, FileCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
+interface TaxData {
+    taxable: number;
+    igst: number;
+    cgst: number;
+    sgst: number;
+    tax: number;
+    total: number;
+}
+
 export default function GSTR3BReport() {
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<any | null>(null)
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
     const [reportData, setReportData] = useState({
-        outward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 },
-        inward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 },
+        outward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 } as TaxData,
+        inward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 } as TaxData,
         netTax: 0
     })
 
-    useEffect(() => {
-        fetchTaxSummary()
-    }, [dateRange])
-
-    const fetchTaxSummary = async () => {
+    const fetchTaxSummary = React.useCallback(async () => {
         try {
             setLoading(true)
 
-            // 1. Fetch Profile
-            const { data: profData } = await supabase.from('profiles').select('*').single()
-            setProfile(profData)
-            const bizState = profData?.place_of_supply?.toLowerCase()
-
-            // 2. Fetch Sales (Outward)
+            // 1. Fetch Sales (Outward)
             const { data: sales, error: salesError } = await supabase
                 .from('invoices')
-                .select('subtotal, tax_total, total_amount, supply_place')
+                .select('subtotal, tax_total, total_amount, supply_place, cgst_total, sgst_total, igst_total')
                 .gte('invoice_date', dateRange.start)
                 .lte('invoice_date', dateRange.end)
-                .not('status', 'in', '("void", "draft")')
+                .not('status', 'in', '("void", "draft", "cancelled")')
 
             if (salesError) throw salesError
 
-            // 3. Fetch Purchases (Inward)
+            // 2. Fetch Purchases (Inward)
             const { data: purchases } = await supabase
                 .from('purchases')
-                .select('subtotal, tax_total, total_amount, supply_place')
+                .select('subtotal, tax_total, total_amount, supply_place, cgst_total, sgst_total, igst_total')
                 .gte('purchase_date', dateRange.start)
                 .lte('purchase_date', dateRange.end)
 
-            // 4. Fetch Returns & Precise Items
+            // 3. Fetch Returns
             const { data: returnsData } = await supabase
                 .from('returns')
-                .select('id, total_amount, type, supply_place')
+                .select('id, total_amount, type, supply_place, subtotal, tax_total, cgst_total, sgst_total, igst_total')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            const returnIds = (returnsData || []).map(r => r.id)
-            const { data: returnItems } = await supabase
-                .from('return_items')
-                .select('return_id, tax_amount, total')
-                .in('return_id', returnIds)
-
-            // 5. Aggregate Sales
+            // 4. Aggregate Sales
             const outwardRaw = (sales || []).reduce((acc, inv) => {
-                const tax = Number(inv.tax_total || 0)
-                const taxable = Number(inv.subtotal || 0)
-                const isInterState = inv.supply_place && bizState && inv.supply_place.toLowerCase() !== bizState
-
                 return {
-                    taxable: acc.taxable + taxable,
-                    tax: acc.tax + tax,
-                    igst: acc.igst + (isInterState ? tax : 0),
-                    cgst: acc.cgst + (!isInterState ? tax / 2 : 0),
-                    sgst: acc.sgst + (!isInterState ? tax / 2 : 0),
+                    taxable: acc.taxable + Number(inv.subtotal || 0),
+                    tax: acc.tax + Number(inv.tax_total || 0),
+                    igst: acc.igst + Number(inv.igst_total || 0),
+                    cgst: acc.cgst + Number(inv.cgst_total || 0),
+                    sgst: acc.sgst + Number(inv.sgst_total || 0),
                     total: acc.total + Number(inv.total_amount || 0)
                 }
             }, { taxable: 0, tax: 0, igst: 0, cgst: 0, sgst: 0, total: 0 })
 
-            // 6. Aggregate Purchases (ITC)
+            // 5. Aggregate Purchases (ITC)
             const inwardRaw = (purchases || []).reduce((acc, pur) => {
-                const tax = Number(pur.tax_total || 0)
-                const taxable = Number(pur.subtotal || 0)
-                const isInterState = pur.supply_place && bizState && pur.supply_place.toLowerCase() !== bizState
-
                 return {
-                    taxable: acc.taxable + taxable,
-                    tax: acc.tax + tax,
-                    igst: acc.igst + (isInterState ? tax : 0),
-                    cgst: acc.cgst + (!isInterState ? tax / 2 : 0),
-                    sgst: acc.sgst + (!isInterState ? tax / 2 : 0),
+                    taxable: acc.taxable + Number(pur.subtotal || 0),
+                    tax: acc.tax + Number(pur.tax_total || 0),
+                    igst: acc.igst + Number(pur.igst_total || 0),
+                    cgst: acc.cgst + Number(pur.cgst_total || 0),
+                    sgst: acc.sgst + Number(pur.sgst_total || 0),
                     total: acc.total + Number(pur.total_amount || 0)
                 }
             }, { taxable: 0, tax: 0, igst: 0, cgst: 0, sgst: 0, total: 0 })
 
-            // 7. Aggregate Returns for Offsets
+            // 6. Aggregate Returns for Offsets
             const returnsAgg = (returnsData || []).reduce((acc, ret) => {
-                const items = (returnItems || []).filter(item => item.return_id === ret.id)
-                const tax = items.reduce((sum, i) => sum + Number(i.tax_amount || 0), 0)
-                const taxable = items.reduce((sum, i) => sum + (Number(i.total || 0) - Number(i.tax_amount || 0)), 0)
-                const isInterState = ret.supply_place && bizState && ret.supply_place.toLowerCase() !== bizState
+                const taxable = Number(ret.subtotal || 0)
+                const tax = Number(ret.tax_total || 0)
+                const igst = Number(ret.igst_total || 0)
+                const cgst = Number(ret.cgst_total || 0)
+                const sgst = Number(ret.sgst_total || 0)
 
                 if (ret.type === 'sales_return') {
                     acc.s_taxable += taxable
                     acc.s_tax += tax
-                    acc.s_igst += isInterState ? tax : 0
-                    acc.s_cgst += !isInterState ? tax / 2 : 0
-                    acc.s_sgst += !isInterState ? tax / 2 : 0
+                    acc.s_igst += igst
+                    acc.s_cgst += cgst
+                    acc.s_sgst += sgst
                 } else {
                     acc.p_taxable += taxable
                     acc.p_tax += tax
-                    acc.p_igst += isInterState ? tax : 0
-                    acc.p_cgst += !isInterState ? tax / 2 : 0
-                    acc.p_sgst += !isInterState ? tax / 2 : 0
+                    acc.p_igst += igst
+                    acc.p_cgst += cgst
+                    acc.p_sgst += sgst
                 }
                 return acc
             }, {
@@ -123,7 +109,7 @@ export default function GSTR3BReport() {
                 p_taxable: 0, p_tax: 0, p_igst: 0, p_cgst: 0, p_sgst: 0
             })
 
-            // 8. Calculate Final Consolidated Stats
+            // 7. Calculate Final Consolidated Stats
             const outward = {
                 taxable: outwardRaw.taxable - returnsAgg.s_taxable,
                 igst: outwardRaw.igst - returnsAgg.s_igst,
@@ -148,12 +134,16 @@ export default function GSTR3BReport() {
                 netTax: outward.tax - inward.tax
             })
 
-        } catch (error: any) {
-            toast.error('Error generating 3B summary')
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error generating 3B summary')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        fetchTaxSummary()
+    }, [fetchTaxSummary])
 
     const exportToXLS = () => {
         const headers = ["Section", "Description", "Taxable Value", "Integrated Tax (IGST)", "Central Tax (CGST)", "State Tax (SGST)", "Total Tax"]
