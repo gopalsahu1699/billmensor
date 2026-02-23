@@ -47,7 +47,7 @@ export default function CreateCustomerPage() {
                 gstin: data.gstin || '',
                 type: data.type || 'customer',
             })
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
             router.push('/dashboard/customers')
         } finally {
@@ -79,7 +79,7 @@ export default function CreateCustomerPage() {
                 toast.success('Customer added successfully')
             }
             router.push('/dashboard/customers')
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -127,8 +127,8 @@ export default function CreateCustomerPage() {
                                     type="button"
                                     onClick={() => setForm({ ...form, type: t })}
                                     className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${form.type === t
-                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
                                         }`}
                                 >
                                     {t}

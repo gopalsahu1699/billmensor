@@ -148,7 +148,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             setLedger(sorted.reverse()) // Latest first in display
 
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
             router.push('/dashboard/products')
         } finally {

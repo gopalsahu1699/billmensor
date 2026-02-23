@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Download, Loader2, Trash2, Edit, RotateCcw } from 'lucide-react'
-import { downloadPDF } from '@/lib/pdf-utils'
 import Image from 'next/image'
 
 import type { Return, ReturnItem, Profile } from '@/types'
@@ -61,13 +60,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
 
     async function handleDownload() {
         if (!returnDoc) return
-        try {
-            const fileName = `Adjustment-${returnDoc.return_number}`
-            await downloadPDF('return-render-area', fileName)
-            toast.success('Return note downloaded')
-        } catch {
-            toast.error('Failed to generate PDF')
-        }
+        window.open(`/print/returns/${returnDoc.id}`, '_blank')
     }
 
     async function handleDelete() {

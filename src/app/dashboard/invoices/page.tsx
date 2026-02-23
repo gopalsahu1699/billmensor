@@ -19,7 +19,7 @@ export default function InvoicesPage() {
 
     const filteredInvoices = invoices.filter(inv =>
         (inv.invoice_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (inv.party?.name?.toLowerCase() || '').includes(search.toLowerCase())
+        (inv.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
     const getStatusColor = (status: string) => {
@@ -88,9 +88,9 @@ export default function InvoicesPage() {
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                                {inv.party?.name?.charAt(0)}
+                                                {inv.customers?.name?.charAt(0)}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{inv.party?.name}</span>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{inv.customers?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5 text-sm font-black text-slate-900 dark:text-slate-100">

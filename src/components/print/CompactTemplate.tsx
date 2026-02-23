@@ -20,7 +20,6 @@ export function CompactTemplate({
             className="bg-white text-black font-sans text-[14px] leading-tight mx-auto"
             style={{
                 width: '794px',
-                minHeight: '1123px',
                 padding: '24px',
             }}
         >
@@ -62,8 +61,8 @@ export function CompactTemplate({
                     </p>
                     {isInvoice && (
                         <div className={`mt-2 inline-block px-3 py-0.5 border rounded-full text-[11px] font-bold uppercase ${data.payment_status?.toLowerCase() === 'paid'
-                                ? 'bg-green-50 border-green-200 text-green-700'
-                                : 'bg-orange-50 border-orange-200 text-orange-700'
+                            ? 'bg-green-50 border-green-200 text-green-700'
+                            : 'bg-orange-50 border-orange-200 text-orange-700'
                             }`}>
                             {data.payment_status || 'Unpaid'}
                         </div>
@@ -75,15 +74,15 @@ export function CompactTemplate({
             <div className="flex justify-between border-b border-black pb-3 mb-3">
                 <div>
                     <h3 className="font-bold">Billed To:</h3>
-                    <p>{data.customers?.name || data.parties?.name}</p>
-                    <p>{data.customers?.billing_address || data.parties?.billing_address}</p>
-                    <p>GST: {data.customers?.gstin || data.parties?.gstin || 'N/A'}</p>
+                    <p>{data.customers?.name}</p>
+                    <p>{data.customers?.billing_address}</p>
+                    <p>GST: {data.customers?.gstin || 'N/A'}</p>
                 </div>
 
-                {(data.customers?.shipping_address || data.parties?.shipping_address) && (
+                {(data.customers?.shipping_address) && (
                     <div className="text-right">
                         <h3 className="font-bold">Shipped To:</h3>
-                        <p>{data.customers?.shipping_address || data.parties?.shipping_address}</p>
+                        <p>{data.customers?.shipping_address}</p>
                     </div>
                 )}
             </div>

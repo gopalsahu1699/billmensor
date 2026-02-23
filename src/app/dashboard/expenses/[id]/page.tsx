@@ -61,7 +61,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
             if (error) throw error
             toast.success('Expense record deleted')
             router.push('/dashboard/expenses')
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
             setLoading(false)
         }

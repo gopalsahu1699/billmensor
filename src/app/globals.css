@@ -63,7 +63,7 @@ body {
     margin: 0 !important;
   }
 
-  /* Disable scrollbars in print */
+  /* Disable scrollbars and force visibility in print */
   * {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
@@ -71,12 +71,23 @@ body {
 
   *::-webkit-scrollbar {
     display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   html,
   body {
     overflow: visible !important;
     height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force all scrollable containers to be visible */
+  .overflow-x-auto,
+  .overflow-y-auto,
+  .custom-scrollbar {
+    overflow: visible !important;
   }
 
   .shadow-sm,

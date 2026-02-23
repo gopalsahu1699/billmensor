@@ -10,7 +10,6 @@ import { Card } from '@/components/ui/card'
 import { ArrowLeft, Download, RotateCcw, Loader2, Layout, Mail, Share2, Trash2, Edit } from 'lucide-react'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
-import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
 import Image from 'next/image'
 
 interface Customer {
@@ -251,44 +250,29 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
     async function handleDownload() {
         if (!quotation) return
-        try {
-            const fileName = `Quotation-${quotation.quotation_number}`
-            await downloadPDF('quotation-render-area', fileName)
-            toast.success('Quotation downloaded successfully')
-        } catch {
-            toast.error('Failed to generate PDF')
-        }
+        window.open(`/print/quotations/${quotation.id}`, '_blank')
     }
 
     async function handleShare() {
-        if (sharing) return
+        if (!quotation || sharing) return
         setSharing(true)
 
         const shareData = {
-            title: `Quotation ${quotation?.quotation_number || ''}`,
+            title: `Quotation ${quotation.quotation_number || ''}`,
             text: `View estimate ${quotation?.quotation_number || ''} from ${profile?.company_name || 'Billmensor'}`,
             url: window.location.href,
         }
 
         try {
-            // Try to share as a file first if supported
-            const blob = await getPDFBlob('quotation-render-area')
-            if (blob && quotation && navigator.canShare && navigator.canShare({ files: [new File([blob], `Quotation-${quotation.quotation_number}.pdf`, { type: 'application/pdf' })] })) {
-                const file = new File([blob], `Quotation-${quotation.quotation_number}.pdf`, { type: 'application/pdf' })
-                await navigator.share({
-                    ...shareData,
-                    files: [file]
-                })
-                toast.success('Estimate PDF shared successfully')
-                return
-            }
+            const printUrl = `${window.location.origin}/print/quotations/${quotation.id}`
+            const updatedShareData = { ...shareData, url: printUrl }
 
             // Fallback to basic sharing
             if (navigator.share) {
-                await navigator.share(shareData)
+                await navigator.share(updatedShareData)
                 toast.success('Shared successfully')
             } else {
-                await navigator.clipboard.writeText(window.location.href)
+                await navigator.clipboard.writeText(printUrl)
                 toast.success('Link copied to clipboard')
             }
         } catch (err: unknown) {

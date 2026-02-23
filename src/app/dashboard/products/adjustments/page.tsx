@@ -40,7 +40,7 @@ export default function StockAdjustmentsPage() {
             ])
             setAdjustments(adjRes.data || [])
             setProducts(prodRes.data || [])
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -82,7 +82,7 @@ export default function StockAdjustmentsPage() {
             setShowModal(false)
             setForm({ product_id: '', adjustment_type: 'add', quantity: 1, reason: '' })
             fetchData()
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         } finally {
             setSaving(false)

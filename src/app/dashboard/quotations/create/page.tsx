@@ -147,7 +147,7 @@ function CreateQuotationForm() {
             setSelectedCustomerId(quo.customer_id)
             setQuotationNumber(quo.quotation_number)
             setQuotationDate(quo.quotation_date)
-            setValidUntil(quo.valid_until || '')
+            setValidUntil(quo.expiry_date || '')
             setNotes(quo.notes || '')
 
             const mappedItems = quo.quotation_items.map((item: QuotationItem) => ({
@@ -245,12 +245,15 @@ function CreateQuotationForm() {
             const quotationPayload = {
                 // user_id handled by service
                 customer_id: selectedCustomerId,
-                party_id: selectedCustomerId,
+
                 quotation_number: quotationNumber,
                 quotation_date: quotationDate,
-                valid_until: validUntil || null,
+                expiry_date: validUntil || null,
                 subtotal,
                 tax_total: taxTotal,
+                cgst_total: 0, // Placeholder
+                sgst_total: 0, // Placeholder
+                igst_total: 0, // Placeholder
                 billing_address: customer?.billing_address || null,
                 shipping_address: customer?.shipping_address || null,
                 supply_place: customer?.supply_place || null,
@@ -260,11 +263,12 @@ function CreateQuotationForm() {
                 items: items.map(item => ({
                     product_id: item.product_id || undefined,
                     name: item.name,
-                    product_name: item.name,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
-                    price: item.unit_price,
                     tax_rate: item.tax_rate,
+                    cgst: 0, // Placeholder
+                    sgst: 0, // Placeholder
+                    igst: 0, // Placeholder
                     tax_amount: item.tax_amount,
                     discount: item.discount,
                     total: item.total

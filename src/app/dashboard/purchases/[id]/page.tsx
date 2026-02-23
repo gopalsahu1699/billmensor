@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Download, Loader2, Trash2, Edit, ShoppingCart, CheckCircle2 } from 'lucide-react'
-import { downloadPDF } from '@/lib/pdf-utils'
 import Image from 'next/image'
 import type { Purchase, PurchaseItem, Profile } from '@/types'
 
@@ -75,13 +74,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 
     async function handleDownload() {
         if (!purchase) return
-        try {
-            const fileName = `Purchase-${purchase.purchase_number}`
-            await downloadPDF('purchase-render-area', fileName)
-            toast.success('Purchase bill downloaded')
-        } catch {
-            toast.error('Failed to generate PDF')
-        }
+        window.open(`/print/purchases/${purchase.id}`, '_blank')
     }
 
     async function handleDelete() {

@@ -5,7 +5,7 @@ export const paymentService = {
     async list(type?: "payment_in" | "payment_out") {
         let query = supabase
             .from("payments")
-            .select("*, customers(*), party:parties(*)")
+            .select("*, customers(*)")
             .order("created_at", { ascending: false })
 
         if (type) {
@@ -20,7 +20,7 @@ export const paymentService = {
     async getById(id: string) {
         const { data, error } = await supabase
             .from("payments")
-            .select("*, customers(*), party:parties(*)")
+            .select("*, customers(*)")
             .eq("id", id)
             .single()
 

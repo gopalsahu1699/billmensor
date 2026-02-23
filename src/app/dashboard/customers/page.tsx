@@ -25,7 +25,7 @@ export default function CustomersPage() {
 
             if (error) throw error
             setCustomers(data || [])
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -44,7 +44,7 @@ export default function CustomersPage() {
             if (error) throw error
             toast.success('Customer record deleted successfully')
             fetchCustomers()
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         }
     }

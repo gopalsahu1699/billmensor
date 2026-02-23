@@ -13,7 +13,7 @@ export const invoiceService = {
             .from("invoices")
             .select(`
         *,
-        party:customers (*),
+        customers (*),
         items:invoice_items (*)
       `)
             .eq("id", id)
@@ -38,7 +38,7 @@ export const invoiceService = {
             .from("invoices")
             .select(`
         *,
-        party:customers (*),
+        customers (*),
         items:invoice_items (*)
       `)
             // .eq("user_id", session.session.user.id)

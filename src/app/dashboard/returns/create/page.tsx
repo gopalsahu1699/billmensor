@@ -209,12 +209,14 @@ function CreateReturnForm() {
                 // user_id is handled by the service
                 customer_id: type === 'sales_return' ? selectedPartyId : undefined,
                 supplier_id: type === 'purchase_return' ? selectedPartyId : undefined,
-                party_id: selectedPartyId, // generic
                 return_number: returnNumber,
                 return_date: returnDate,
                 total_amount: grandTotal,
                 subtotal: subtotal,
                 tax_total: taxTotal,
+                cgst_total: 0, // Placeholder
+                sgst_total: 0, // Placeholder
+                igst_total: 0, // Placeholder
                 billing_address: party?.billing_address || null,
                 shipping_address: party?.shipping_address || null,
                 supply_place: party?.supply_place || null,
@@ -222,11 +224,12 @@ function CreateReturnForm() {
                 items: items.map(item => ({
                     product_id: item.product_id || undefined,
                     name: item.name,
-                    product_name: item.name,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
-                    price: item.unit_price,
                     tax_rate: item.tax_rate,
+                    cgst: 0,
+                    sgst: 0,
+                    igst: 0,
                     tax_amount: item.tax_amount,
                     total: item.total
                 }))

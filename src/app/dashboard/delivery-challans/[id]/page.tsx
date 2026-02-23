@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Download, Loader2, Trash2, Edit, Truck, RotateCcw } from 'lucide-react'
-import { downloadPDF } from '@/lib/pdf-utils'
 import Image from 'next/image'
 
 interface ChallanItem {
@@ -173,13 +172,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
     async function handleDownload() {
         if (!challan) return
-        try {
-            const fileName = `Challan-${challan.challan_number}`
-            await downloadPDF('challan-render-area', fileName)
-            toast.success('Challan downloaded successfully')
-        } catch {
-            toast.error('Failed to generate PDF')
-        }
+        window.open(`/print/delivery-challans/${challan.id}`, '_blank')
     }
 
     async function handleDelete() {

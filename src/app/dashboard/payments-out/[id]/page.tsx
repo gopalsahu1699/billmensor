@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Loader2, Trash2, Edit, Wallet, Calendar, Hash, Banknote, CreditCard, Send, Share2, Mail, FileText, ChevronDown, Download } from 'lucide-react'
-import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
 import type { Payment, Profile } from '@/types'
 
 export default function PaymentOutDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -92,45 +91,27 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
         if (!payment) return
         try {
             setSharing(true)
-            const blob = await getPDFBlob('voucher-content')
-            if (!blob) throw new Error('Failed to generate PDF')
-
-            const file = new File([blob], `Voucher_${payment.payment_number}.pdf`, { type: 'application/pdf' })
-
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: `Voucher ${payment.payment_number}`,
-                    text: `Payment Voucher for ${payment.customers?.name} from ${profile?.company_name || 'Billmensor'}`,
-                })
+            const shareData = {
+                title: `Voucher ${payment.payment_number}`,
+                text: `Payment Voucher for ${payment.customers?.name} from ${profile?.company_name || 'Billmensor'}`,
+                url: window.location.href,
+            }
+            if (navigator.share) {
+                await navigator.share(shareData)
             } else {
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `Voucher_${payment.payment_number}.pdf`
-                a.click()
-                toast.info('Sharing not supported, downloaded PDF instead')
+                await navigator.clipboard.writeText(window.location.href)
+                toast.success('Link copied to clipboard')
             }
         } catch (error: unknown) {
-            toast.error('Share failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+            console.error('Error sharing:', error)
         } finally {
             setSharing(false)
             setIsShareOpen(false)
         }
     }
 
-    const handleDownload = async () => {
-        if (!payment) return
-        try {
-            setSharing(true)
-            await downloadPDF('voucher-content', `Voucher_${payment.payment_number}`)
-            toast.success('Downloaded successfully')
-        } catch (error: unknown) {
-            toast.error('Download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
-        } finally {
-            setSharing(false)
-            setIsShareOpen(false)
-        }
+    const handleDownload = () => {
+        window.print()
     }
 
     if (loading) return (

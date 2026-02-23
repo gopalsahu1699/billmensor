@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Download, Loader2, Calculator, Receipt, TrendingUp, FileText } from 'lucide-react'
 import { toast } from 'sonner'
-import { downloadPDF } from '@/lib/pdf-utils'
+//
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AuditRecord = any
@@ -162,13 +162,7 @@ export default function CAAuditReportPage() {
     }, [fetchAuditData])
 
     async function handleShare() {
-        try {
-            await downloadPDF('ca-audit-render', `Audit_Report_${dateRange.start}_to_${dateRange.end}`)
-            toast.success('Audit report generated')
-        } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'PDF generation failed'
-            toast.error(msg)
-        }
+        window.print()
     }
 
     if (loading && !profile) return (

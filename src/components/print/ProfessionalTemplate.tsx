@@ -20,7 +20,7 @@ export function ProfessionalTemplate({
 
 
     return (
-        <div className="bg-white w-[210mm] min-h-[297mm] mx-auto p-8 text-[13px] text-black font-sans leading-relaxed">
+        <div className="bg-white w-[210mm] mx-auto p-8 text-[13px] text-black font-sans leading-relaxed">
 
             {/* HEADER */}
             <div className="flex justify-between items-start border-b pb-4 mb-6">
@@ -81,21 +81,21 @@ export function ProfessionalTemplate({
                 <div>
                     <p className="font-bold text-[14px] mb-2">Bill To:</p>
                     <p className="font-semibold text-[14px]">
-                        {data.parties?.name || data.customers?.name}
+                        {data.customers?.name}
                     </p>
-                    <p>{data.parties?.billing_address || data.customers?.billing_address}</p>
-                    {(data.parties?.gstin || data.customers?.gstin) && (
-                        <p>GST: {data.parties?.gstin || data.customers?.gstin}</p>
+                    <p>{data.customers?.billing_address}</p>
+                    {(data.customers?.gstin) && (
+                        <p>GST: {data.customers?.gstin}</p>
                     )}
                 </div>
 
-                {(data.parties?.shipping_address || data.customers?.shipping_address) && (
+                {(data.customers?.shipping_address) && (
                     <div className="text-right">
                         <p className="font-bold text-[14px] mb-2">Ship To:</p>
                         <p className="font-semibold text-[14px]">
-                            {data.parties?.name || data.customers?.name}
+                            {data.customers?.name}
                         </p>
-                        <p>{data.parties?.shipping_address || data.customers?.shipping_address}</p>
+                        <p>{data.customers?.shipping_address}</p>
                     </div>
                 )}
             </div>

@@ -13,7 +13,7 @@ export const quotationService = {
             .from("quotations")
             .select(`
         *,
-        party:customers (*)
+        customers (*)
       `)
             .order("created_at", { ascending: false })
 
@@ -35,7 +35,7 @@ export const quotationService = {
             .from("quotations")
             .select(`
         *,
-        party:customers (*),
+        customers (*),
         items:quotation_items (*)
       `)
             .eq("id", id)

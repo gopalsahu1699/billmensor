@@ -17,8 +17,8 @@ export default function GSTR3BReport() {
         end: new Date().toISOString().split('T')[0]
     })
     const [reportData, setReportData] = useState({
-        outward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, total: 0 },
-        inward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, total: 0 },
+        outward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 },
+        inward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, tax: 0, total: 0 },
         netTax: 0
     })
 
@@ -148,7 +148,7 @@ export default function GSTR3BReport() {
                 netTax: outward.tax - inward.tax
             })
 
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error('Error generating 3B summary')
         } finally {
             setLoading(false)

@@ -13,7 +13,7 @@ export const returnService = {
             .from("returns")
             .select(`
         *,
-        party:customers (*)
+        customers (*)
       `)
             .order("created_at", { ascending: false })
         // .eq("user_id", session.session.user.id) // Assuming multi-tenant
@@ -36,7 +36,7 @@ export const returnService = {
             .from("returns")
             .select(`
         *,
-        party:customers (*),
+        customers (*),
         items:return_items (*)
       `)
             .eq("id", id)

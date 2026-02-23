@@ -10,7 +10,6 @@ import Link from 'next/link'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
-import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
 
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
 
@@ -147,24 +146,15 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
 
         try {
-            // Try to share as a file first if supported
-            const blob = await getPDFBlob('invoice-render-area')
-            if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], `Invoice-${invoice.invoice_number}.pdf`, { type: 'application/pdf' })] })) {
-                const file = new File([blob], `Invoice-${invoice.invoice_number}.pdf`, { type: 'application/pdf' })
-                await navigator.share({
-                    ...shareData,
-                    files: [file]
-                })
-                toast.success('Invoice PDF shared successfully')
-                return
-            }
+            const printUrl = `${window.location.origin}/print/invoices/${invoice.id}`
+            const updatedShareData = { ...shareData, url: printUrl }
 
             // Fallback to basic sharing
             if (navigator.share) {
-                await navigator.share(shareData)
+                await navigator.share(updatedShareData)
                 toast.success('Shared successfully')
             } else {
-                await navigator.clipboard.writeText(window.location.href)
+                await navigator.clipboard.writeText(printUrl)
                 toast.success('Link copied to clipboard')
             }
         } catch (error) {
@@ -189,13 +179,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
     async function handleDownload() {
         if (!invoice) return
-        try {
-            const fileName = `Invoice-${invoice.invoice_number}`
-            await downloadPDF('invoice-render-area', fileName)
-            toast.success('Invoice downloaded successfully')
-        } catch {
-            toast.error('Failed to generate PDF')
-        }
+        window.open(`/print/invoices/${invoice.id}`, '_blank')
     }
 
 

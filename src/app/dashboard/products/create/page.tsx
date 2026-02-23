@@ -58,7 +58,7 @@ export default function CreateProductPage() {
                 unit: data.unit || 'pcs',
                 image_url: data.image_url || '',
             })
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
             router.push('/dashboard/products')
         } finally {
@@ -90,7 +90,7 @@ export default function CreateProductPage() {
 
             setForm(prev => ({ ...prev, image_url: urlData.publicUrl }))
             toast.success('Image uploaded')
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error('Upload failed: ' + error.message)
         } finally {
             setUploading(false)
@@ -136,7 +136,7 @@ export default function CreateProductPage() {
                 toast.success('Product added successfully')
             }
             router.push('/dashboard/products')
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -227,8 +227,8 @@ export default function CreateProductPage() {
                                         type="button"
                                         onClick={() => setForm({ ...form, item_type: t.value })}
                                         className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${form.item_type === t.value
-                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
@@ -420,8 +420,8 @@ export default function CreateProductPage() {
                                             type="button"
                                             onClick={() => setForm({ ...form, unit: u })}
                                             className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${form.unit === u
-                                                    ? 'bg-primary text-white shadow-sm'
-                                                    : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100'
+                                                ? 'bg-primary text-white shadow-sm'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100'
                                                 }`}
                                         >
                                             {u}

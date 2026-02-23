@@ -216,11 +216,13 @@ function CreatePurchaseForm() {
             const purchasePayload = {
                 // user_id handled by service
                 supplier_id: selectedSupplierId,
-                party_id: selectedSupplierId, // to satisfy schema if needed
                 purchase_number: purchaseNumber,
                 purchase_date: purchaseDate,
                 subtotal,
                 tax_total: taxTotal,
+                cgst_total: 0, // Placeholder
+                sgst_total: 0, // Placeholder
+                igst_total: 0, // Placeholder
                 total_amount: grandTotal,
                 billing_address: supplier?.billing_address || null,
                 shipping_address: supplier?.shipping_address || null,
@@ -230,11 +232,12 @@ function CreatePurchaseForm() {
                 items: items.map(item => ({
                     product_id: item.product_id || null,
                     name: item.name,
-                    product_name: item.name,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
-                    price: item.unit_price,
                     tax_rate: item.tax_rate,
+                    cgst: 0, // Placeholder
+                    sgst: 0, // Placeholder
+                    igst: 0, // Placeholder
                     tax_amount: item.tax_amount,
                     total: item.total
                 }))

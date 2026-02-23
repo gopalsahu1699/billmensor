@@ -10,7 +10,7 @@ export const purchaseService = {
             .from("purchases")
             .select(`
         *,
-        party:customers (*),
+        suppliers:customers!supplier_id (*),
         items:purchase_items (*)
       `)
             .eq("id", id)
@@ -31,7 +31,7 @@ export const purchaseService = {
             .from("purchases")
             .select(`
         *,
-        party:customers (*),
+        suppliers:customers!supplier_id (*),
         items:purchase_items (*)
       `)
             .order('created_at', { ascending: false })

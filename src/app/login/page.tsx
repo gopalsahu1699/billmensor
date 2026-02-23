@@ -30,7 +30,7 @@ export default function LoginPage() {
 
             toast.success('Logged in successfully!')
             router.push('/dashboard')
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message || 'Failed to login')
         } finally {
             setLoading(false)

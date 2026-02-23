@@ -266,11 +266,13 @@ function CreateInvoiceForm() {
             const invoicePayload = {
                 // user_id handled by service
                 customer_id: selectedCustomerId,
-                party_id: selectedCustomerId, // To match dual-schema expectation
                 invoice_number: invoiceNumber,
                 invoice_date: invoiceDate,
                 subtotal,
                 tax_total: taxTotal,
+                cgst_total: 0, // Placeholder
+                sgst_total: 0, // Placeholder
+                igst_total: 0, // Placeholder
                 discount: generalDiscount,
                 round_off: roundOff,
                 transport_charges: transportCharges,
@@ -291,9 +293,10 @@ function CreateInvoiceForm() {
                     hsn_code: item.hsn_code || null,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
-                    price: item.unit_price, // map unit_price to schema price
-                    product_name: item.name, // map name to product_name
                     tax_rate: item.tax_rate,
+                    cgst: 0, // Placeholder
+                    sgst: 0, // Placeholder
+                    igst: 0, // Placeholder
                     tax_amount: item.tax_amount,
                     discount: item.discount,
                     total: item.total,
