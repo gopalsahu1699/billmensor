@@ -230,12 +230,12 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                         <ArrowLeft size={20} />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">Challan</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{challan.challan_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{challan.challan_number}</span>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase">Delivery Challan</h1>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Delivery Challan</h1>
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-3">

@@ -4,18 +4,43 @@ export const downloadPDF = async (elementId: string, filename: string) => {
     if (!element) return;
 
     try {
-        // Dynamically import libraries to reduce initial bundle size
         const { toPng } = await import('html-to-image');
         const { default: jsPDF } = await import('jspdf');
 
-        // html-to-image handles modern CSS (like oklch) much better than html2canvas
+        // --- Scrollbar suppression ---
+        // Save original styles
+        const origBodyOverflow = document.body.style.overflow;
+        const origElemOverflow = element.style.overflow;
+        const origElemOverflowX = element.style.overflowX;
+
+        // Hide scrollbars on the page and target element during capture
+        document.body.style.overflow = 'hidden';
+        element.style.overflow = 'visible';
+        element.style.overflowX = 'visible';
+
+        // Force re-layout so the element renders at its full natural width
+        const naturalWidth = element.scrollWidth;
+        const naturalHeight = element.scrollHeight;
+
         const dataUrl = await toPng(element, {
             quality: 1.0,
             pixelRatio: 3,
             backgroundColor: '#ffffff',
-            skipFonts: true, // Fixes SecurityError: Failed to read 'cssRules' from 'CSSStyleSheet'
-            style: { margin: '0' },
+            skipFonts: true,
+            width: naturalWidth,
+            height: naturalHeight,
+            style: {
+                margin: '0',
+                overflow: 'visible',
+                overflowX: 'visible',
+            },
         });
+
+        // Restore original styles
+        document.body.style.overflow = origBodyOverflow;
+        element.style.overflow = origElemOverflow;
+        element.style.overflowX = origElemOverflowX;
+        // --- End scrollbar suppression ---
 
         const pdf = new jsPDF({
             orientation: 'portrait',
@@ -56,13 +81,36 @@ export const getPDFBlob = async (elementId: string): Promise<Blob | null> => {
         const { toPng } = await import('html-to-image');
         const { default: jsPDF } = await import('jspdf');
 
+        // Suppress scrollbars during capture
+        const origBodyOverflow = document.body.style.overflow;
+        const origElemOverflow = element.style.overflow;
+        const origElemOverflowX = element.style.overflowX;
+
+        document.body.style.overflow = 'hidden';
+        element.style.overflow = 'visible';
+        element.style.overflowX = 'visible';
+
+        const naturalWidth = element.scrollWidth;
+        const naturalHeight = element.scrollHeight;
+
         const dataUrl = await toPng(element, {
             quality: 1.0,
             pixelRatio: 3,
             backgroundColor: '#ffffff',
             skipFonts: true,
-            style: { margin: '0' },
+            width: naturalWidth,
+            height: naturalHeight,
+            style: {
+                margin: '0',
+                overflow: 'visible',
+                overflowX: 'visible',
+            },
         });
+
+        // Restore original styles
+        document.body.style.overflow = origBodyOverflow;
+        element.style.overflow = origElemOverflow;
+        element.style.overflowX = origElemOverflowX;
 
         const pdf = new jsPDF({
             orientation: 'portrait',

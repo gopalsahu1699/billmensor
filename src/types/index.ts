@@ -3,8 +3,12 @@ export interface Party {
     name: string
     phone?: string
     email?: string
-    gst_number?: string
+    gst_number?: string // Keep for legacy
+    gstin?: string
     address?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
 }
 
 export interface InvoiceItem {
@@ -200,6 +204,7 @@ export interface Payment {
     supply_place?: string | null
     notes?: string | null
     items?: PaymentItem[]
+    invoices?: { invoice_number: string }
     created_at: string
 }
 

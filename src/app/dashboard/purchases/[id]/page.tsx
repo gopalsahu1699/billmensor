@@ -8,21 +8,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Download, Loader2, Trash2, Edit, ShoppingCart, Calendar, Hash, Truck, CheckCircle2 } from 'lucide-react'
-import { downloadPDF } from '@/lib/pdf-utils'
+import type { Purchase, PurchaseItem, Profile } from '@/types'
 
 export default function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [purchase, setPurchase] = useState<any | null>(null)
-    const [items, setItems] = useState<any[]>([])
-    const [profile, setProfile] = useState<any | null>(null)
+    const [purchase, setPurchase] = useState<Purchase | null>(null)
+    const [items, setItems] = useState<PurchaseItem[]>([])
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetchPurchase()
-    }, [resolvedParams.id])
-
-    async function fetchPurchase() {
+    const fetchPurchase = useCallback(async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -50,13 +46,17 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                 .single()
 
             if (profData) setProfile(profData)
-        } catch (error: unknown) {
+        } catch {
             toast.error('Failed to load purchase details')
             router.push('/dashboard/purchases')
         } finally {
             setLoading(false)
         }
-    }
+    }, [resolvedParams.id, router])
+
+    useEffect(() => {
+        fetchPurchase()
+    }, [fetchPurchase])
 
     async function handleMarkAsPaid() {
         try {
@@ -69,7 +69,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             toast.success('Purchase bill marked as paid')
             fetchPurchase()
         } catch (error: unknown) {
-            toast.error('Failed to update status: ' + error.message)
+            toast.error('Failed to update status: ' + (error instanceof Error ? error.message : 'Unknown error'))
         }
     }
 
@@ -99,7 +99,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             toast.success('Purchase deleted successfully')
             router.push('/dashboard/purchases')
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Deletion failed')
             setLoading(false)
         }
     }
@@ -122,13 +122,13 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                         <ArrowLeft size={20} />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">Inventory Acquisition</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{purchase.purchase_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{purchase.purchase_number}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase">Purchase Bill</h1>
+                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Purchase Bill</h1>
                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${purchase.payment_status === 'paid' ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-amber-100 text-amber-600 border border-amber-200'}`}>
                                 {purchase.payment_status || 'unpaid'}
                             </div>

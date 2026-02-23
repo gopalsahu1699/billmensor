@@ -247,13 +247,13 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         <ArrowLeft size={20} />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
                             <span className="text-[10px] font-black uppercase tracking-widest">Invoices</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{invoice.invoice_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{invoice.invoice_number}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase">Invoice Details</h1>
+                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Invoice Details</h1>
                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${invoice.payment_status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
                                 {invoice.payment_status}
                             </div>

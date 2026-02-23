@@ -128,9 +128,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
             await downloadPDF('receipt-content', `Receipt_${payment.payment_number}`)
             toast.success('Downloaded successfully')
         } catch (error: unknown) {
-            if (error instanceof Error) {
-                toast.error('Download failed: ' + error.message)
-            }
+            toast.error('Download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
         } finally {
             setSharing(false)
             setIsShareOpen(false)
@@ -166,10 +164,10 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Payment In</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{payment.payment_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{payment.payment_number}</span>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase leading-none">Receipt Details</h1>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase leading-none">Receipt Details</h1>
                     </div>
                 </div>
                 <div className="flex gap-3">

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -8,22 +8,18 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Loader2, Trash2, Edit, Wallet, Calendar, Hash, Banknote, CreditCard, Send, Share2, Mail, FileText, ChevronDown, Download } from 'lucide-react'
 import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
+import type { Payment, Profile } from '@/types'
 
 export default function PaymentOutDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [payment, setPayment] = useState<any | null>(null)
-    const [profile, setProfile] = useState<any | null>(null)
+    const [payment, setPayment] = useState<Payment | null>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
     const [sharing, setSharing] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
 
-    useEffect(() => {
-        fetchPayment()
-        fetchProfile()
-    }, [resolvedParams.id])
-
-    async function fetchProfile() {
+    const fetchProfile = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
@@ -38,9 +34,9 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
         } catch (error) {
             console.error('Error fetching profile:', error)
         }
-    }
+    }, [])
 
-    async function fetchPayment() {
+    const fetchPayment = useCallback(async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -51,13 +47,18 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
 
             if (error) throw error
             setPayment(data)
-        } catch (error: unknown) {
+        } catch {
             toast.error('Failed to load payment details')
             router.push('/dashboard/payments-out')
         } finally {
             setLoading(false)
         }
-    }
+    }, [resolvedParams.id, router])
+
+    useEffect(() => {
+        fetchPayment()
+        fetchProfile()
+    }, [fetchPayment, fetchProfile])
 
     async function handleDelete() {
         if (!window.confirm('Are you sure you want to delete this payment record?')) return
@@ -74,12 +75,13 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
             toast.success('Payment deleted successfully')
             router.push('/dashboard/payments-out')
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Deletion failed')
             setLoading(false)
         }
     }
 
     const handleEmail = () => {
+        if (!payment) return
         const subject = encodeURIComponent(`Payment Voucher ${payment.payment_number} to ${payment.customers?.name || 'Supplier'}`)
         const body = encodeURIComponent(`Hello,\n\nPlease find the payment voucher ${payment.payment_number} details below:\n\nAmount Paid: ₹${payment.amount.toLocaleString('en-IN')}\nDate: ${new Date(payment.payment_date).toLocaleDateString()}\nMode: ${payment.payment_mode}\n\nView details: ${window.location.href}\n\nThank you,\n${profile?.company_name || 'Billmensor'}`)
         window.location.href = `mailto:${payment.customers?.email || ''}?subject=${subject}&body=${body}`
@@ -87,6 +89,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
     }
 
     const handleShare = async () => {
+        if (!payment) return
         try {
             setSharing(true)
             const blob = await getPDFBlob('voucher-content')
@@ -109,7 +112,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                 toast.info('Sharing not supported, downloaded PDF instead')
             }
         } catch (error: unknown) {
-            toast.error('Share failed: ' + error.message)
+            toast.error('Share failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
         } finally {
             setSharing(false)
             setIsShareOpen(false)
@@ -117,12 +120,13 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
     }
 
     const handleDownload = async () => {
+        if (!payment) return
         try {
             setSharing(true)
             await downloadPDF('voucher-content', `Voucher_${payment.payment_number}`)
             toast.success('Downloaded successfully')
         } catch (error: unknown) {
-            toast.error('Download failed: ' + error.message)
+            toast.error('Download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
         } finally {
             setSharing(false)
             setIsShareOpen(false)
@@ -158,10 +162,10 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Payment Out</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{payment.payment_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{payment.payment_number}</span>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase leading-none">Voucher Details</h1>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase leading-none">Voucher Details</h1>
                     </div>
                 </div>
                 <div className="flex gap-3">
