@@ -39,7 +39,7 @@ interface LedgerEntry {
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const router = useRouter()
-    const [product, setProduct] = useState<any>(null)
+    const [product, setProduct] = useState<any | null>(null)
     const [ledger, setLedger] = useState<LedgerEntry[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -148,7 +148,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             setLedger(sorted.reverse()) // Latest first in display
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             router.push('/dashboard/products')
         } finally {

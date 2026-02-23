@@ -1,70 +1,17 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../../lib/supabase'
-import { toast } from 'sonner'
+import { usePayments } from '@/hooks/usePayment'
 import { Plus, Search, ArrowUpRight, Wallet, Banknote } from 'lucide-react'
 
-interface Customer {
-    name: string;
-}
 
-interface Payment {
-    id: string;
-    payment_number: string;
-    payment_date: string;
-    amount: number;
-    mode: string;
-    customers: Customer | null;
-    created_at: string;
-}
 
 export default function PaymentOutPage() {
     const router = useRouter()
-    const [payments, setPayments] = useState<Payment[]>([])
-    const [loading, setLoading] = useState(true)
+    const { payments, loading } = usePayments('payment_out')
     const [search, setSearch] = useState('')
-
-    const fetchPayments = React.useCallback(async () => {
-        try {
-            const { data, error } = await supabase
-                .from('payments')
-                .select(`
-                    id,
-                    payment_number,
-                    payment_date,
-                    amount,
-                    mode,
-                    created_at,
-                    customers ( name )
-                `)
-                .eq('type', 'payment_out')
-                .order('created_at', { ascending: false })
-
-            if (error) {
-                if (error.code === '42P01') {
-                    setPayments([])
-                    return
-                }
-                throw error
-            }
-            setPayments((data as unknown as Payment[])?.map(p => ({
-                ...p,
-                customers: Array.isArray(p.customers) ? p.customers[0] : p.customers
-            })) || [])
-        } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
-        } finally {
-            setLoading(false)
-        }
-    }, [])
-
-    useEffect(() => {
-        fetchPayments()
-    }, [fetchPayments])
 
     const filteredPayments = payments.filter(pmt =>
         (pmt.payment_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
@@ -145,8 +92,8 @@ export default function PaymentOutPage() {
                                         <div className="flex flex-col">
                                             <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight">₹ {pmt.amount.toLocaleString('en-IN')}</span>
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">
-                                                {getModeIcon(pmt.mode)}
-                                                {pmt.mode}
+                                                {getModeIcon(pmt.payment_mode)}
+                                                {pmt.payment_mode}
                                             </div>
                                         </div>
                                     </td>

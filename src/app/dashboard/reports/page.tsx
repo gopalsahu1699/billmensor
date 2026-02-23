@@ -108,19 +108,19 @@ export default function ReportsDashboard() {
                         <h1 className="text-5xl md:text-6xl font-black tracking-tight italic uppercase leading-none">
                             Revenue <br /><span className="text-primary">Analytics</span>
                         </h1>
-                        <p className="text-slate-400 text-lg max-w-md font-medium leading-relaxed">
+                        <p className="text-slate-300 text-lg max-w-md font-medium leading-relaxed">
                             Holistic financial visualization and compliance-ready government filing exports at your fingertips.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 bg-white/5 border border-white/10 backdrop-blur-xl p-8 rounded-[32px] ring-1 ring-white/10">
                         <div className="space-y-2">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Gross Sales</p>
+                            <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest">Gross Sales</p>
                             <p className="text-3xl font-black text-white italic">₹{stats.sales.toLocaleString('en-IN')}</p>
                         </div>
                         <div className="w-full h-px lg:w-px lg:h-12 bg-white/10"></div>
                         <div className="space-y-2">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Net Margin</p>
+                            <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest">Net Margin</p>
                             <p className="text-3xl font-black text-green-400 italic">₹{stats.profit.toLocaleString('en-IN')}</p>
                         </div>
                     </div>
@@ -200,7 +200,7 @@ export default function ReportsDashboard() {
                     </div>
                     <div>
                         <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 italic uppercase">No Analytical Matches</h3>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Try broader keywords like "Revenue" or "Stock".</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Try broader keywords like &quot;Revenue&quot; or &quot;Stock&quot;.</p>
                     </div>
                     <button onClick={() => setSearchQuery('')} className="px-8 py-3 bg-primary/5 text-primary text-xs font-black uppercase tracking-widest rounded-xl hover:bg-primary/10 transition-all">Clear Search Filters</button>
                 </div>
@@ -209,6 +209,6 @@ export default function ReportsDashboard() {
     )
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ')
 }

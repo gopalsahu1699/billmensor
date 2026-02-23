@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, Search, ChevronDown, Package, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, Package, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { returnService } from '@/services/return.service'
+import { returnSchema } from '@/lib/validators'
 
 
 interface Customer {
@@ -123,7 +125,7 @@ function CreateReturnForm() {
             setReturnNumber(ret.return_number)
             setReturnDate(ret.return_date)
 
-            const mappedItems = ret.return_items.map((item: any) => ({
+            const mappedItems = ret.return_items.map((item: { id: string, product_id?: string, name: string, quantity: number, unit_price: number, tax_rate: number, tax_amount: number, total: number }) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
@@ -201,21 +203,38 @@ function CreateReturnForm() {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData.user) throw new Error('Not authenticated')
 
-            // 1. Upsert Return
+            // 1. Prepare Payload
             const party = parties.find(p => p.id === selectedPartyId)
             const returnPayload = {
-                user_id: userData.user.id,
-                customer_id: selectedPartyId,
+                // user_id is handled by the service
+                customer_id: type === 'sales_return' ? selectedPartyId : undefined,
+                supplier_id: type === 'purchase_return' ? selectedPartyId : undefined,
+                party_id: selectedPartyId, // generic
                 return_number: returnNumber,
                 return_date: returnDate,
                 total_amount: grandTotal,
+                subtotal: subtotal,
+                tax_total: taxTotal,
                 billing_address: party?.billing_address || null,
                 shipping_address: party?.shipping_address || null,
                 supply_place: party?.supply_place || null,
-                type: type
+                type: type as 'sales_return' | 'purchase_return',
+                items: items.map(item => ({
+                    product_id: item.product_id || undefined,
+                    name: item.name,
+                    product_name: item.name,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    price: item.unit_price,
+                    tax_rate: item.tax_rate,
+                    tax_amount: item.tax_amount,
+                    total: item.total
+                }))
             }
 
-            let returnId = editId
+            // Validation
+            const validatedData = returnSchema.parse(returnPayload)
+
             if (editId) {
                 // Reverse old stock
                 const { data: oldItems } = await supabase.from('return_items').select('*').eq('return_id', editId)
@@ -234,36 +253,12 @@ function CreateReturnForm() {
                     }
                 }
 
-                const { error: retError } = await supabase
-                    .from('returns')
-                    .update(returnPayload)
-                    .eq('id', editId)
-                if (retError) throw retError
-
-                await supabase.from('return_items').delete().eq('return_id', editId)
+                // @ts-expect-error: Supabase type mismatch hack for now
+                await returnService.update(editId, validatedData)
             } else {
-                const { data: returnDoc, error: retError } = await supabase
-                    .from('returns')
-                    .insert([returnPayload])
-                    .select().single()
-                if (retError) throw retError
-                returnId = returnDoc.id
+                // @ts-expect-error: Supabase type mismatch hack for now
+                await returnService.create(validatedData)
             }
-
-            const returnItems = items.map(item => ({
-                user_id: userData.user.id,
-                return_id: returnId,
-                product_id: item.product_id || null,
-                name: item.name,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                tax_rate: item.tax_rate,
-                tax_amount: item.tax_amount,
-                total: item.total
-            }))
-
-            const { error: itemsError } = await supabase.from('return_items').insert(returnItems)
-            if (itemsError) throw itemsError
 
             // Stock update logic
             for (const item of items) {

@@ -1,28 +1,58 @@
 'use client'
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ArrowLeft, Download, Loader2, Trash2, Edit, RotateCcw, Calendar, Hash, User } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Trash2, Edit, RotateCcw } from 'lucide-react'
 import { downloadPDF } from '@/lib/pdf-utils'
+import Image from 'next/image'
+
+interface ReturnItem {
+    name: string;
+    quantity: number;
+    unit_price: number;
+    tax_rate: number;
+    total: number;
+}
+
+interface ReturnCustomer {
+    name?: string;
+    billing_address?: string;
+    gstin?: string;
+    supply_place?: string;
+    phone?: string;
+}
+
+interface ReturnDoc {
+    id: string;
+    return_number: string;
+    type: string;
+    return_date: string;
+    total_amount: number;
+    notes?: string;
+    billing_address?: string;
+    supply_place?: string;
+    user_id: string;
+    customers?: ReturnCustomer;
+}
+
+interface ReturnProfile {
+    company_name?: string;
+    address?: string;
+    logo_url?: string;
+}
 
 export default function ReturnDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [returnDoc, setReturnDoc] = useState<any>(null)
-    const [items, setItems] = useState<any[]>([])
-    const [profile, setProfile] = useState<any>(null)
+    const [returnDoc, setReturnDoc] = useState<ReturnDoc | null>(null)
+    const [items, setItems] = useState<ReturnItem[]>([])
+    const [profile, setProfile] = useState<ReturnProfile | null>(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetchReturn()
-    }, [resolvedParams.id])
-
-    async function fetchReturn() {
+    const fetchReturn = useCallback(async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -50,20 +80,24 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                 .single()
 
             if (profData) setProfile(profData)
-        } catch (error: any) {
-            toast.error('Failed to load return details')
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Failed to load return details')
             router.push('/dashboard/returns')
         } finally {
             setLoading(false)
         }
-    }
+    }, [resolvedParams.id, router])
+
+    useEffect(() => {
+        fetchReturn()
+    }, [fetchReturn])
 
     async function handleDownload() {
         try {
-            const fileName = `Return-${returnDoc.return_number}`
+            const fileName = `Return-${returnDoc?.return_number}`
             await downloadPDF('return-render-area', fileName)
             toast.success('Return note downloaded')
-        } catch (error) {
+        } catch {
             toast.error('Failed to generate PDF')
         }
     }
@@ -80,8 +114,8 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
 
             toast.success('Return deleted successfully')
             router.push('/dashboard/returns')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Delete failed')
             setLoading(false)
         }
     }
@@ -106,12 +140,12 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                         <ArrowLeft size={20} />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                        <div className="flex items-center gap-2 text-slate-500 mb-1">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isSalesReturn ? 'text-orange-500' : 'text-blue-500'}`}>
                                 {isSalesReturn ? 'Sales Return' : 'Purchase Return'}
                             </span>
                             <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{returnDoc.return_number}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{returnDoc.return_number}</span>
                         </div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase">
                             {isSalesReturn ? 'Credit Note' : 'Debit Note'}
@@ -148,7 +182,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <img src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" />
+                                    <Image src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" width={140} height={40} />
                                 ) : (
                                     <div className={`w-16 h-16 rounded-3xl flex items-center justify-center text-white shadow-xl ${isSalesReturn ? 'bg-orange-600 shadow-orange-600/30' : 'bg-blue-600 shadow-blue-600/30'}`}>
                                         <RotateCcw size={32} />

@@ -1,36 +1,42 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ArrowLeft, Download, Loader2, Share2, Calculator, Receipt, TrendingUp, Filter, Banknote, FileText } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Calculator, Receipt, TrendingUp, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { downloadPDF } from '@/lib/pdf-utils'
+
+// Flexible record type for Supabase rows rendered in tables
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AuditRecord = Record<string, any>
+
+interface Profile {
+    company_name?: string;
+    gstin?: string;
+    place_of_supply?: string;
+}
 
 export default function CAAuditReportPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
 
     const [auditData, setAuditData] = useState({
-        sales: { total: 0, taxable: 0, localTaxable: 0, igstTaxable: 0, igst: 0, cgst: 0, sgst: 0, count: 0, list: [] as any[] },
-        purchases: { total: 0, taxable: 0, tax: 0, count: 0, list: [] as any[] },
-        returns: { sales: 0, salesTaxable: 0, purchase: 0, purchaseTaxable: 0, totalTax: 0, list: [] as any[] },
-        expenses: { total: 0, categories: {} as any, list: [] as any[] },
+        sales: { total: 0, taxable: 0, localTaxable: 0, igstTaxable: 0, igst: 0, cgst: 0, sgst: 0, count: 0, list: [] as AuditRecord[] },
+        purchases: { total: 0, taxable: 0, tax: 0, count: 0, list: [] as AuditRecord[] },
+        returns: { sales: 0, salesTaxable: 0, purchase: 0, purchaseTaxable: 0, totalTax: 0, list: [] as AuditRecord[] },
+        expenses: { total: 0, categories: {} as Record<string, number>, list: [] as AuditRecord[] },
         netProfit: 0
     })
 
-    useEffect(() => {
-        fetchAuditData()
-    }, [dateRange])
 
-    async function fetchAuditData() {
+    const fetchAuditData = useCallback(async () => {
         try {
             setLoading(true)
 
@@ -71,7 +77,7 @@ export default function CAAuditReportPage() {
                     count: acc.count + 1,
                     list: [...acc.list, inv]
                 }
-            }, { total: 0, taxable: 0, localTaxable: 0, igstTaxable: 0, igst: 0, cgst: 0, sgst: 0, count: 0, list: [] as any[] })
+            }, { total: 0, taxable: 0, localTaxable: 0, igstTaxable: 0, igst: 0, cgst: 0, sgst: 0, count: 0, list: [] as AuditRecord[] })
 
             // 3. Fetch Purchases
             const { data: purchases } = await supabase
@@ -88,7 +94,7 @@ export default function CAAuditReportPage() {
                     count: acc.count + 1,
                     list: [...acc.list, pur]
                 }
-            }, { total: 0, taxable: 0, tax: 0, count: 0, list: [] as any[] })
+            }, { total: 0, taxable: 0, tax: 0, count: 0, list: [] as AuditRecord[] })
 
             // 4. Fetch Expenses
             const { data: expenses } = await supabase
@@ -103,7 +109,7 @@ export default function CAAuditReportPage() {
                 acc.categories[cat] = (acc.categories[cat] || 0) + Number(exp.amount || 0)
                 acc.list.push(exp)
                 return acc
-            }, { total: 0, categories: {} as any, list: [] as any[] })
+            }, { total: 0, categories: {} as Record<string, number>, list: [] as AuditRecord[] })
 
             // 5. Fetch Returns & Precise Return Items
             const { data: returnsData } = await supabase
@@ -134,7 +140,7 @@ export default function CAAuditReportPage() {
                 acc.totalTax += tax
                 acc.list.push(ret)
                 return acc
-            }, { sales: 0, salesTaxable: 0, purchase: 0, purchaseTaxable: 0, totalTax: 0, list: [] as any[] })
+            }, { sales: 0, salesTaxable: 0, purchase: 0, purchaseTaxable: 0, totalTax: 0, list: [] as AuditRecord[] })
 
             setAuditData({
                 sales: salesAgg,
@@ -144,18 +150,22 @@ export default function CAAuditReportPage() {
                 netProfit: (salesAgg.taxable - retAgg.salesTaxable) - (purAgg.taxable - retAgg.purchaseTaxable) - expAgg.total
             })
 
-        } catch (error: any) {
+        } catch {
             toast.error('Failed to aggregate audit data')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        fetchAuditData()
+    }, [fetchAuditData])
 
     async function handleShare() {
         try {
             await downloadPDF('ca-audit-render', `Audit_Report_${dateRange.start}_to_${dateRange.end}`)
             toast.success('Audit report generated')
-        } catch (error) {
+        } catch {
             toast.error('PDF generation failed')
         }
     }
@@ -318,6 +328,9 @@ export default function CAAuditReportPage() {
                                 </tbody>
                             </table>
                         </div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-3 px-2 italic">
+                            ⓘ Note: CGST &amp; SGST rows reflect the <span className="text-slate-600 font-black">same intra-state transactions</span> — each is half the total GST. Do not add their taxable amounts together. Total intra-state gross = ₹{(auditData.sales.localTaxable + auditData.sales.cgst + auditData.sales.sgst).toLocaleString('en-IN')}.
+                        </p>
                     </div>
 
                     {/* Operational Expenses */}
@@ -330,10 +343,10 @@ export default function CAAuditReportPage() {
                                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Expense Portfolio</h3>
                             </div>
                             <div className="space-y-4">
-                                {Object.entries(auditData.expenses.categories).map(([cat, amt]: any) => (
+                                {Object.entries(auditData.expenses.categories).map(([cat, amt]: [string, unknown]) => (
                                     <div key={cat} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{cat}</span>
-                                        <span className="text-sm font-black text-slate-900">₹{amt.toLocaleString('en-IN')}</span>
+                                        <span className="text-sm font-black text-slate-900">₹{(amt as number).toLocaleString('en-IN')}</span>
                                     </div>
                                 ))}
                                 {Object.keys(auditData.expenses.categories).length === 0 && (
@@ -351,7 +364,7 @@ export default function CAAuditReportPage() {
                             <div>
                                 <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Verification Note</h4>
                                 <p className="text-xs text-slate-400 leading-relaxed italic">
-                                    "This report summarizes all digital records for the selected period. For accurate tax assessment, please verify these figures against your bank statements and physical receipts."
+                                    &ldquo;This report summarizes all digital records for the selected period. For accurate tax assessment, please verify these figures against your bank statements and physical receipts.&rdquo;
                                 </p>
                             </div>
                             <div className="pt-10 space-y-4">

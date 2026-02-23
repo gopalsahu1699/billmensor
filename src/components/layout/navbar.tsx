@@ -7,7 +7,7 @@ import { ThemeToggle } from './theme-toggle'
 import { cn } from "../../lib/utils"
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<any | null>(null)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {

@@ -4,30 +4,22 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Package, TrendingUp, IndianRupee, Calendar, ChevronLeft, ArrowUpRight, BarChart2, Download, FileText } from 'lucide-react'
+import { Package, TrendingUp, Calendar, ChevronLeft, ArrowUpRight, BarChart2, Download, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
 export default function ItemProfitSummary() {
     const [loading, setLoading] = useState(false)
-    const [itemStats, setItemStats] = useState<any[]>([])
+    const [itemStats, setItemStats] = useState<{ name: string, qty: number, revenue: number, cost: number, profit: number, margin: number }[]>([])
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
 
-    useEffect(() => {
-        fetchItemStats()
-    }, [])
-
-    async function fetchItemStats() {
+    const fetchItemStats = React.useCallback(async () => {
         setLoading(true)
         try {
-            // 1. Fetch Invoice Items with Product Details and Invoices (for date filtering)
-            // Note: Since Supabase doesn't support deep filtering efficiently in one go for aggregates 
-            // across joins with different root, we fetch items and filter in JS for simplicity here.
-
             const { data, error } = await supabase
                 .from('invoice_items')
                 .select(`
@@ -41,8 +33,8 @@ export default function ItemProfitSummary() {
             if (error) throw error
 
             // 2. Group by Product
-            const statsMap: any = {}
-            data?.forEach(item => {
+            const statsMap: Record<string, { name: string; qty: number; revenue: number; cost: number; profit: number }> = {}
+            data?.forEach((item: { product_id: string; products?: { name?: string; purchase_price?: number }; unit_price: number; quantity: number }) => {
                 const prodId = item.product_id
                 const buyPrice = item.products?.purchase_price || 0
                 const sellPrice = item.unit_price
@@ -64,19 +56,27 @@ export default function ItemProfitSummary() {
             })
 
             // 3. Final calculation
-            const finalStats = Object.values(statsMap).map((s: any) => ({
+            const finalStats = Object.values(statsMap).map((s) => ({
                 ...s,
                 profit: s.revenue - s.cost,
                 margin: s.revenue > 0 ? ((s.revenue - s.cost) / s.revenue) * 100 : 0
             })).sort((a, b) => b.profit - a.profit)
 
             setItemStats(finalStats)
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                toast.error(err.message)
+            } else {
+                toast.error('Failed to load summary')
+            }
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        fetchItemStats()
+    }, [fetchItemStats])
 
     const exportToXLS = () => {
         const headers = ["Product Name", "Qty Sold", "Revenue", "Cost", "Profit", "Margin %"]

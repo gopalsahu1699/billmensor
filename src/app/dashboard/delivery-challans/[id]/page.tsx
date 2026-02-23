@@ -4,24 +4,63 @@ import React, { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ArrowLeft, Download, Loader2, Share2, Trash2, Edit, Truck, Package } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Trash2, Edit, Truck, RotateCcw } from 'lucide-react'
 import { downloadPDF } from '@/lib/pdf-utils'
+import Image from 'next/image'
+
+interface ChallanItem {
+    id: string
+    product_id: string
+    name: string
+    quantity: number
+    unit_price: number
+    total: number
+}
+
+interface Challan {
+    id: string
+    user_id: string
+    customer_id: string
+    challan_number: string
+    challan_date: string
+    status: string
+    total_amount: number
+    items: ChallanItem[]
+    notes?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+    customers?: {
+        name: string
+        gstin?: string
+        phone?: string
+        email?: string
+        billing_address?: string
+        shipping_address?: string
+        supply_place?: string
+    }
+}
+
+interface Profile {
+    id: string
+    company_name: string
+    logo_url?: string
+    address?: string
+    gstin?: string
+    phone?: string
+    email?: string
+}
 
 export default function DeliveryChallanDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [challan, setChallan] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
+    const [challan, setChallan] = useState<Challan | null>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
+    const [converting, setConverting] = useState(false)
 
-    useEffect(() => {
-        fetchChallan()
-    }, [resolvedParams.id])
-
-    async function fetchChallan() {
+    const fetchChallan = React.useCallback(async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -31,7 +70,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                 .single()
 
             if (error) throw error
-            setChallan(data)
+            setChallan(data as Challan)
 
             // Fetch business profile
             const { data: profData } = await supabase
@@ -41,20 +80,104 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                 .single()
 
             if (profData) setProfile(profData)
-        } catch (error: any) {
+        } catch {
             toast.error('Failed to load challan details')
             router.push('/dashboard/delivery-challans')
         } finally {
             setLoading(false)
         }
+    }, [resolvedParams.id, router])
+
+    useEffect(() => {
+        fetchChallan()
+    }, [resolvedParams.id, fetchChallan])
+
+    async function handleConvertToInvoice() {
+        if (!challan) return
+        setConverting(true)
+        try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
+            // 1. Generate Next Invoice Number
+            const now = new Date()
+            const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
+            const prefix = `INV-${yearMonth}-`
+
+            const { data: lastInvoice } = await supabase
+                .from('invoices')
+                .select('invoice_number')
+                .like('invoice_number', `${prefix}%`)
+                .order('invoice_number', { ascending: false })
+                .limit(1)
+
+            let nextInvoiceNumber = `${prefix}001`
+            if (lastInvoice && lastInvoice.length > 0) {
+                const parts = lastInvoice[0].invoice_number.split('-')
+                const lastCounter = parseInt(parts[2]) || 0
+                nextInvoiceNumber = `${prefix}${(lastCounter + 1).toString().padStart(3, '0')}`
+            }
+
+            // 2. Create Invoice
+            const { data: invoice, error: invError } = await supabase
+                .from('invoices')
+                .insert([{
+                    user_id: userData.user.id,
+                    customer_id: challan.customer_id,
+                    invoice_number: nextInvoiceNumber,
+                    invoice_date: new Date().toISOString().split('T')[0],
+                    subtotal: challan.total_amount || 0,
+                    tax_total: 0, // Challan doesn't have detailed tax breakdown in this simplified version
+                    total_amount: challan.total_amount || 0,
+                    balance_amount: challan.total_amount || 0,
+                    status: 'draft',
+                    payment_status: 'unpaid',
+                    billing_address: challan.billing_address || challan.customers?.billing_address || null,
+                    shipping_address: challan.shipping_address || challan.customers?.shipping_address || null,
+                    supply_place: challan.supply_place || challan.customers?.supply_place || null,
+                    notes: challan.notes || ''
+                }])
+                .select()
+                .single()
+
+            if (invError) throw invError
+
+            // 3. Create Invoice Items
+            const invoiceItems = challan.items.map(item => ({
+                user_id: userData.user.id,
+                invoice_id: invoice.id,
+                product_id: item.product_id || null,
+                name: item.name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                tax_rate: 0,
+                tax_amount: 0,
+                total: item.total
+            }))
+
+            const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems)
+            if (itemsError) throw itemsError
+
+            // 4. Update Challan Status
+            await supabase.from('delivery_challans').update({ status: 'invoiced' }).eq('id', resolvedParams.id)
+
+            toast.success('Successfully converted Challan to Invoice!')
+            router.push(`/dashboard/invoices/${invoice.id}`)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Conversion failed'
+            toast.error(msg)
+        } finally {
+            setConverting(false)
+        }
     }
 
     async function handleDownload() {
+        if (!challan) return
         try {
             const fileName = `Challan-${challan.challan_number}`
             await downloadPDF('challan-render-area', fileName)
             toast.success('Challan downloaded successfully')
-        } catch (error) {
+        } catch {
             toast.error('Failed to generate PDF')
         }
     }
@@ -73,8 +196,9 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
             toast.success('Challan deleted successfully')
             router.push('/dashboard/delivery-challans')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Deletion failed'
+            toast.error(msg)
             setLoading(false)
         }
     }
@@ -115,6 +239,16 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
+                    {challan.status !== 'invoiced' && (
+                        <Button
+                            onClick={handleConvertToInvoice}
+                            disabled={converting}
+                            className="flex items-center gap-2 bg-slate-900 text-white px-6 h-12 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-95 disabled:opacity-50"
+                        >
+                            {converting ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                            {converting ? 'CONVERTING...' : 'TO INVOICE'}
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         onClick={() => router.push(`/dashboard/delivery-challans/create?edit=${resolvedParams.id}`)}
@@ -145,7 +279,9 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <img src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" />
+                                    <div className="relative w-[140px] h-10">
+                                        <Image src={profile.logo_url} alt="Logo" fill className="object-contain" />
+                                    </div>
                                 ) : (
                                     <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white">
                                         <Truck size={32} />
@@ -163,7 +299,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                                 </div>
                                 <div className="mt-8">
                                     <p className="text-[10px] text-slate-400 mb-1 uppercase tracking-widest font-black">Challan Date</p>
-                                    <p className="text-lg font-black text-slate-900">{new Date(challan.challan_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                                    <p className="text-lg font-black text-slate-900">{challan ? new Date(challan.challan_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}</p>
                                 </div>
                             </div>
                         </div>
@@ -196,7 +332,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {challan.items?.map((item: any, index: number) => (
+                                    {challan.items?.map((item: ChallanItem, index: number) => (
                                         <tr key={index} className="group transition-all">
                                             <td className="px-4 py-8 font-black text-slate-300">{index + 1}</td>
                                             <td className="px-4 py-8">

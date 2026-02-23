@@ -55,7 +55,7 @@ export default function PartyLedgerReport() {
             const totalBill = combined.reduce((acc, curr) => acc + curr.amount, 0)
             const totalPaid = combined.reduce((acc, curr) => acc + curr.paid, 0)
             setSummary({ totalBill, totalPaid, balance: totalBill - totalPaid })
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)

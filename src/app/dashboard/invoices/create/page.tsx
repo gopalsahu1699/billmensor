@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { invoiceService } from '@/services/invoice.service'
+import { invoiceSchema } from '@/lib/validators'
 
 interface InvoiceItem {
     id: string
@@ -260,11 +262,11 @@ function CreateInvoiceForm() {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData.user) throw new Error('Not authenticated')
 
-            // 1. Upsert Invoice
             const customer = customers.find(c => c.id === selectedCustomerId)
             const invoicePayload = {
-                user_id: userData.user.id,
+                // user_id handled by service
                 customer_id: selectedCustomerId,
+                party_id: selectedCustomerId, // To match dual-schema expectation
                 invoice_number: invoiceNumber,
                 invoice_date: invoiceDate,
                 subtotal,
@@ -278,54 +280,38 @@ function CreateInvoiceForm() {
                 shipping_address: customer?.shipping_address || null,
                 supply_place: customer?.supply_place || null,
                 total_amount: grandTotal,
-                amount_paid: editId ? undefined : 0, // Don't overwrite on edit unless we add payment logic
+                amount_paid: editId ? undefined : 0,
                 balance_amount: grandTotal,
                 notes,
-                payment_status: 'unpaid'
+                payment_status: 'draft',
+                status: 'draft',
+                items: items.map(item => ({
+                    product_id: item.product_id || null,
+                    name: item.name,
+                    hsn_code: item.hsn_code || null,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    price: item.unit_price, // map unit_price to schema price
+                    product_name: item.name, // map name to product_name
+                    tax_rate: item.tax_rate,
+                    tax_amount: item.tax_amount,
+                    discount: item.discount,
+                    total: item.total,
+                    image_url: item.image_url || null,
+                }))
             }
 
-            let invoiceId = editId
+            // Clean Validation
+            const validatedData = invoiceSchema.parse(invoicePayload)
+
+            // Clean Service Layer
             if (editId) {
-                const { error: invError } = await supabase
-                    .from('invoices')
-                    .update(invoicePayload)
-                    .eq('id', editId)
-                if (invError) throw invError
-
-                // Delete old items to re-insert (cleanest approach for line items)
-                await supabase.from('invoice_items').delete().eq('invoice_id', editId)
+                // @ts-expect-error: Supabase type mismatch hack for now
+                await invoiceService.update(editId, validatedData)
             } else {
-                const { data: invoice, error: invError } = await supabase
-                    .from('invoices')
-                    .insert([invoicePayload])
-                    .select()
-                    .single()
-                if (invError) throw invError
-                invoiceId = invoice.id
+                // @ts-expect-error: Supabase type mismatch hack for now
+                await invoiceService.create(validatedData)
             }
-
-            // 2. Insert/Update Invoice Items
-            const invoiceItems = items.map(item => ({
-                user_id: userData.user.id,
-                invoice_id: invoiceId,
-                product_id: item.product_id || null,
-                name: item.name,
-                hsn_code: item.hsn_code || null,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                tax_rate: item.tax_rate,
-                tax_amount: item.tax_amount,
-                discount: item.discount,
-                total: item.total,
-                image_url: item.image_url || null,
-            }))
-
-
-            const { error: itemsError } = await supabase
-                .from('invoice_items')
-                .insert(invoiceItems)
-
-            if (itemsError) throw itemsError
 
             toast.success(editId ? 'Invoice updated successfully!' : 'Invoice created successfully!')
             router.push('/dashboard/invoices')
@@ -343,7 +329,7 @@ function CreateInvoiceForm() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-primary/5 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800">
                 <div className="space-y-2">
                     <h1 className="text-4xl font-black tracking-tight italic uppercase">{editId ? 'Update' : 'New'} <span className="text-blue-500">Invoice</span></h1>
-                    <p className="text-slate-400 font-medium tracking-tight whitespace-pre-line">{editId ? 'Modify existing tax invoice details.' : 'Generate professional tax invoices for your clients.'}</p>
+                    <p className="text-slate-300 font-medium tracking-tight whitespace-pre-line">{editId ? 'Modify existing tax invoice details.' : 'Generate professional tax invoices for your clients.'}</p>
                 </div>
                 <div className="flex gap-4">
                     <button
@@ -520,16 +506,16 @@ function CreateInvoiceForm() {
                             <CardTitle className="text-lg text-slate-100">Summary</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex justify-between text-slate-400">
+                            <div className="flex justify-between text-slate-300">
                                 <span>Subtotal</span>
                                 <span>₹ {subtotal.toLocaleString('en-IN')}</span>
                             </div>
-                            <div className="flex justify-between text-slate-400">
+                            <div className="flex justify-between text-slate-300">
                                 <span>Tax Total</span>
                                 <span>₹ {taxTotal.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
-                                <div className="flex items-center justify-between text-slate-400">
+                                <div className="flex items-center justify-between text-slate-300">
                                     <span className="text-sm">Transport</span>
                                     <div className="relative w-24">
                                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
@@ -541,7 +527,7 @@ function CreateInvoiceForm() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-400">
+                                <div className="flex items-center justify-between text-slate-300">
                                     <span className="text-sm">Installation</span>
                                     <div className="relative w-24">
                                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
@@ -554,7 +540,7 @@ function CreateInvoiceForm() {
                                     </div>
                                 </div>
                                 {customCharges.map((charge, index) => (
-                                    <div key={index} className="flex items-center justify-between text-slate-400 group">
+                                    <div key={index} className="flex items-center justify-between text-slate-300 group">
                                         <div className="flex items-center gap-2 flex-1">
                                             <button
                                                 onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}

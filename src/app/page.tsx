@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3, Users, Star } from "lucide-react";
 
 export default function LandingPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

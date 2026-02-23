@@ -19,8 +19,6 @@ import {
     PenTool,
     Settings2
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 
 const templates = [
     {
@@ -85,8 +83,13 @@ export default function PrintSettingsPage() {
                     show_custom_fields: data.show_custom_fields ?? true,
                 })
             }
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            console.error('Error loading settings:', error);
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error('Failed to load settings')
+            }
         } finally {
             setLoading(false)
         }
@@ -110,8 +113,12 @@ export default function PrintSettingsPage() {
                 throw error
             }
             toast.success('Print settings saved successfully')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error('Failed to save settings')
+            }
         } finally {
             setSaving(false)
         }
@@ -163,8 +170,8 @@ export default function PrintSettingsPage() {
                                     key={template.id}
                                     onClick={() => setSettings({ ...settings, print_template: template.id })}
                                     className={`relative p-4 rounded-2xl border-2 transition-all text-left group ${settings.print_template === template.id
-                                            ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/20'
-                                            : 'border-slate-100 dark:border-white/5 hover:border-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
+                                        ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/20'
+                                        : 'border-slate-100 dark:border-white/5 hover:border-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
                                         }`}
                                 >
                                     <div className={`w-full aspect-[3/4] rounded-lg mb-3 border border-dashed ${template.preview} flex items-center justify-center`}>
@@ -253,13 +260,13 @@ export default function PrintSettingsPage() {
     )
 }
 
-function ToggleField({ icon, label, active, onChange }: { icon: any, label: string, active: boolean, onChange: (v: boolean) => void }) {
+function ToggleField({ icon, label, active, onChange }: { icon: React.ReactNode, label: string, active: boolean, onChange: (v: boolean) => void }) {
     return (
         <button
             onClick={() => onChange(!active)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${active
-                    ? 'bg-blue-600/5 border-blue-600/20 text-blue-600'
-                    : 'bg-slate-50 border-slate-100 text-slate-400 dark:bg-white/5 dark:border-white/5'
+                ? 'bg-blue-600/5 border-blue-600/20 text-blue-600'
+                : 'bg-slate-50 border-slate-100 text-slate-400 dark:bg-white/5 dark:border-white/5'
                 }`}
         >
             <div className="flex items-center gap-3 font-bold text-xs uppercase tracking-widest">

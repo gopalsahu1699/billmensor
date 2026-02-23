@@ -2,7 +2,7 @@
  * Utility to generate an Excel-compatible XML file (.xls)
  * This allows for professional spreadsheet exports without external dependencies.
  */
-export function exportToExcel(data: any[], headers: string[], fileName: string) {
+export function exportToExcel(data: unknown[][], headers: string[], fileName: string) {
     const uri = 'data:application/vnd.ms-excel;base64,'
     const template = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" 
@@ -32,13 +32,14 @@ export function exportToExcel(data: any[], headers: string[], fileName: string) 
                 </thead>
                 <tbody>
                     ${data.map(row => `
-                        <tr>${row.map((cell: any) => `<td style="border: 1px solid #f1f5f9;">${cell ?? ''}</td>`).join('')}</tr>
+                        <tr>${(row as unknown[]).map((cell: unknown) => `<td style="border: 1px solid #f1f5f9;">${cell ?? ''}</td>`).join('')}</tr>
                     `).join('')}
                 </tbody>
             </table>
         </body>
         </html>`
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const format = (s: string, c: any) => s.replace(/{(\w+)}/g, (m, p) => c[p])
     const base64 = (s: string) => window.btoa(unescape(encodeURIComponent(s)))
 

@@ -279,12 +279,16 @@ CREATE TABLE IF NOT EXISTS public.payments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   customer_id UUID REFERENCES public.customers ON DELETE SET NULL,
+  invoice_id UUID REFERENCES public.invoices ON DELETE SET NULL,
   payment_number TEXT NOT NULL,
   payment_date DATE DEFAULT CURRENT_DATE,
   amount DECIMAL(15,2) DEFAULT 0,
   type TEXT NOT NULL,              -- 'payment_in' | 'payment_out'
   payment_mode TEXT DEFAULT 'cash', -- 'cash' | 'bank' | 'upi' | 'cheque'
   reference_number TEXT,
+  billing_address TEXT,
+  shipping_address TEXT,
+  supply_place TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -412,6 +416,12 @@ END $$;
 -- ─────────────────────────────────────────────────────────────
 ALTER TABLE public.invoice_items  ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+-- Migration for payments table
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS billing_address TEXT;
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS supply_place TEXT;
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS invoice_id UUID REFERENCES public.invoices(id) ON DELETE SET NULL;
 
 -- ─────────────────────────────────────────────────────────────
 -- 21. STORAGE SETUP (manual run in SQL editor)

@@ -3,41 +3,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useInvoices } from '@/hooks/useInvoice'
 import { toast } from 'sonner'
 
 export default function InvoicesPage() {
     const router = useRouter()
-    const [invoices, setInvoices] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const { invoices, loading, error } = useInvoices()
     const [search, setSearch] = useState('')
 
     useEffect(() => {
-        fetchInvoices()
-    }, [])
-
-    async function fetchInvoices() {
-        try {
-            const { data, error } = await supabase
-                .from('invoices')
-                .select(`
-          *,
-          customers ( name )
-        `)
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setInvoices(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
-        } finally {
-            setLoading(false)
+        if (error) {
+            toast.error(error)
         }
-    }
+    }, [error])
 
     const filteredInvoices = invoices.filter(inv =>
         (inv.invoice_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (inv.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
+        (inv.party?.name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
     const getStatusColor = (status: string) => {
@@ -106,16 +88,16 @@ export default function InvoicesPage() {
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                                {inv.customers?.name?.charAt(0)}
+                                                {inv.party?.name?.charAt(0)}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{inv.customers?.name}</span>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{inv.party?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5 text-sm font-black text-slate-900 dark:text-slate-100">
                                         ₹ {(inv.total_amount || 0).toLocaleString('en-IN')}
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${getStatusColor(inv.payment_status)}`}>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${getStatusColor(inv.payment_status || 'unpaid')}`}>
                                             {inv.payment_status}
                                         </span>
                                     </td>

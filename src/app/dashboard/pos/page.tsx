@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { toast } from 'sonner'
 import {
@@ -10,27 +9,42 @@ import {
     Plus,
     Minus,
     Trash2,
-    User,
     Package,
     ArrowRight,
     Zap,
     X,
-    CreditCard,
-    Wallet,
-    Banknote,
     ChevronDown
 } from 'lucide-react'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { cn } from '../../../lib/utils'
+
+interface Product {
+    id: string
+    name: string
+    price: number
+    sku?: string
+    tax_rate?: number
+}
+
+interface Customer {
+    id: string
+    name: string
+    phone?: string
+    email?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+}
+
+interface CartItem extends Product {
+    quantity: number
+}
 
 export default function POSPage() {
-    const router = useRouter()
-    const [products, setProducts] = useState<any[]>([])
-    const [customers, setCustomers] = useState<any[]>([])
-    const [cart, setCart] = useState<any[]>([])
+    const [products, setProducts] = useState<Product[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [cart, setCart] = useState<CartItem[]>([])
     const [search, setSearch] = useState('')
-    const [loading, setLoading] = useState(true)
-    const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [paymentMode, setPaymentMode] = useState('cash')
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
 
@@ -48,12 +62,11 @@ export default function POSPage() {
             if (prodRes.error) throw prodRes.error
             if (custRes.error) throw custRes.error
 
-            setProducts(prodRes.data || [])
-            setCustomers(custRes.data || [])
-        } catch (error: any) {
-            toast.error(error.message)
-        } finally {
-            setLoading(false)
+            setProducts(prodRes.data as Product[] || [])
+            setCustomers(custRes.data as Customer[] || [])
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Failed to fetch data'
+            toast.error(msg)
         }
     }
 
@@ -62,7 +75,7 @@ export default function POSPage() {
         p.sku?.toLowerCase().includes(search.toLowerCase())
     )
 
-    const addToCart = (product: any) => {
+    const addToCart = (product: Product) => {
         const existing = cart.find(item => item.id === product.id)
         if (existing) {
             setCart(cart.map(item =>
@@ -88,7 +101,8 @@ export default function POSPage() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const total = subtotal // Add tax/discount logic here if needed
+    const taxTotal = cart.reduce((sum, item) => sum + ((item.price * item.quantity * (item.tax_rate || 0)) / 100), 0)
+    const total = subtotal + taxTotal
 
     const checkout = async () => {
         if (cart.length === 0) {
@@ -105,14 +119,17 @@ export default function POSPage() {
                 .from('invoices')
                 .insert([{
                     user_id: userData.user.id,
-                    customer_id: selectedCustomer?.id || null, // Allow null for walk-ins if supported by schema, or use a default party
+                    customer_id: selectedCustomer?.id || null,
                     invoice_number: `POS-${Date.now().toString().slice(-6)}`,
                     invoice_date: new Date().toISOString().split('T')[0],
                     subtotal: subtotal,
+                    tax_total: taxTotal,
+                    gst_amount: taxTotal,
                     total_amount: total,
                     amount_paid: total,
                     balance_amount: 0,
-                    payment_status: 'paid', // POS is typically paid
+                    payment_status: 'paid',
+                    is_pos: true,
                     billing_address: selectedCustomer?.billing_address || null,
                     shipping_address: selectedCustomer?.shipping_address || null,
                     supply_place: selectedCustomer?.supply_place || null,
@@ -142,8 +159,9 @@ export default function POSPage() {
             toast.success('Transaction completed successfully!')
             setCart([])
             setSelectedCustomer(null)
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Transaction failed'
+            toast.error(msg)
         }
     }
 
@@ -204,7 +222,7 @@ export default function POSPage() {
                     </div>
                     <div>
                         <h2 className="text-xl font-black text-white leading-none">Cart</h2>
-                        <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest mt-1 block">Checkout Ledger</span>
+                        <span className="text-[10px] text-blue-300 font-black uppercase tracking-widest mt-1 block">Checkout Ledger</span>
                     </div>
                     <button onClick={() => setCart([])} className="ml-auto p-2 text-slate-500 hover:text-red-400 transition-colors">
                         <Trash2 size={18} />
@@ -218,7 +236,7 @@ export default function POSPage() {
                             <div className="flex justify-between items-start mb-3">
                                 <div>
                                     <h4 className="text-sm font-black text-white mb-0.5">{item.name}</h4>
-                                    <p className="text-[10px] text-blue-400 font-black">₹ {(item.price || 0).toLocaleString('en-IN')} / unit</p>
+                                    <p className="text-[10px] text-blue-300 font-black">₹ {(item.price || 0).toLocaleString('en-IN')} / unit</p>
                                 </div>
                                 <button onClick={() => removeFromCart(item.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-red-400 transition-all">
                                     <X size={14} />
@@ -226,11 +244,11 @@ export default function POSPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 bg-black/20 rounded-xl p-1 border border-white/5">
-                                    <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 transition-all active:scale-90">
+                                    <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-300 transition-all active:scale-90">
                                         <Minus size={14} />
                                     </button>
                                     <span className="w-8 text-center text-xs font-black text-white">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 transition-all active:scale-90">
+                                    <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-300 transition-all active:scale-90">
                                         <Plus size={14} />
                                     </button>
                                 </div>
@@ -255,7 +273,7 @@ export default function POSPage() {
                                 onClick={() => setIsCustomerModalOpen(true)}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all font-bold text-left flex items-center justify-between"
                             >
-                                <span className={selectedCustomer ? "text-white" : "text-slate-400"}>
+                                <span className={selectedCustomer ? "text-white" : "text-slate-300"}>
                                     {selectedCustomer ? selectedCustomer.name : "Walk-in Customer"}
                                 </span>
                                 <ChevronDown size={14} className="text-slate-500" />
@@ -289,12 +307,16 @@ export default function POSPage() {
                     </div>
 
                     <div className="space-y-2 border-b border-white/5 pb-4">
-                        <div className="flex justify-between text-xs text-slate-400 font-bold uppercase tracking-widest">
+                        <div className="flex justify-between text-xs text-slate-300 font-bold uppercase tracking-widest">
                             <span>Subtotal</span>
                             <span>₹ {(subtotal || 0).toLocaleString('en-IN')}</span>
                         </div>
-                        <div className="flex justify-between text-lg font-black text-white">
-                            <span>Total Amount</span>
+                        <div className="flex justify-between text-xs text-blue-300 font-bold uppercase tracking-widest">
+                            <span>GST (Calculated)</span>
+                            <span>₹ {(taxTotal || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="pt-2 flex justify-between text-lg font-black text-white">
+                            <span>Grand Total</span>
                             <span className="text-blue-400">₹ {(total || 0).toLocaleString('en-IN')}</span>
                         </div>
                     </div>

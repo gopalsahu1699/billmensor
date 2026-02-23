@@ -1,80 +1,110 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useReturns } from '@/hooks/useReturn'
 import { toast } from 'sonner'
+import {
+    Search,
+    Plus,
+    Edit,
+    ChevronRight,
+    Loader2,
+    RotateCcw
+} from 'lucide-react'
 
-export default function ReturnsPage() {
+interface ReturnRecord {
+    id: string
+    return_number: string
+    return_date: string
+    type: 'sales_return' | 'purchase_return'
+    total_amount: number
+    party?: {
+        name: string
+    }
+    customers?: {
+        name: string
+    }
+}
+
+function ReturnsContent() {
     const router = useRouter()
-    const [returns, setReturns] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const searchParams = useSearchParams()
+    const typeFilter = searchParams.get('type') // 'sales_return' or 'purchase_return'
+
+    const { returns: rawReturns, loading, error } = useReturns()
     const [search, setSearch] = useState('')
 
+    // Apply client side type filter since useReturns fetches all
+    const returns = typeFilter ? rawReturns.filter(r => r.type === typeFilter) : rawReturns
+
     useEffect(() => {
-        fetchReturns()
-    }, [])
-
-    async function fetchReturns() {
-        try {
-            const { data, error } = await supabase
-                .from('returns')
-                .select(`
-                    *,
-                    customers!customer_id ( name )
-                `)
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setReturns(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
-        } finally {
-            setLoading(false)
+        if (error) {
+            toast.error(error)
         }
-    }
+    }, [error])
 
     const filteredReturns = returns.filter(r =>
         (r.return_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (r.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
+        (r.party?.name?.toLowerCase() || r.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
+    const pageTitle = typeFilter === 'sales_return'
+        ? 'Sales Returns'
+        : typeFilter === 'purchase_return'
+            ? 'Purchase Returns'
+            : 'Post-Sales Adjustments'
+
+    const pageDesc = typeFilter === 'sales_return'
+        ? 'Manage customer returns and credit notes.'
+        : typeFilter === 'purchase_return'
+            ? 'Track vendor returns and debit notes.'
+            : 'Manage Credit & Debit notes for returns and reconciliation.'
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500 pb-10">
             {/* Header section with search and add button */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight italic uppercase">Post-Sales Adjustments</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Manage Credit & Debit notes for returns and reconciliation.</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-primary/5 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800">
+                <div className="space-y-2">
+                    <h1 className="text-4xl font-black tracking-tight italic uppercase">
+                        {pageTitle.split(' ')[0]} <span className="text-blue-500">{pageTitle.split(' ')[1] || ''}</span>
+                    </h1>
+                    <p className="text-slate-300 font-medium tracking-tight">
+                        {pageDesc}
+                    </p>
                 </div>
-                <div className="flex gap-4">
-                    <Link href="/dashboard/returns/create?type=sales_return">
-                        <button className="flex items-center gap-2 bg-white dark:bg-slate-800 border-2 border-orange-500/20 text-orange-600 dark:text-orange-400 px-6 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all active:scale-95 shadow-sm">
-                            <span className="material-symbols-outlined text-[20px]">keyboard_double_arrow_down</span>
-                            Sales Return
-                        </button>
-                    </Link>
-                    <Link href="/dashboard/returns/create?type=purchase_return">
-                        <button className="flex items-center gap-2 bg-white dark:bg-slate-800 border-2 border-blue-500/20 text-blue-600 dark:text-blue-400 px-6 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all active:scale-95 shadow-sm">
-                            <span className="material-symbols-outlined text-[20px]">keyboard_double_arrow_up</span>
-                            Purchase Return
-                        </button>
-                    </Link>
+                <div className="flex flex-wrap gap-4">
+                    {(!typeFilter || typeFilter === 'sales_return') && (
+                        <Link href="/dashboard/returns/create?type=sales_return">
+                            <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all active:scale-95 shadow-xl shadow-blue-600/20">
+                                <Plus size={18} />
+                                New Sales Return
+                            </button>
+                        </Link>
+                    )}
+                    {(!typeFilter || typeFilter === 'purchase_return') && (
+                        <Link href="/dashboard/returns/create?type=purchase_return">
+                            <button className="flex items-center gap-2 bg-white/5 border border-white/10 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95">
+                                <Plus size={18} />
+                                New Purchase Return
+                            </button>
+                        </Link>
+                    )}
                 </div>
             </div>
 
             {/* Returns Table Container */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                    <div className="relative group max-w-md">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+                    <div className="relative group max-w-sm">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                         <input
                             type="text"
                             placeholder="Search by note ID or party name..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none placeholder:text-slate-400 text-slate-900 dark:text-slate-100"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-4 focus:ring-blue-500/10 transition-all outline-none placeholder:text-slate-400 text-slate-900 dark:text-slate-100 font-medium"
                         />
                     </div>
                 </div>
@@ -111,33 +141,50 @@ export default function ReturnsPage() {
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                                {r.customers?.name?.charAt(0)}
+                                                {(r.party?.name || r.customers?.name)?.charAt(0) || '?'}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{r.customers?.name}</span>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{r.party?.name || r.customers?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5 text-sm font-black text-slate-900 dark:text-slate-100">
                                         ₹ {r.total_amount.toLocaleString('en-IN')}
                                     </td>
-                                    <td className="px-8 py-5 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                                    <td className="px-8 py-5 text-right flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             onClick={() => router.push(`/dashboard/returns/create?type=${r.type}&edit=${r.id}`)}
-                                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-xl transition-all"
+                                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                            title="Edit"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                            <Edit size={18} />
                                         </button>
                                         <button
                                             onClick={() => router.push(`/dashboard/returns/${r.id}`)}
-                                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                            title="View Details"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                                            <ChevronRight size={18} />
                                         </button>
                                     </td>
                                 </tr>
                             ))}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 size={32} className="animate-spin text-blue-500" />
+                                            <p className="text-sm font-medium text-slate-400">Loading adjustments...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
                             {filteredReturns.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic text-sm">No adjustment records found.</td>
+                                    <td colSpan={5} className="px-8 py-32 text-center text-slate-400 italic">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <RotateCcw size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
+                                            <p className="text-sm font-medium">No adjustment records found.</p>
+                                        </div>
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
@@ -145,5 +192,13 @@ export default function ReturnsPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function ReturnsPage() {
+    return (
+        <Suspense fallback={<div className="p-20 text-center">Loading Adjustments...</div>}>
+            <ReturnsContent />
+        </Suspense>
     )
 }

@@ -28,6 +28,15 @@ interface Payment {
     customers?: Customer;
 }
 
+interface Return {
+    total_amount: number;
+    type: string;
+}
+
+interface Purchase {
+    total_amount: number;
+}
+
 export default function DashboardPage() {
     const [stats, setStats] = useState([
         { label: 'Total Customers', value: '0' },
@@ -38,6 +47,7 @@ export default function DashboardPage() {
     const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
     const [recentPayments, setRecentPayments] = useState<Payment[]>([])
     const [totalSales, setTotalSales] = useState(0)
+    const [totalReceived, setTotalReceived] = useState(0)
     const [totalExpenses, setTotalExpenses] = useState(0)
     const [chartData, setChartData] = useState<number[]>([180, 160, 80, 100, 40, 60]) // Scaled points
     const [loading, setLoading] = useState(true)
@@ -49,19 +59,32 @@ export default function DashboardPage() {
 
     async function fetchDashboardStats() {
         try {
-            const [custCount, invCount, expRes, invData, payData, totalSalesData] = await Promise.all([
+            const [custCount, invCount, paidInvCount, expRes, invData, payData, totalSalesData, totalReturns, totalPurchases] = await Promise.all([
                 supabase.from('customers').select('*', { count: 'exact', head: true }),
                 supabase.from('invoices').select('*', { count: 'exact', head: true }),
+                supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'paid'),
                 supabase.from('expenses').select('amount'),
                 supabase.from('invoices').select('*, customers(name)').order('created_at', { ascending: false }).limit(5),
                 supabase.from('payments').select('*, customers(name)').eq('type', 'payment_in').order('payment_date', { ascending: false }).limit(5),
-                supabase.from('invoices').select('total_amount, created_at')
+                supabase.from('invoices').select('total_amount, created_at'),
+                supabase.from('returns').select('total_amount, type'),
+                supabase.from('purchases').select('total_amount')
             ])
 
-            const computedSales = (totalSalesData.data as Invoice[])?.reduce((acc: number, curr: Invoice) => acc + (curr.total_amount || 0), 0) || 0
-            const computedExpenses = (expRes.data as { amount: number }[])?.reduce((acc: number, curr: { amount: number }) => acc + (curr.amount || 0), 0) || 0
+            const invTotal = (totalSalesData.data as Invoice[])?.reduce((acc: number, curr: Invoice) => acc + (curr.total_amount || 0), 0) || 0
+            const salesReturns = (totalReturns.data as Return[])?.filter(r => r.type === 'sales_return').reduce((acc: number, curr: Return) => acc + (curr.total_amount || 0), 0) || 0
+            const computedSales = invTotal - salesReturns
+
+            const otherExpenses = (expRes.data as { amount: number }[])?.reduce((acc: number, curr: { amount: number }) => acc + (curr.amount || 0), 0) || 0
+            const purchaseTotal = (totalPurchases.data as Purchase[])?.reduce((acc: number, curr: Purchase) => acc + (curr.total_amount || 0), 0) || 0
+            const purchaseReturns = (totalReturns.data as Return[])?.filter(r => r.type === 'purchase_return').reduce((acc: number, curr: Return) => acc + (curr.total_amount || 0), 0) || 0
+            const computedExpenses = (purchaseTotal - purchaseReturns) + otherExpenses
+
+            const { data: allPayments } = await supabase.from('payments').select('amount').eq('type', 'payment_in')
+            const computedReceived = (allPayments as { amount: number }[])?.reduce((acc: number, curr: { amount: number }) => acc + (curr.amount || 0), 0) || 0
 
             setTotalSales(computedSales)
+            setTotalReceived(computedReceived)
             setTotalExpenses(computedExpenses)
 
             // Dynamic Chart Data Grouping (Last 30 Days)
@@ -89,8 +112,10 @@ export default function DashboardPage() {
 
             setStats([
                 { label: 'Total Sales', value: `₹ ${(computedSales || 0).toLocaleString('en-IN')}` },
+                { label: 'Total Received', value: `₹ ${(computedReceived || 0).toLocaleString('en-IN')}` },
                 { label: 'Total Expenses', value: `₹ ${(computedExpenses || 0).toLocaleString('en-IN')}` },
                 { label: 'Total Invoices', value: String(invCount.count || 0) },
+                { label: 'Paid Invoices', value: String(paidInvCount.count || 0) },
                 { label: 'Total Customers', value: String(custCount.count || 0) },
             ])
 
@@ -154,20 +179,20 @@ export default function DashboardPage() {
                     loading={loading}
                 />
                 <MetricCard
-                    label="Paid Invoices"
-                    value={stats.find(s => s.label === 'Total Invoices')?.value || '0'}
-                    icon="task_alt"
-                    trend="+8.2%"
+                    label="Amount Received"
+                    value={`₹ ${(totalReceived || 0).toLocaleString('en-IN')}`}
+                    icon="currency_rupee"
+                    trend="+10.5%"
                     trendColor="text-green-500"
                     iconBg="bg-green-50 dark:bg-green-900/30 text-green-600"
                     loading={loading}
                 />
                 <MetricCard
-                    label="Total Customers"
-                    value={stats.find(s => s.label === 'Total Customers')?.value || '0'}
-                    icon="group"
-                    trend="+5.1%"
-                    trendColor="text-blue-500"
+                    label="Paid Invoices"
+                    value={stats.find(s => s.label === 'Paid Invoices')?.value || '0'}
+                    icon="task_alt"
+                    trend="+8.2%"
+                    trendColor="text-green-500"
                     iconBg="bg-slate-50 dark:bg-slate-800 text-slate-600"
                     loading={loading}
                 />

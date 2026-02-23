@@ -25,7 +25,7 @@ export default function ProductsPage() {
 
             if (error) throw error
             setProducts(data || [])
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -44,7 +44,7 @@ export default function ProductsPage() {
             if (error) throw error
             toast.success('Product deleted successfully')
             fetchProducts()
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         }
     }

@@ -111,7 +111,7 @@ export default function CreateExpensePage() {
                     <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight italic uppercase">
                         {editId ? 'Update Expense' : 'Record New Expense'}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    <p className="text-slate-300 dark:text-slate-300 mt-1 font-medium">
                         {editId ? 'Modify existing spending details.' : 'Classify your spending for better tax tracking.'}
                     </p>
                 </div>
@@ -122,7 +122,7 @@ export default function CreateExpensePage() {
                 <div className="p-8 space-y-6">
                     {/* Title */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Title / Description *</label>
+                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Title / Description *</label>
                         <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">title</span>
                             <input
@@ -138,7 +138,7 @@ export default function CreateExpensePage() {
                     {/* Category and Amount */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Category</label>
+                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Category</label>
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">category</span>
                                 <select
@@ -159,7 +159,7 @@ export default function CreateExpensePage() {
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Amount (₹) *</label>
+                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Amount (₹) *</label>
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">currency_rupee</span>
                                 <input
@@ -177,7 +177,7 @@ export default function CreateExpensePage() {
 
                     {/* Date */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Expense Date</label>
+                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Expense Date</label>
                         <div className="relative max-w-xs">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">calendar_today</span>
                             <input
@@ -191,7 +191,7 @@ export default function CreateExpensePage() {
 
                     {/* Notes */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Notes</label>
+                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Notes</label>
                         <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-3 text-slate-400 text-[18px]">notes</span>
                             <textarea

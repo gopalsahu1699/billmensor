@@ -5,12 +5,21 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { toast } from 'sonner'
-import { Plus, Search, Download, Edit, Truck } from 'lucide-react'
-import { cn } from '../../../lib/utils'
+import { Plus, Search, Edit, Truck, Eye } from 'lucide-react'
+
+interface Challan {
+    id: string;
+    challan_number: string;
+    challan_date: string;
+    status: string;
+    customers?: {
+        name: string;
+    };
+}
 
 export default function DeliveryChallansPage() {
     const router = useRouter()
-    const [challans, setChallans] = useState<any[]>([])
+    const [challans, setChallans] = useState<Challan[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
 
@@ -37,8 +46,9 @@ export default function DeliveryChallansPage() {
                 throw error
             }
             setChallans(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
@@ -128,17 +138,17 @@ export default function DeliveryChallansPage() {
                                     <td className="px-8 py-6 text-right flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             onClick={() => router.push(`/dashboard/delivery-challans/${ch.id}`)}
-                                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
                                             title="View"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">visibility</span>
+                                            <Eye size={18} />
                                         </button>
                                         <button
                                             onClick={() => router.push(`/dashboard/delivery-challans/create?edit=${ch.id}`)}
-                                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
                                             title="Edit"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                            <Edit size={18} />
                                         </button>
                                     </td>
                                 </tr>

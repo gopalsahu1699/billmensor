@@ -3,41 +3,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { usePurchases } from '@/hooks/usePurchase'
 import { toast } from 'sonner'
 
 export default function PurchasesPage() {
     const router = useRouter()
-    const [purchases, setPurchases] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const { purchases, loading, error } = usePurchases()
     const [search, setSearch] = useState('')
 
     useEffect(() => {
-        fetchPurchases()
-    }, [])
-
-    async function fetchPurchases() {
-        try {
-            const { data, error } = await supabase
-                .from('purchases')
-                .select(`
-                    *,
-                    suppliers:supplier_id ( name )
-                `)
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setPurchases(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
-        } finally {
-            setLoading(false)
+        if (error) {
+            toast.error(error)
         }
-    }
+    }, [error])
 
     const filteredPurchases = purchases.filter(p =>
         (p.purchase_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (p.suppliers?.name?.toLowerCase() || '').includes(search.toLowerCase())
+        (p.party?.name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
     const getStatusColor = (status: string) => {
@@ -106,17 +88,17 @@ export default function PurchasesPage() {
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                                {p.suppliers?.name?.charAt(0)}
+                                                {p.party?.name?.charAt(0)}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{p.suppliers?.name}</span>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{p.party?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5 text-sm font-black text-slate-900 dark:text-slate-100">
                                         ₹ {p.total_amount.toLocaleString('en-IN')}
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${getStatusColor(p.payment_status)}`}>
-                                            {p.payment_status}
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${getStatusColor(p.payment_status || 'unpaid')}`}>
+                                            {p.payment_status || 'unpaid'}
                                         </span>
                                     </td>
                                     <td className="px-8 py-5 text-right space-x-2" onClick={(e) => e.stopPropagation()}>

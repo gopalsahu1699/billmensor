@@ -3,39 +3,23 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useQuotations } from '@/hooks/useQuotation'
+import { toast } from 'sonner'
 
 export default function QuotationsPage() {
     const router = useRouter()
-    const [quotations, setQuotations] = useState<any[]>([])
+    const { quotations, loading, error } = useQuotations()
     const [search, setSearch] = useState('')
-    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetchQuotations()
-    }, [])
-
-    async function fetchQuotations() {
-        try {
-            setLoading(true)
-            // Reverted to use customers table
-            const { data, error } = await supabase
-                .from('quotations')
-                .select('*, customers(name)')
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setQuotations(data || [])
-        } catch (error) {
-            console.error('Error fetching quotations:', error)
-        } finally {
-            setLoading(false)
+        if (error) {
+            toast.error(error)
         }
-    }
+    }, [error])
 
     const filteredQuotations = quotations.filter(q =>
         (q.quotation_number?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (q.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
+        (q.party?.name?.toLowerCase() || q.customers?.name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
     return (
@@ -94,14 +78,14 @@ export default function QuotationsPage() {
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-sm">
-                                                {q.customers?.name?.charAt(0)}
+                                                {(q.party?.name || q.customers?.name)?.charAt(0) || '?'}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{q.customers?.name}</span>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{q.party?.name || q.customers?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-sm font-bold text-slate-600 dark:text-slate-400">{q.quotation_number}</td>
                                     <td className="px-8 py-6 text-sm font-medium text-slate-500 dark:text-slate-400">{new Date(q.quotation_date).toLocaleDateString()}</td>
-                                    <td className="px-8 py-6 text-sm font-medium text-slate-500 dark:text-slate-400">{q.expiry_date ? new Date(q.expiry_date).toLocaleDateString() : '-'}</td>
+                                    <td className="px-8 py-6 text-sm font-medium text-slate-500 dark:text-slate-400">{q.valid_until ? new Date(q.valid_until).toLocaleDateString() : '-'}</td>
                                     <td className="px-8 py-6 text-sm font-black text-slate-900 dark:text-slate-100">₹{(q.total_amount || 0).toLocaleString('en-IN')}</td>
                                     <td className="px-8 py-6">
                                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${q.status === 'accepted' ? 'bg-green-100 text-green-600 dark:bg-green-900/30' :

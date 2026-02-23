@@ -12,8 +12,8 @@ import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
 export default function PaymentOutDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [payment, setPayment] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
+    const [payment, setPayment] = useState<any | null>(null)
+    const [profile, setProfile] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
     const [sharing, setSharing] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
@@ -51,7 +51,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
 
             if (error) throw error
             setPayment(data)
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Failed to load payment details')
             router.push('/dashboard/payments-out')
         } finally {
@@ -73,7 +73,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
 
             toast.success('Payment deleted successfully')
             router.push('/dashboard/payments-out')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             setLoading(false)
         }
@@ -108,7 +108,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                 a.click()
                 toast.info('Sharing not supported, downloaded PDF instead')
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Share failed: ' + error.message)
         } finally {
             setSharing(false)
@@ -121,7 +121,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
             setSharing(true)
             await downloadPDF('voucher-content', `Voucher_${payment.payment_number}`)
             toast.success('Downloaded successfully')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Download failed: ' + error.message)
         } finally {
             setSharing(false)

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Package, Search, Download, FileText, ChevronLeft, AlertTriangle, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -11,14 +11,10 @@ import { exportToExcel } from '@/lib/excel-utils'
 
 export default function StockSummaryReport() {
     const [loading, setLoading] = useState(true)
-    const [products, setProducts] = useState<any[]>([])
+    const [products, setProducts] = useState<{ id: string; name: string; category: string; stock_quantity: number; purchase_price: number; unit?: string; min_stock_level?: number }[]>([])
     const [searchTerm, setSearchTerm] = useState('')
 
-    useEffect(() => {
-        fetchStockData()
-    }, [])
-
-    const fetchStockData = async () => {
+    const fetchStockData = React.useCallback(async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -28,12 +24,16 @@ export default function StockSummaryReport() {
 
             if (error) throw error
             setProducts(data || [])
-        } catch (error: any) {
-            toast.error('Error fetching stock data')
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error fetching stock data')
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchStockData()
+    }, [fetchStockData])
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -211,6 +211,6 @@ export default function StockSummaryReport() {
     )
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ')
 }

@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { CheckCircle2, Loader2, ChevronDown, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { paymentSchema } from '@/lib/validators'
+import { paymentService } from '@/services/payment.service'
 
 interface Customer {
     id: string;
@@ -16,6 +18,15 @@ interface Customer {
     billing_address?: string;
     shipping_address?: string;
     supply_place?: string;
+}
+
+interface Invoice {
+    id: string;
+    invoice_number: string;
+    total_amount: number;
+    amount_paid: number;
+    balance_amount: number;
+    payment_status: string;
 }
 
 function CreatePaymentForm() {
@@ -27,6 +38,10 @@ function CreatePaymentForm() {
     const [customers, setCustomers] = useState<Customer[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
+
+    const [invoices, setInvoices] = useState<Invoice[]>([])
+    const [selectedInvoiceId, setSelectedInvoiceId] = useState('')
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
 
     // Form fields
     const [paymentNumber, setPaymentNumber] = useState('')
@@ -42,6 +57,21 @@ function CreatePaymentForm() {
             setCustomers((data as Customer[]) || [])
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
+        }
+    }, [])
+
+    const fetchCustomerInvoices = React.useCallback(async (customerId: string) => {
+        if (!customerId) return
+        try {
+            const { data } = await supabase
+                .from('invoices')
+                .select('id, invoice_number, total_amount, amount_paid, balance_amount, payment_status')
+                .eq('customer_id', customerId)
+                .neq('payment_status', 'paid')
+                .order('created_at', { ascending: false })
+            setInvoices((data as Invoice[]) || [])
+        } catch (error: unknown) {
+            console.error('Fetch invoices error:', error)
         }
     }, [])
 
@@ -85,18 +115,23 @@ function CreatePaymentForm() {
             }
 
             setSelectedCustomerId(data.customer_id)
+            setSelectedInvoiceId(data.invoice_id)
             setPaymentNumber(data.payment_number)
             setPaymentDate(data.payment_date)
             setAmount(data.amount)
             setPaymentMode(data.payment_mode)
             setReferenceNumber(data.reference_number || '')
             setNotes(data.notes || '')
+
+            if (data.customer_id) {
+                fetchCustomerInvoices(data.customer_id)
+            }
         } catch (error: unknown) {
             console.error('Fetch payment for edit error:', error)
         } finally {
             setLoading(false)
         }
-    }, [editId, router])
+    }, [editId, router, fetchCustomerInvoices])
 
     useEffect(() => {
         fetchInitialData()
@@ -120,6 +155,7 @@ function CreatePaymentForm() {
             const payload = {
                 user_id: userData.user.id,
                 customer_id: selectedCustomerId,
+                invoice_id: selectedInvoiceId || null,
                 payment_number: paymentNumber,
                 payment_date: paymentDate,
                 amount: amount,
@@ -132,12 +168,33 @@ function CreatePaymentForm() {
                 notes: notes
             }
 
+            const validatedData = paymentSchema.parse(payload)
+
             if (editId) {
-                const { error } = await supabase.from('payments').update(payload).eq('id', editId)
-                if (error) throw error
+                // In a real production app, we should handle reversing old payments.
+                // For now, updating the record.
+                await paymentService.update(editId, validatedData)
             } else {
-                const { error } = await supabase.from('payments').insert([payload])
-                if (error) throw error
+                await paymentService.create(validatedData)
+            }
+
+            // Update Invoice Balance and Status if linked
+            if (selectedInvoiceId && !editId) {
+                const invoice = invoices.find(i => i.id === selectedInvoiceId)
+                if (invoice) {
+                    const newPaid = (invoice.amount_paid || 0) + amount
+                    const newBalance = invoice.total_amount - newPaid
+                    const newStatus = newBalance <= 0 ? 'paid' : 'partially_paid'
+
+                    await supabase
+                        .from('invoices')
+                        .update({
+                            amount_paid: newPaid,
+                            balance_amount: newBalance,
+                            payment_status: newStatus
+                        })
+                        .eq('id', selectedInvoiceId)
+                }
             }
 
             toast.success(editId ? 'Payment updated successfully!' : 'Payment recorded successfully!')
@@ -158,7 +215,7 @@ function CreatePaymentForm() {
                     <h1 className="text-4xl font-black tracking-tight italic uppercase">
                         {editId ? 'Edit' : 'Record'} <span className="text-green-500">Payment-In</span>
                     </h1>
-                    <p className="text-slate-400 font-medium tracking-tight whitespace-pre-line">
+                    <p className="text-slate-300 font-medium tracking-tight whitespace-pre-line">
                         {editId ? 'Update transition details for this receipt.' : 'Document funds received from your customers.'}
                     </p>
                 </div>
@@ -187,7 +244,7 @@ function CreatePaymentForm() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-black uppercase tracking-widest text-slate-500">Customer *</label>
+                            <label className="text-sm font-black uppercase tracking-widest text-slate-400">Customer *</label>
                             <button
                                 type="button"
                                 onClick={() => setIsCustomerModalOpen(true)}
@@ -208,7 +265,11 @@ function CreatePaymentForm() {
                                 searchKeys={['name', 'phone']}
                                 valueKey="id"
                                 selectedValue={selectedCustomerId}
-                                onSelect={(c) => setSelectedCustomerId(c.id)}
+                                onSelect={(c) => {
+                                    setSelectedCustomerId(c.id)
+                                    setSelectedInvoiceId('')
+                                    fetchCustomerInvoices(c.id)
+                                }}
                                 renderItem={(c) => (
                                     <div className="flex flex-col">
                                         <span className="font-bold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight">{c.name}</span>
@@ -217,6 +278,64 @@ function CreatePaymentForm() {
                                 )}
                             />
                         </div>
+
+                        {/* Invoice Selection */}
+                        {selectedCustomerId && (
+                            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Link to Invoice (Optional)</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsInvoiceModalOpen(true)}
+                                    className="w-full flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 h-14 text-sm focus:ring-4 focus:ring-green-500/10 outline-none text-left transition-all"
+                                >
+                                    <span className={selectedInvoiceId ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}>
+                                        {selectedInvoiceId
+                                            ? invoices.find(i => i.id === selectedInvoiceId)?.invoice_number || 'Select Invoice'
+                                            : invoices.length > 0 ? 'Choose an invoice...' : 'No pending invoices found'}
+                                    </span>
+                                    <ChevronDown size={20} className="text-slate-400" />
+                                </button>
+                                <SelectorModal
+                                    isOpen={isInvoiceModalOpen}
+                                    onClose={() => setIsInvoiceModalOpen(false)}
+                                    title="Select Pending Invoice"
+                                    items={invoices}
+                                    searchKeys={['invoice_number']}
+                                    valueKey="id"
+                                    selectedValue={selectedInvoiceId}
+                                    onSelect={(inv) => {
+                                        setSelectedInvoiceId(inv.id)
+                                        // Auto-fill amount with balance if currently 0
+                                        if (amount === 0) setAmount(inv.balance_amount)
+                                    }}
+                                    renderItem={(inv) => (
+                                        <div className="flex justify-between items-center w-full">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight">{inv.invoice_number}</span>
+                                                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-black text-slate-900">₹ {inv.balance_amount.toLocaleString()}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">Pending Balance</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
+                                {selectedInvoiceId && (
+                                    <div className="px-4 py-3 bg-green-50 dark:bg-green-500/5 rounded-2xl border border-green-100 dark:border-green-500/10 flex justify-between items-center">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-green-600">
+                                            Selected Invoice: {invoices.find(i => i.id === selectedInvoiceId)?.invoice_number}
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedInvoiceId('')}
+                                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">

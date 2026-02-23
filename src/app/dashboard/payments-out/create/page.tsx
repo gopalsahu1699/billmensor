@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { CheckCircle2, Loader2, ChevronDown, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { paymentSchema } from '@/lib/validators'
+import { paymentService } from '@/services/payment.service'
 
 interface Customer {
     id: string;
@@ -132,12 +134,12 @@ function CreatePaymentForm() {
                 notes: notes
             }
 
+            const validatedData = paymentSchema.parse(payload)
+
             if (editId) {
-                const { error } = await supabase.from('payments').update(payload).eq('id', editId)
-                if (error) throw error
+                await paymentService.update(editId, validatedData)
             } else {
-                const { error } = await supabase.from('payments').insert([payload])
-                if (error) throw error
+                await paymentService.create(validatedData)
             }
 
             toast.success(editId ? 'Payment updated successfully!' : 'Payment recorded successfully!')
@@ -158,7 +160,7 @@ function CreatePaymentForm() {
                     <h1 className="text-4xl font-black tracking-tight italic uppercase">
                         {editId ? 'Edit' : 'Record'} <span className="text-red-500">Payment-Out</span>
                     </h1>
-                    <p className="text-slate-400 font-medium tracking-tight whitespace-pre-line">
+                    <p className="text-slate-300 font-medium tracking-tight whitespace-pre-line">
                         {editId ? 'Modify payment voucher details.' : 'Document funds paid to your suppliers or vendors.'}
                     </p>
                 </div>
@@ -187,7 +189,7 @@ function CreatePaymentForm() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-black uppercase tracking-widest text-slate-500">Supplier *</label>
+                            <label className="text-sm font-black uppercase tracking-widest text-slate-400">Supplier *</label>
                             <button
                                 type="button"
                                 onClick={() => setIsCustomerModalOpen(true)}
@@ -220,7 +222,7 @@ function CreatePaymentForm() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-black uppercase tracking-widest text-slate-500">Amount (₹) *</label>
+                                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Amount (₹) *</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                                     <input
@@ -233,7 +235,7 @@ function CreatePaymentForm() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-black uppercase tracking-widest text-slate-500">Payment Date</label>
+                                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Payment Date</label>
                                 <div className="relative">
                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                     <input
@@ -247,7 +249,7 @@ function CreatePaymentForm() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-black uppercase tracking-widest text-slate-500">Notes / Remarks</label>
+                            <label className="text-sm font-black uppercase tracking-widest text-slate-400">Notes / Remarks</label>
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}

@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 export default function CustomerLedgerPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
-    const [customer, setCustomer] = useState<any>(null)
+    const [customer, setCustomer] = useState<any | null>(null)
     const [invoices, setInvoices] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -38,7 +38,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
 
             if (invError) throw invError
             setInvoices(invData || [])
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             router.push('/dashboard/customers')
         } finally {

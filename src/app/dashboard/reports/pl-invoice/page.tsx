@@ -4,14 +4,26 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, IndianRupee, Calendar, ChevronLeft, Search, Filter, Download, FileText } from 'lucide-react'
+import { TrendingUp, TrendingDown, Calendar, ChevronLeft, Download, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
 export default function ProfitLossInvoiceReport() {
     const [loading, setLoading] = useState(false)
-    const [invoices, setInvoices] = useState<any[]>([])
+    const [invoices, setInvoices] = useState<{
+        id: string;
+        invoice_number: string;
+        customers?: { name?: string };
+        invoice_items?: { quantity: number; unit_price: number; products?: { purchase_price?: number } }[];
+        subtotal?: number;
+        total_amount: number;
+        tax_total?: number;
+        cost_price_total: number;
+        taxable_value: number;
+        profit: number;
+        margin: number;
+    }[]>([])
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
@@ -19,11 +31,7 @@ export default function ProfitLossInvoiceReport() {
 
     const [totals, setTotals] = useState({ sales: 0, costs: 0, returns: 0, profit: 0 })
 
-    useEffect(() => {
-        fetchPLData()
-    }, [dateRange])
-
-    async function fetchPLData() {
+    const fetchPLData = React.useCallback(async () => {
         setLoading(true)
         try {
             // 1. Fetch Invoices
@@ -58,7 +66,7 @@ export default function ProfitLossInvoiceReport() {
             // 3. Process Data
             const processed = (invData || []).map(inv => {
                 let costPriceTotal = 0
-                inv.invoice_items?.forEach((item: any) => {
+                inv.invoice_items?.forEach((item: { quantity: number, unit_price: number, products?: { purchase_price: number } }) => {
                     const buyPrice = item.products?.purchase_price || 0
                     costPriceTotal += (buyPrice * item.quantity)
                 })
@@ -88,12 +96,16 @@ export default function ProfitLossInvoiceReport() {
                 returns: returnsTaxable,
                 profit: sums.profit - returnsTaxable
             })
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error loading report')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        fetchPLData()
+    }, [fetchPLData])
 
     const exportToXLS = () => {
         const headers = ["Invoice #", "Customer", "Taxable Sale", "COGS", "Profit", "Margin %"]
@@ -114,7 +126,6 @@ export default function ProfitLossInvoiceReport() {
         window.print()
     }
 
-    const totalMargin = totals.sales > 0 ? (totals.profit / totals.sales) * 100 : 0
 
     return (
         <div className="space-y-6 print:space-y-4">
@@ -264,6 +275,6 @@ export default function ProfitLossInvoiceReport() {
     )
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ')
 }

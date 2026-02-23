@@ -9,9 +9,19 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
+type InvoiceData = {
+    id: string;
+    invoice_number: string;
+    invoice_date: string;
+    total_amount: number;
+    tax_total: number;
+    customers?: { name: string; gstin: string; billing_address: string; supply_place: string };
+    invoice_items?: { hsn_code?: string; quantity: number | string; total: number; tax_amount: number; tax_rate: number }[];
+};
+
 export default function GSTR1Report() {
     const [loading, setLoading] = useState(false)
-    const [invoices, setInvoices] = useState<any[]>([])
+    const [invoices, setInvoices] = useState<InvoiceData[]>([])
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
@@ -42,7 +52,7 @@ export default function GSTR1Report() {
 
             if (error) throw error
             setInvoices(data || [])
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -85,10 +95,10 @@ export default function GSTR1Report() {
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 
-            const hsnSummaryMap: any = {}
+            const hsnSummaryMap: Record<string, { hsn_sc: string, uqc: string, qty: number, val: number, txval: number, iamt: number, camt: number, samt: number }> = {}
 
             invoices.forEach(inv => {
-                inv.invoice_items?.forEach((item: any) => {
+                inv.invoice_items?.forEach((item: { hsn_code?: string; quantity: number | string; total: number; tax_amount: number; tax_rate: number }) => {
                     const hsn = item.hsn_code || '9999'
                     if (!hsnSummaryMap[hsn]) {
                         hsnSummaryMap[hsn] = { hsn_sc: hsn, uqc: "OTH", qty: 0, val: 0, txval: 0, iamt: 0, camt: 0, samt: 0 }
@@ -112,7 +122,7 @@ export default function GSTR1Report() {
                         idt: inv.invoice_date.split('-').reverse().join('-'),
                         val: inv.total_amount,
                         pos: inv.customers?.supply_place || "00",
-                        itms: inv.invoice_items?.map((item: any, idx: number) => ({
+                        itms: inv.invoice_items?.map((item: { hsn_code?: string; quantity: number | string; total: number; tax_amount: number; tax_rate: number }, idx: number) => ({
                             num: idx + 1,
                             itm_det: {
                                 txval: item.total - item.tax_amount,
@@ -139,7 +149,7 @@ export default function GSTR1Report() {
                         typ: "C", // Credit Note
                         val: r.total_amount,
                         pos: r.supply_place || "00",
-                        itms: r.return_items?.map((item: any, idx: number) => ({
+                        itms: r.return_items?.map((item: { total: number; tax_amount: number; tax_rate: number }, idx: number) => ({
                             num: idx + 1,
                             itm_det: {
                                 txval: item.total - item.tax_amount,

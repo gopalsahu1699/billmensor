@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -8,22 +8,37 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Loader2, Trash2, Edit, Wallet, Calendar, Hash, Banknote, CreditCard, Send, Share2, Mail, FileText, ChevronDown, Download } from 'lucide-react'
 import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
+import type { Payment, Profile } from '@/types'
 
 export default function PaymentInDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [payment, setPayment] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
+    const [payment, setPayment] = useState<Payment | null>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
     const [sharing, setSharing] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
 
-    useEffect(() => {
-        fetchPayment()
-        fetchProfile()
-    }, [resolvedParams.id])
+    const fetchPayment = useCallback(async () => {
+        try {
+            setLoading(true)
+            const { data, error } = await supabase
+                .from('payments')
+                .select('*, customers(*), invoices(invoice_number)')
+                .eq('id', resolvedParams.id)
+                .single()
 
-    async function fetchProfile() {
+            if (error) throw error
+            setPayment(data)
+        } catch {
+            toast.error('Failed to load payment details')
+            router.push('/dashboard/payments-in')
+        } finally {
+            setLoading(false)
+        }
+    }, [resolvedParams.id, router])
+
+    const fetchProfile = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
@@ -38,26 +53,14 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
         } catch (error) {
             console.error('Error fetching profile:', error)
         }
-    }
+    }, [])
 
-    async function fetchPayment() {
-        try {
-            setLoading(true)
-            const { data, error } = await supabase
-                .from('payments')
-                .select('*, customers(*)')
-                .eq('id', resolvedParams.id)
-                .single()
+    useEffect(() => {
+        fetchPayment()
+        fetchProfile()
+    }, [fetchPayment, fetchProfile])
 
-            if (error) throw error
-            setPayment(data)
-        } catch (error: any) {
-            toast.error('Failed to load payment details')
-            router.push('/dashboard/payments-in')
-        } finally {
-            setLoading(false)
-        }
-    }
+
 
     async function handleDelete() {
         if (!window.confirm('Are you sure you want to delete this payment record?')) return
@@ -73,13 +76,16 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
 
             toast.success('Payment deleted successfully')
             router.push('/dashboard/payments-in')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message)
+            }
             setLoading(false)
         }
     }
 
     const handleEmail = () => {
+        if (!payment) return
         const subject = encodeURIComponent(`Receipt ${payment.payment_number} from ${profile?.company_name || 'Billmensor'}`)
         const body = encodeURIComponent(`Hello,\n\nPlease find the payment receipt ${payment.payment_number} details below:\n\nAmount Received: ₹${payment.amount.toLocaleString('en-IN')}\nDate: ${new Date(payment.payment_date).toLocaleDateString()}\nMode: ${payment.payment_mode}\n\nView details: ${window.location.href}\n\nThank you,\n${profile?.company_name || 'Billmensor'}`)
         window.location.href = `mailto:${payment.customers?.email || ''}?subject=${subject}&body=${body}`
@@ -87,6 +93,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
     }
 
     const handleShare = async () => {
+        if (!payment) return
         try {
             setSharing(true)
             const blob = await getPDFBlob('receipt-content')
@@ -115,12 +122,15 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
     }
 
     const handleDownload = async () => {
+        if (!payment) return
         try {
             setSharing(true)
             await downloadPDF('receipt-content', `Receipt_${payment.payment_number}`)
             toast.success('Downloaded successfully')
-        } catch (error: any) {
-            toast.error('Download failed: ' + error.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error('Download failed: ' + error.message)
+            }
         } finally {
             setSharing(false)
             setIsShareOpen(false)
@@ -347,6 +357,20 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase">Ref / Txn ID</p>
                                             <p className="text-sm font-black text-slate-900">{payment.reference_number}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {payment.invoices?.invoice_number && (
+                                <div className="flex justify-between items-center group cursor-pointer pt-4 border-t border-slate-100/50 mt-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shadow-sm">
+                                            <FileText size={18} className="text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase">Linked Invoice</p>
+                                            <p className="text-sm font-black text-slate-900">{payment.invoices.invoice_number}</p>
                                         </div>
                                     </div>
                                 </div>

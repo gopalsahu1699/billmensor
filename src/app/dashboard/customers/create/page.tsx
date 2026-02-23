@@ -47,7 +47,7 @@ export default function CreateCustomerPage() {
                 gstin: data.gstin || '',
                 type: data.type || 'customer',
             })
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             router.push('/dashboard/customers')
         } finally {
@@ -79,7 +79,7 @@ export default function CreateCustomerPage() {
                 toast.success('Customer added successfully')
             }
             router.push('/dashboard/customers')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)

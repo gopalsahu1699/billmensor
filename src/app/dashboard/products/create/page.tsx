@@ -58,7 +58,7 @@ export default function CreateProductPage() {
                 unit: data.unit || 'pcs',
                 image_url: data.image_url || '',
             })
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             router.push('/dashboard/products')
         } finally {
@@ -90,7 +90,7 @@ export default function CreateProductPage() {
 
             setForm(prev => ({ ...prev, image_url: urlData.publicUrl }))
             toast.success('Image uploaded')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Upload failed: ' + error.message)
         } finally {
             setUploading(false)
@@ -136,7 +136,7 @@ export default function CreateProductPage() {
                 toast.success('Product added successfully')
             }
             router.push('/dashboard/products')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)

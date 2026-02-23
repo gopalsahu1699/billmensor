@@ -13,9 +13,9 @@ import { downloadPDF } from '@/lib/pdf-utils'
 export default function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [purchase, setPurchase] = useState<any>(null)
+    const [purchase, setPurchase] = useState<any | null>(null)
     const [items, setItems] = useState<any[]>([])
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -50,7 +50,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                 .single()
 
             if (profData) setProfile(profData)
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Failed to load purchase details')
             router.push('/dashboard/purchases')
         } finally {
@@ -68,7 +68,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             if (error) throw error
             toast.success('Purchase bill marked as paid')
             fetchPurchase()
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Failed to update status: ' + error.message)
         }
     }
@@ -98,7 +98,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 
             toast.success('Purchase deleted successfully')
             router.push('/dashboard/purchases')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
             setLoading(false)
         }

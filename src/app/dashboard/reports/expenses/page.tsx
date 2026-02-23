@@ -4,24 +4,20 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Wallet, Calendar, ChevronLeft, Download, PieChart, ArrowDown, FileText } from 'lucide-react'
+import { Calendar, ChevronLeft, Download, PieChart, ArrowDown, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
 export default function ExpenseSummaryReport() {
     const [loading, setLoading] = useState(false)
-    const [expenses, setExpenses] = useState<any[]>([])
+    const [expenses, setExpenses] = useState<{ id: string; date?: string; expense_date: string; category: string; description?: string; amount: number }[]>([])
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
 
-    useEffect(() => {
-        fetchExpenses()
-    }, [])
-
-    async function fetchExpenses() {
+    const fetchExpenses = React.useCallback(async () => {
         setLoading(true)
         try {
             const { data, error } = await supabase
@@ -33,12 +29,16 @@ export default function ExpenseSummaryReport() {
 
             if (error) throw error
             setExpenses(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error fetching expenses')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        fetchExpenses()
+    }, [fetchExpenses])
 
     const exportToXLS = () => {
         const headers = ["Date", "Category", "Description", "Amount"]
@@ -57,7 +57,7 @@ export default function ExpenseSummaryReport() {
         window.print()
     }
 
-    const categoryTotals: any = {}
+    const categoryTotals: Record<string, number> = {}
     let grandTotal = 0
     expenses.forEach(exp => {
         const cat = exp.category || 'Uncategorized'
@@ -65,7 +65,7 @@ export default function ExpenseSummaryReport() {
         grandTotal += exp.amount
     })
 
-    const sortedCategories = Object.entries(categoryTotals).sort((a: any, b: any) => b[1] - a[1])
+    const sortedCategories = Object.entries(categoryTotals).sort((a: [string, number], b: [string, number]) => b[1] - a[1])
 
     return (
         <div className="space-y-6 print:space-y-4">
@@ -145,7 +145,7 @@ export default function ExpenseSummaryReport() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {sortedCategories.map(([cat, amount]: any, idx) => (
+                            {sortedCategories.map(([cat, amount]: [string, number], idx) => (
                                 <div key={idx} className="space-y-1">
                                     <div className="flex justify-between text-xs font-medium">
                                         <span className="text-slate-600 truncate mr-2">{cat}</span>
@@ -184,7 +184,7 @@ export default function ExpenseSummaryReport() {
                                 <tbody className="divide-y divide-slate-50">
                                     {expenses.map((exp) => (
                                         <tr key={exp.id} className="hover:bg-slate-50/50">
-                                            <td className="py-3 text-slate-500">{new Date(exp.date).toLocaleDateString()}</td>
+                                            <td className="py-3 text-slate-500">{new Date(exp.expense_date).toLocaleDateString()}</td>
                                             <td className="py-3">
                                                 <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600">
                                                     {exp.category}

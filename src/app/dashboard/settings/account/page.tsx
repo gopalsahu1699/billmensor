@@ -123,7 +123,7 @@ export default function AccountSettingsPage() {
                     })
                 }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setLoading(false)
@@ -153,7 +153,7 @@ export default function AccountSettingsPage() {
                 throw error
             }
             toast.success('Settings saved successfully')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setSaving(false)
@@ -187,7 +187,7 @@ export default function AccountSettingsPage() {
             }
 
             toast.success('Bank details saved successfully')
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         } finally {
             setBankSaving(false)
@@ -222,7 +222,7 @@ export default function AccountSettingsPage() {
                 .eq('id', user.id)
 
             toast.success(`${field === 'logo_url' ? 'Logo' : 'Signature'} uploaded successfully`)
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message)
         }
     }

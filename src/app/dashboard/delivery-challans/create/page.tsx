@@ -112,7 +112,7 @@ function CreateChallanForm() {
             setStatus(data.status)
             setNotes(data.notes || '')
             // items stored in DB as JSONB
-            setItems((data.items || []).map((item: any) => ({ ...item, id: item.id || Math.random().toString(36).substr(2, 9) })))
+            setItems((data.items || []).map((item: ChallanItem) => ({ ...item, id: item.id || Math.random().toString(36).substr(2, 9) })))
         } catch (error: unknown) {
             console.error('Fetch challan for edit error:', error)
             toast.error('Failed to load challan for editing')
@@ -143,7 +143,7 @@ function CreateChallanForm() {
         setItems(prev => [...prev, newItem])
     }
 
-    const updateItem = (itemId: string, field: keyof ChallanItem, value: any) => {
+    const updateItem = (itemId: string, field: keyof ChallanItem, value: string | number) => {
         setItems(prev => prev.map(item => {
             if (item.id !== itemId) return item
             const updated = { ...item, [field]: value }
@@ -205,7 +205,7 @@ function CreateChallanForm() {
                     <h1 className="text-4xl font-black tracking-tight italic uppercase">
                         {editId ? 'Update' : 'New'} <span className="text-blue-500">Challan</span>
                     </h1>
-                    <p className="text-slate-400 font-medium tracking-tight">
+                    <p className="text-slate-300 font-medium tracking-tight">
                         {editId ? 'Edit delivery challan details.' : 'Create a new delivery challan for goods dispatch.'}
                     </p>
                 </div>
@@ -340,7 +340,7 @@ function CreateChallanForm() {
                                                 <td colSpan={5} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-3 text-slate-400">
                                                         <Package size={40} strokeWidth={1} className="opacity-20" />
-                                                        <p className="italic text-sm font-medium">No items added. Click "Add Item" to begin.</p>
+                                                        <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin.</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -360,7 +360,7 @@ function CreateChallanForm() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Status</label>
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-300">Status</label>
                                 <select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value)}

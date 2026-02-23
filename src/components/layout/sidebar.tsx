@@ -1,28 +1,9 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
-import {
-    LayoutDashboard,
-    Users,
-    Package,
-    Tag,
-    ShoppingCart,
-    CreditCard,
-    BarChart3,
-    Settings,
-    Store,
-    ChevronDown,
-    Wallet,
-    Menu,
-    X,
-    LogOut,
-    Plus,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react";
+import { useState, useCallback } from "react";
+import { LayoutDashboard, Users, Package, ShoppingCart, CreditCard, BarChart3, Settings, Store, ChevronDown, Wallet, X, LogOut, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { ThemeToggle } from "./theme-toggle";
 import { cn } from "../../lib/utils";
 
 /* ================= TYPES ================= */
@@ -33,7 +14,6 @@ interface SidebarProps {
     showMobileMenu: boolean;
     setShowMobileMenu: (v: boolean) => void;
 }
-
 interface SidebarLinkProps {
     href: string;
     icon: React.ReactNode;
@@ -52,6 +32,7 @@ interface DropdownProps {
     active: boolean;
     children: React.ReactNode;
     isCollapsed?: boolean;
+    setIsCollapsed?: (v: boolean) => void;
 }
 
 interface SubLinkProps {
@@ -65,17 +46,15 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
     const pathname = usePathname();
     const router = useRouter();
 
-    const [salesOpen, setSalesOpen] = useState(false);
-    const [purchaseOpen, setPurchaseOpen] = useState(false);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
+    const [manualSalesOpen, setSalesOpen] = useState(false);
+    const [manualPurchaseOpen, setPurchaseOpen] = useState(false);
+    const [manualSettingsOpen, setSettingsOpen] = useState(false);
 
-    useEffect(() => {
-        setIsMounted(true);
-        setSalesOpen(pathname.startsWith("/dashboard/sales") || pathname.includes("/invoices") || pathname.includes("/quotations"));
-        setPurchaseOpen(pathname.startsWith("/dashboard/purchase") || pathname.includes("/purchases"));
-        setSettingsOpen(pathname.startsWith("/dashboard/settings"));
-    }, [pathname]);
+    const isMounted = typeof window !== "undefined";
+
+    const salesOpen = manualSalesOpen || pathname.startsWith("/dashboard/sales") || pathname.includes("/invoices") || pathname.includes("/quotations") || (pathname.includes("returns") && pathname.includes("sales"));
+    const purchaseOpen = manualPurchaseOpen || pathname.startsWith("/dashboard/purchase") || pathname.includes("/purchases") || (pathname.includes("returns") && pathname.includes("purchase"));
+    const settingsOpen = manualSettingsOpen || pathname.startsWith("/dashboard/settings");
 
     const isActive = (path: string): boolean => {
         return path === "/dashboard" ? pathname === path : pathname.startsWith(path);
@@ -245,7 +224,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
                 <div className="p-4 border-t border-white/5 space-y-2">
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="w-full hidden lg:flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium border border-transparent hover:border-white/20 text-slate-300 hover:bg-white/5 hover:text-white transition-all"
+                        className="w-full hidden lg:flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium border border-transparent hover:border-white/20 text-slate-200 hover:bg-white/5 hover:text-white transition-all"
                     >
                         <div className="flex items-center gap-3">
                             <div className="w-5 h-5 flex items-center justify-center">
@@ -278,12 +257,12 @@ function SidebarLink({ href, icon, label, active, onClick, isCollapsed, badge }:
     if (href === "#") {
         return (
             <div className={cn(
-                "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed text-slate-500",
+                "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed text-slate-400",
                 isCollapsed && "justify-center px-0"
             )}>
                 <div className="shrink-0 w-5 h-5 flex items-center justify-center">{icon}</div>
                 {!isCollapsed && <span className="flex-1">{label}</span>}
-                {!isCollapsed && badge && <span className="bg-slate-800 text-[8px] px-1.5 py-0.5 rounded text-slate-400 font-black">{badge}</span>}
+                {!isCollapsed && badge && <span className="bg-slate-800 text-[8px] px-1.5 py-0.5 rounded text-slate-300 font-black">{badge}</span>}
             </div>
         )
     }
@@ -298,7 +277,7 @@ function SidebarLink({ href, icon, label, active, onClick, isCollapsed, badge }:
                 "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 border border-transparent hover:border-white/20 outline-none",
                 active
                     ? "bg-blue-600/10 text-blue-400 border-blue-600/20 shadow-lg shadow-blue-600/5 backdrop-blur-sm"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white",
+                    : "text-slate-200 hover:bg-white/5 hover:text-white",
                 isCollapsed && "justify-center px-0"
             )}
         >
@@ -309,17 +288,17 @@ function SidebarLink({ href, icon, label, active, onClick, isCollapsed, badge }:
     );
 }
 
-function Dropdown({ icon, label, open, setOpen, active, children, isCollapsed, setIsCollapsed }: any) {
+function Dropdown({ icon, label, open, setOpen, active, children, isCollapsed, setIsCollapsed }: DropdownProps) {
     if (isCollapsed) {
         return (
             <button
                 onClick={() => {
-                    setIsCollapsed(false);
+                    if (setIsCollapsed) setIsCollapsed(false);
                     setOpen(true);
                 }}
                 className={cn(
                     "flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition-all border border-transparent hover:border-white/20",
-                    active ? "bg-blue-600/10 text-blue-400" : "text-slate-300 hover:bg-white/5"
+                    active ? "bg-blue-600/10 text-blue-400" : "text-slate-200 hover:bg-white/5"
                 )}
             >
                 <div className="shrink-0 w-5 h-5 flex items-center justify-center">{icon}</div>
@@ -335,7 +314,7 @@ function Dropdown({ icon, label, open, setOpen, active, children, isCollapsed, s
                     "group flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 border border-transparent hover:border-white/20",
                     active
                         ? "bg-blue-600/10 text-blue-400 border-blue-600/20"
-                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                        : "text-slate-200 hover:bg-white/5 hover:text-white"
                 )}
             >
                 <div className="flex items-center gap-3">
@@ -360,15 +339,15 @@ function Dropdown({ icon, label, open, setOpen, active, children, isCollapsed, s
     );
 }
 
-function SubLink({ href, label, onClick, badge }: any) {
+function SubLink({ href, label, onClick, badge }: SubLinkProps) {
     const pathname = usePathname();
     const active = pathname === href;
 
     if (href === "#") {
         return (
-            <div className="flex items-center justify-between px-3 py-2 text-xs opacity-50 text-slate-500 uppercase tracking-tighter font-black italic">
+            <div className="flex items-center justify-between px-3 py-2 text-xs opacity-50 text-slate-400 uppercase tracking-tighter font-black italic">
                 <span>{label}</span>
-                <span className="text-[8px] bg-slate-800 px-1 py-0.5 rounded text-white/40">{badge}</span>
+                <span className="text-[8px] bg-slate-800 px-1 py-0.5 rounded text-white/50">{badge}</span>
             </div>
         )
     }
@@ -381,7 +360,7 @@ function SubLink({ href, label, onClick, badge }: any) {
                 "block rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 border border-transparent hover:border-white/20 outline-none",
                 active || pathname === href.split('?')[0]
                     ? "bg-blue-600/10 text-blue-400 border-blue-600/30 shadow-sm"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
             )}
         >
             <span className="truncate">{label}</span>

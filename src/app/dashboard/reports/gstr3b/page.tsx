@@ -11,12 +11,12 @@ import { exportToExcel } from '@/lib/excel-utils'
 
 export default function GSTR3BReport() {
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<any | null>(null)
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
-    const [reportData, setReportData] = useState<any>({
+    const [reportData, setReportData] = useState({
         outward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, total: 0 },
         inward: { taxable: 0, igst: 0, cgst: 0, sgst: 0, total: 0 },
         netTax: 0
@@ -148,7 +148,7 @@ export default function GSTR3BReport() {
                 netTax: outward.tax - inward.tax
             })
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error('Error generating 3B summary')
         } finally {
             setLoading(false)
