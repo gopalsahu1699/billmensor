@@ -148,13 +148,13 @@ export function ProfessionalTemplate({
                 {/* LEFT */}
                 <div className="space-y-4">
 
-                    {settings.show_bank_details && (
+                    {settings.show_bank_details && bankDetails && (
                         <div>
                             <p className="font-bold text-[14px] mb-2">Bank Details:</p>
-                            <p>A/C: {bankDetails?.account_number}</p>
-                            <p>IFSC: {bankDetails?.ifsc_code}</p>
-                            <p>{bankDetails?.bank_branch_name}</p>
-                            {bankDetails?.account_holder_name && (
+                            <p>A/C: {bankDetails.account_number}</p>
+                            <p>IFSC: {bankDetails.ifsc_code}</p>
+                            <p>{bankDetails.bank_branch_name}</p>
+                            {bankDetails.account_holder_name && (
                                 <p>Holder: {bankDetails.account_holder_name}</p>
                             )}
                         </div>

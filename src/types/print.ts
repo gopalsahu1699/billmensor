@@ -37,8 +37,11 @@ export interface Item {
     unit_price?: number
     rate?: number
     tax_rate?: number
+    tax_amount?: number
+    discount?: number
     total: number
     image_url?: string
+    product_id?: string
 }
 
 
@@ -53,13 +56,19 @@ export interface InvoiceData {
     subtotal: number
     tax_total?: number
     gst_amount?: number
+    round_off?: number
     discount: number
     total_amount: number
+    status?: string
     amount_paid?: number
     balance_amount?: number
     transport_charges: number
     installation_charges: number
+    custom_charges?: { name: string; amount: number }[]
     billing_address?: string
+    shipping_address?: string
+    notes?: string
+    customer_id?: string
     supply_place?: string
     parties?: {
         name: string

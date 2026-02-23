@@ -34,6 +34,11 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
     const fetchDocument = useCallback(async () => {
         try {
             setLoading(true)
+            // Reset states to avoid data leakage between different document views
+            setData(null)
+            setProfile(null)
+            setBankDetails(null)
+            setItems([])
 
             let tableName = ''
             let itemsTableName = ''
@@ -97,12 +102,21 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
             }
             setData(normalizedData as InvoiceData)
 
-            if (docData?.user_id) {
+            // Determine the owner/user ID for profile and bank details
+            const { data: authData } = await supabase.auth.getUser()
+            const sessionUserId = authData.user?.id
+            const resourceUserId = docData?.user_id
+
+            // Use resource owner ID if available, otherwise fallback to current session
+            const targetUserId = resourceUserId || sessionUserId
+
+            if (targetUserId) {
+                // Fetch Profile
                 const { data: profileData } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', docData.user_id)
-                    .single()
+                    .eq('id', targetUserId)
+                    .maybeSingle()
 
                 if (profileData) {
                     setProfile(profileData)
@@ -116,14 +130,25 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
                         show_transport: profileData.show_transport ?? true,
                         show_installation: profileData.show_installation ?? true,
                     })
+                }
 
-                    const { data: bankData } = await supabase
+                // Fetch Bank Details - be very direct
+                const { data: bankData } = await supabase
+                    .from('company_bank_details')
+                    .select('*')
+                    .eq('user_id', targetUserId)
+                    .maybeSingle()
+
+                if (bankData) {
+                    setBankDetails(bankData)
+                } else if (sessionUserId) {
+                    // One last try with session user
+                    const { data: fallbackBank } = await supabase
                         .from('company_bank_details')
                         .select('*')
-                        .eq('user_id', docData.user_id)
+                        .eq('user_id', sessionUserId)
                         .maybeSingle()
-
-                    if (bankData) setBankDetails(bankData)
+                    if (fallbackBank) setBankDetails(fallbackBank)
                 }
             }
 
@@ -167,7 +192,7 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
         )
     }
 
-    if (!data || !profile) {
+    if (!data) {
         return <div className="min-h-screen flex items-center justify-center text-red-500 font-bold bg-slate-50">Document not found or access denied.</div>
     }
 

@@ -222,33 +222,36 @@ function CreateInvoiceForm() {
     }
 
 
-    const updateItem = (itemId: string, updates: Partial<InvoiceItem>) => {
-        setItems(items.map(item => {
-            if (item.id === itemId) {
-                const updated = { ...item, ...updates }
+   const updateItem = (itemId: string, updates: Partial<InvoiceItem>) => {
+  setItems(prev =>
+    prev.map(item => {
+      if (item.id !== itemId) return item
 
-                // Auto-fill from product selection
-                if (updates.product_id) {
-                    const product = products.find(p => p.id === updates.product_id)
-                    if (product) {
-                        updated.name = product.name
-                        updated.hsn_code = product.hsn_code || ''
-                        updated.unit_price = product.price
-                        updated.tax_rate = product.tax_rate
-                    }
-                }
+      const updated = { ...item, ...updates }
 
-                // Calculate item total
-                const base = updated.quantity * updated.unit_price
-                const tax = (base * updated.tax_rate) / 100
-                updated.tax_amount = tax
-                updated.total = base + tax - (updated.discount || 0)
-                return updated
-            }
-            return item
-        }))
-    }
+      // Auto-fill from product selection
+      if (updates.product_id) {
+        const product = products.find(p => p.id === updates.product_id)
+        if (product) {
+          updated.name = product.name
+          updated.hsn_code = product.hsn_code || ''
+          updated.unit_price = product.price
+          updated.tax_rate = product.tax_rate
+        }
+      }
 
+      // ✅ CORRECT GST LOGIC
+      const base = updated.quantity * updated.unit_price
+      const taxableAmount = base - (updated.discount || 0)
+      const tax = (taxableAmount * updated.tax_rate) / 100
+
+      updated.tax_amount = Number(tax.toFixed(2))
+      updated.total = Number((taxableAmount + tax).toFixed(2))
+
+      return updated
+    })
+  )
+}
     const removeItem = (itemId: string) => {
         setItems(items.filter(item => item.id !== itemId))
     }

@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   transport_charges DECIMAL(15,2) DEFAULT 0,
   installation_charges DECIMAL(15,2) DEFAULT 0,
   custom_charges JSONB DEFAULT '[]',
+  discount DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
   status TEXT DEFAULT 'pending',  -- 'pending' | 'accepted' | 'rejected' | 'invoiced'
   billing_address TEXT,
@@ -486,6 +487,7 @@ ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) 
 ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
 ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;
 ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS discount DECIMAL(15,2) DEFAULT 0;
 
 ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
 ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;

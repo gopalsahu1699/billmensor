@@ -10,6 +10,7 @@ export function ModernTemplate({
     bankDetails,
     items,
     settings,
+    type,
 }: PrintTemplateProps) {
     return (
         <Card className="rounded-4xl border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0">
@@ -36,7 +37,7 @@ export function ModernTemplate({
 
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-700 mb-1">
-                                Tax Invoice
+                                {type === 'invoice' ? 'Tax Invoice' : 'Quotation'}
                             </p>
                             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
                                 {data.invoice_number || data.quotation_number}
@@ -153,7 +154,7 @@ export function ModernTemplate({
                 <div className="flex justify-between items-start pt-6 border-t border-slate-300">
 
                     {/* BANK + TERMS */}
-                    <div className="max-w-57.5 space-y-4">
+                    <div className="flex-1 space-y-4 min-w-[250px]">
 
                         {settings.show_bank_details && bankDetails && (
                             <div>
@@ -161,9 +162,12 @@ export function ModernTemplate({
                                     Bank Details
                                 </p>
                                 <div className="text-[11px] space-y-1">
-                                    <p><span className="font-semibold">A/C No:</span> {bankDetails.account_number}</p>
-                                    <p><span className="font-semibold">IFSC:</span> {bankDetails.ifsc_code}</p>
-                                    <p><span className="font-semibold">Bank:</span> {bankDetails.bank_branch_name}</p>
+                                    <p><span className="font-semibold text-slate-600">A/C No:</span> {bankDetails.account_number}</p>
+                                    <p><span className="font-semibold text-slate-600">IFSC:</span> {bankDetails.ifsc_code}</p>
+                                    <p><span className="font-semibold text-slate-600">Bank:</span> {bankDetails.bank_branch_name}</p>
+                                    {bankDetails.account_holder_name && (
+                                        <p><span className="font-semibold text-slate-600">Holder:</span> {bankDetails.account_holder_name}</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -203,6 +207,15 @@ export function ModernTemplate({
                                 ₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}
                             </span>
                         </div>
+
+                        {data.discount > 0 && (
+                            <div className="flex justify-between text-[12px] text-red-600">
+                                <span>Discount</span>
+                                <span className="font-semibold">
+                                    -₹{data.discount.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
 
                         <div className="flex justify-between items-end pt-3 border-t border-slate-900">
                             <span className="text-[13px] font-bold uppercase">

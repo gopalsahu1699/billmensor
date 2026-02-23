@@ -6,102 +6,34 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { ArrowLeft, Download, RotateCcw, Loader2, Layout, Mail, Share2, Trash2, Edit } from 'lucide-react'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
-import Image from 'next/image'
+import { ModernTemplate } from '@/components/print/ModernTemplate'
+import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
 
-interface Customer {
-    id: string
-    name: string
-    email?: string
-    phone?: string
-    billing_address?: string
-    gstin?: string
-    supply_place?: string
-}
-
-interface QuotationItem {
-    id: string
-    name: string
-    hsn_code?: string
-    quantity: number
-    unit_price: number
-    tax_rate: number
-    tax_amount: number
-    discount: number
-    total: number
-    item_name?: string
-    rate?: number
-    product_id?: string
-}
-
-interface Quotation {
-    id: string
-    user_id: string
-    customer_id: string
-    quotation_number: string
-    quotation_date: string
-    expiry_date?: string
-    status: string
-    subtotal: number
-    tax_total: number
-    discount: number
-    round_off: number
-    transport_charges: number
-    installation_charges: number
-    custom_charges: { name: string; amount: number }[]
-    total_amount: number
-    notes?: string
-    billing_address?: string
-    shipping_address?: string
-    supply_place?: string
-    customers?: Customer
-}
-
-interface Profile {
-    id: string
-    company_name: string
-    address?: string
-    gstin?: string
-    phone?: string
-    email?: string
-    logo_url?: string
-    signature_url?: string
-    print_template?: string
-    show_transport?: boolean
-    show_installation?: boolean
-    show_bank_details?: boolean
-    show_upi_qr?: boolean
-    show_terms?: boolean
-    show_signature?: boolean
-    show_custom_fields?: boolean
-    custom_field_1_label?: string
-    custom_field_1_value?: string
-    custom_field_2_label?: string
-    custom_field_2_value?: string
-}
+// Redundant interfaces removed, using shared types from @/types/print
 
 export default function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [quotation, setQuotation] = useState<Quotation | null>(null)
+    const [quotation, setQuotation] = useState<InvoiceData | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
-    const [items, setItems] = useState<QuotationItem[]>([])
+    const [bankDetails, setBankDetails] = useState<BankDetails | null>(null)
+    const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
     const [converting, setConverting] = useState(false)
     const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
     const [sharing, setSharing] = useState(false)
-    const [printSettings, setPrintSettings] = useState({
+    const [printSettings, setPrintSettings] = useState<Settings & { print_template: string }>({
         print_template: 'modern',
-        show_transport: true,
-        show_installation: true,
         show_bank_details: true,
         show_upi_qr: true,
         show_terms: true,
         show_signature: true,
         show_custom_fields: true,
+        show_transport: true,
+        show_installation: true,
     })
 
     const fetchQuotation = React.useCallback(async () => {
@@ -113,8 +45,8 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
             ])
 
             if (quoteRes.error) throw quoteRes.error
-            setQuotation(quoteRes.data as Quotation)
-            setItems((itemsRes.data as QuotationItem[]) || [])
+            setQuotation(quoteRes.data as InvoiceData)
+            setItems((itemsRes.data as Item[]) || [])
 
             const { data: profData } = await supabase
                 .from('profiles')
@@ -126,14 +58,22 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 setProfile(profData as Profile)
                 setPrintSettings({
                     print_template: profData.print_template || 'modern',
-                    show_transport: profData.show_transport ?? true,
-                    show_installation: profData.show_installation ?? true,
                     show_bank_details: profData.show_bank_details ?? true,
-                    show_upi_qr: profData.show_upi_qr ?? true,
                     show_terms: profData.show_terms ?? true,
                     show_signature: profData.show_signature ?? true,
                     show_custom_fields: profData.show_custom_fields ?? true,
+                    show_upi_qr: profData.show_upi_qr ?? true,
+                    show_transport: profData.show_transport ?? true,
+                    show_installation: profData.show_installation ?? true,
                 })
+
+                const { data: bankData } = await supabase
+                    .from('company_bank_details')
+                    .select('*')
+                    .eq('user_id', quoteRes.data.user_id)
+                    .maybeSingle()
+
+                if (bankData) setBankDetails(bankData)
             }
         } catch (err: unknown) {
             console.error('Fetch quotation error:', err)
@@ -457,6 +397,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                 data={quotation}
                                 profile={profile}
                                 items={items}
+                                bankDetails={bankDetails || undefined}
                                 settings={printSettings}
                                 type="quotation"
                             />
@@ -467,171 +408,20 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                 data={quotation}
                                 profile={profile}
                                 items={items}
+                                bankDetails={bankDetails || undefined}
                                 settings={printSettings}
                                 type="quotation"
                             />
                         </div>
                     ) : (
-                        /* Default / Modern Template */
-                        <Card className="rounded-[40px] border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0">
-                            <div className="p-10 lg:p-16 space-y-12">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex flex-col gap-6">
-                                        {profile?.logo_url ? (
-                                            <div className="relative w-35 h-10">
-                                                <Image src={profile.logo_url} alt="Logo" fill className="object-contain" />
-                                            </div>
-                                        ) : (
-                                            <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-slate-900/30">
-                                                <span className="material-symbols-outlined text-[32px]">payments</span>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Estimate / Proforma</p>
-                                            <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic">{quotation.quotation_number}</h2>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-600">
-                                            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                            {quotation.status}
-                                        </div>
-                                        <div className="mt-8 text-sm text-slate-500 font-bold uppercase tracking-widest">
-                                            <p className="text-[10px] text-slate-400 mb-1">Issue Date</p>
-                                            <p className="text-slate-900">{new Date(quotation.quotation_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                                            {quotation.expiry_date && (
-                                                <div className="mt-4">
-                                                    <p className="text-[10px] text-slate-400 mb-1">Valid Until</p>
-                                                    <p className="text-red-600">{new Date(quotation.expiry_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-4xl border border-slate-100">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Vendor Info</p>
-                                        <p className="font-black text-slate-900 text-xl">{profile?.company_name || 'Billmensor'}</p>
-                                        <p className="text-sm text-slate-500 mt-2 leading-relaxed italic">{profile?.address}</p>
-                                        <div className="mt-6 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest">
-                                            <span className="text-slate-400">GSTIN: <span className="text-slate-900">{profile?.gstin}</span></span>
-                                            <span className="text-slate-400">Phone: <span className="text-slate-900">{profile?.phone}</span></span>
-                                            <span className="text-slate-400">Email: <span className="text-slate-900">{profile?.email}</span></span>
-                                        </div>
-                                        {printSettings.show_custom_fields && (
-                                            <div className="mt-4 space-y-1 text-[10px] font-bold uppercase tracking-wider">
-                                                {profile?.custom_field_1_label && (
-                                                    <p className="text-slate-400">{profile.custom_field_1_label}: <span className="text-slate-900">{profile.custom_field_1_value}</span></p>
-                                                )}
-                                                {profile?.custom_field_2_label && (
-                                                    <p className="text-slate-400">{profile.custom_field_2_label}: <span className="text-slate-900">{profile.custom_field_2_value}</span></p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-right border-l border-slate-200 pl-12 flex flex-col justify-center">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Estimate For</p>
-                                        <p className="font-black text-slate-900 text-xl">{quotation.customers?.name}</p>
-                                        <p className="text-sm text-slate-500 mt-2 italic leading-relaxed">{quotation.billing_address || quotation.customers?.billing_address}</p>
-                                        <p className="text-sm font-black text-blue-600 mt-2 uppercase tracking-widest">
-                                            GST: {quotation.customers?.gstin || 'NOT REGISTERED'} | POS: {quotation.supply_place || quotation.customers?.supply_place || 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-separate border-spacing-y-4">
-                                        <thead>
-                                            <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                <th className="px-4 pb-2 w-12">#</th>
-                                                <th className="px-4 pb-2">Item Description</th>
-                                                <th className="px-4 pb-2 text-center">Qty</th>
-                                                <th className="px-4 pb-2 text-center">Rate</th>
-                                                <th className="px-4 pb-2 text-right">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {items.map((item, index) => (
-                                                <tr key={index} className="bg-white border-y border-slate-50 group hover:shadow-lg transition-all duration-300">
-                                                    <td className="px-4 py-8 rounded-l-3xl border-l border-y border-slate-100 font-black text-slate-300">{index + 1}</td>
-                                                    <td className="px-4 py-8 border-y border-slate-100">
-                                                        <p className="font-black text-slate-900">{item.item_name || item.name}</p>
-                                                        <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">HSN Code: {item.hsn_code || '-'}</p>
-                                                    </td>
-                                                    <td className="px-4 py-8 border-y border-slate-100 text-center font-black">{item.quantity}</td>
-                                                    <td className="px-4 py-8 border-y border-slate-100 text-center font-bold text-slate-500">₹{(item.rate || item.unit_price || 0).toLocaleString('en-IN')}</td>
-                                                    <td className="px-4 py-8 rounded-r-3xl border-r border-y border-slate-100 text-right font-black italic text-slate-900">₹{(item.total || 0).toLocaleString('en-IN')}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="flex justify-between items-start pt-12 border-t-2 border-slate-100">
-                                    <div className="max-w-xs space-y-6">
-                                        {printSettings.show_terms && (
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Terms & Notes</p>
-                                                <p className="text-xs text-slate-500 leading-relaxed italic opacity-80">{quotation.notes || 'This estimate is valid for 15 days.'}</p>
-                                            </div>
-                                        )}
-
-                                    </div>
-                                    <div className="w-80 space-y-4 text-right ml-auto">
-                                        <div className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                            <span>Subtotal</span>
-                                            <span className="text-slate-900 font-black">₹{(quotation.subtotal || 0).toLocaleString('en-IN')}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                            <span>Tax Amount</span>
-                                            <span className="text-slate-900 font-black">₹{(quotation.tax_total || 0).toLocaleString('en-IN')}</span>
-                                        </div>
-                                        {quotation.transport_charges > 0 && (
-                                            <div className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest italic">
-                                                <span>Transport</span>
-                                                <span className="text-slate-900 font-black">₹{(quotation.transport_charges).toLocaleString('en-IN')}</span>
-                                            </div>
-                                        )}
-                                        {quotation.installation_charges > 0 && (
-                                            <div className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest italic">
-                                                <span>Installation</span>
-                                                <span className="text-slate-900 font-black">₹{(quotation.installation_charges).toLocaleString('en-IN')}</span>
-                                            </div>
-                                        )}
-                                        {quotation.custom_charges && Array.isArray(quotation.custom_charges) && quotation.custom_charges.map((charge: { name: string, amount: number }, idx: number) => (
-                                            <div key={idx} className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest italic">
-                                                <span>{charge.name || 'Custom Charge'}</span>
-                                                <span className="text-slate-900 font-black">₹{(charge.amount || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                        ))}
-                                        <div className="flex justify-between items-end pt-8 mt-4 border-t-4 border-slate-900">
-                                            <span className="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em]">Estimated Total</span>
-                                            <span className="text-5xl font-black tracking-tighter italic text-slate-900">₹{(quotation.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                        {printSettings.show_signature && (
-                                            <div className="pt-8 border-t border-dashed border-slate-200 mt-6 flex flex-col items-end text-right">
-                                                <div className="mb-2">
-                                                    {profile?.signature_url ? (
-                                                        <div className="relative h-12 w-24">
-                                                            <Image src={profile.signature_url} alt="Signature" fill className="object-contain grayscale opacity-80" />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="h-12 w-24 border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
-                                                            <span className="text-[10px] uppercase font-bold tracking-widest">Sign Here</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Authorized Signature</p>
-                                                    <p className="text-[9px] font-bold text-slate-500 uppercase">For {profile?.company_name}</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
+                        <ModernTemplate
+                            data={quotation}
+                            profile={profile}
+                            items={items}
+                            bankDetails={bankDetails || undefined}
+                            settings={printSettings}
+                            type="quotation"
+                        />
                     )}
                 </div>
             </div>

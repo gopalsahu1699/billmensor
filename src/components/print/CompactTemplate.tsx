@@ -148,6 +148,12 @@ export function CompactTemplate({
                         <span>GST:</span>
                         <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
                     </div>
+                    {data.discount > 0 && (
+                        <div className="flex justify-between text-red-600">
+                            <span>Discount:</span>
+                            <span>-₹{data.discount.toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
                     <div className="flex justify-between font-bold border-t border-black pt-2">
                         <span>Total:</span>
                         <span>₹{(data.total_amount || 0).toLocaleString('en-IN')}</span>
@@ -159,13 +165,13 @@ export function CompactTemplate({
             <div className="flex justify-between">
 
                 <div style={{ width: '60%' }}>
-                    {settings.show_bank_details && (
+                    {settings.show_bank_details && bankDetails && (
                         <>
                             <h4 className="font-bold">Bank Details:</h4>
-                            <p>Account: {bankDetails?.account_number}</p>
-                            <p>IFSC: {bankDetails?.ifsc_code}</p>
-                            <p>Bank: {bankDetails?.bank_branch_name}</p>
-                            <p>Holder: {bankDetails?.account_holder_name}</p>
+                            <p>Account: {bankDetails.account_number}</p>
+                            <p>IFSC: {bankDetails.ifsc_code}</p>
+                            <p>Bank: {bankDetails.bank_branch_name}</p>
+                            <p>Holder: {bankDetails.account_holder_name}</p>
                         </>
                     )}
 
