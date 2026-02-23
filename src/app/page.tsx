@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
-import Image from "next/image";
 
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -36,7 +35,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
             <a href="#pricing" className="hover:text-blue-400 transition-colors">Pricing</a>
-            <a href="#about" className="hover:text-blue-400 transition-colors">About</a>
+            <Link href="/about" className="hover:text-blue-400 transition-colors">About</Link>
           </div>
           <div className="flex items-center gap-4">
             {user ? (
@@ -136,13 +135,32 @@ export default function LandingPage() {
             className="mt-20 relative px-4 sm:px-0"
           >
             <div className="relative p-2 rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-3xl overflow-hidden shadow-2xl -skew-y-1 transition-transform hover:skew-y-0 duration-700">
-              <Image
-                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426"
-                alt="Dashboard"
-                width={1200}
-                height={675}
-                className="rounded-2xl opacity-80"
-              />
+              <svg viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-2xl opacity-80">
+                <rect width="1200" height="675" fill="#0F172A" />
+                {/* Sidebar */}
+                <rect x="0" y="0" width="240" height="675" fill="#1E293B" fillOpacity="0.5" />
+                <rect x="30" y="40" width="180" height="30" rx="8" fill="#334155" />
+                <rect x="30" y="100" width="180" height="20" rx="4" fill="#334155" fillOpacity="0.5" />
+                <rect x="30" y="140" width="180" height="20" rx="4" fill="#334155" fillOpacity="0.5" />
+                <rect x="30" y="180" width="180" height="20" rx="4" fill="#334155" fillOpacity="0.5" />
+
+                {/* Header */}
+                <rect x="270" y="40" width="300" height="30" rx="8" fill="#334155" />
+                <rect x="1000" y="40" width="170" height="30" rx="8" fill="#3B82F6" />
+
+                {/* Cards */}
+                <rect x="270" y="100" width="280" height="120" rx="16" fill="#1E293B" />
+                <rect x="580" y="100" width="280" height="120" rx="16" fill="#1E293B" />
+                <rect x="890" y="100" width="280" height="120" rx="16" fill="#1E293B" />
+
+                {/* Main Chart */}
+                <rect x="270" y="250" width="900" height="385" rx="16" fill="#1E293B" fillOpacity="0.5" />
+                <path d="M300 580L450 480L600 520L750 380L900 450L1050 320L1140 350" stroke="#3B82F6" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+
+                {/* Grid dots */}
+                <circle cx="270" cy="250" r="1" fill="#334155" />
+                <circle cx="1170" cy="635" r="1" fill="#334155" />
+              </svg>
               <div className="absolute inset-0 bg-linear-to-t from-[#020617] via-transparent to-transparent" />
             </div>
           </motion.div>
@@ -289,6 +307,7 @@ export default function LandingPage() {
           <p className="text-slate-500 text-sm mb-6 italic">Crafted with precision for modern Indian entrepreneurs.</p>
           <div className="flex flex-col items-center gap-6">
             <div className="flex justify-center gap-8 text-sm text-slate-400">
+              <Link href="/about" className="hover:text-white transition-colors">About</Link>
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
               <a href="#" className="hover:text-white transition-colors">Terms</a>
               <a href="#" className="hover:text-white transition-colors">Contact</a>
