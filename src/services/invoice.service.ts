@@ -65,7 +65,7 @@ export const invoiceService = {
             .from("invoices")
             .insert({
                 ...invoiceData,
-                // user_id: session.session.user.id
+                user_id: session.session.user.id
             })
             .select()
             .single()
@@ -77,7 +77,8 @@ export const invoiceService = {
         if (items && items.length > 0) {
             const itemsToInsert = items.map(item => ({
                 ...item,
-                invoice_id: newInvoice.id
+                invoice_id: newInvoice.id,
+                user_id: session.session.user.id
             }))
 
             const { error: itemsError } = await supabase
@@ -105,7 +106,7 @@ export const invoiceService = {
             .from("invoices")
             .update({
                 ...invoiceData,
-                // user_id: session.session.user.id
+                user_id: session.session.user.id
             })
             .eq("id", id)
             .select()
@@ -122,7 +123,8 @@ export const invoiceService = {
 
             const itemsToInsert = items.map(item => ({
                 ...item,
-                invoice_id: id
+                invoice_id: id,
+                user_id: session.session.user.id
             }))
 
             const { error: itemsError } = await supabase

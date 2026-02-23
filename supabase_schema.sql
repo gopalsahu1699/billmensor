@@ -457,7 +457,45 @@ ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS supply_place TEXT;
 ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS invoice_id UUID REFERENCES public.invoices(id) ON DELETE SET NULL;
 
 -- ─────────────────────────────────────────────────────────────
--- 21. STORAGE SETUP (manual run in SQL editor)
+-- 21. MIGRATION: add GST fields missing from existing instances
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE public.invoice_items ADD COLUMN IF NOT EXISTS cgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoice_items ADD COLUMN IF NOT EXISTS sgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoice_items ADD COLUMN IF NOT EXISTS igst DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS cgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS sgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS igst DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.purchase_items ADD COLUMN IF NOT EXISTS cgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.purchase_items ADD COLUMN IF NOT EXISTS sgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.purchase_items ADD COLUMN IF NOT EXISTS igst DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.return_items ADD COLUMN IF NOT EXISTS cgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.return_items ADD COLUMN IF NOT EXISTS sgst DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.return_items ADD COLUMN IF NOT EXISTS igst DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS cgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS sgst_total DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS igst_total DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
+
+-- ─────────────────────────────────────────────────────────────
+-- 22. STORAGE SETUP (manual run in SQL editor)
 -- ─────────────────────────────────────────────────────────────
 -- Create business-assets bucket
 INSERT INTO storage.buckets (id, name, public)

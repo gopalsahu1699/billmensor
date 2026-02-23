@@ -53,6 +53,7 @@ export const purchaseService = {
             .from("purchases")
             .insert({
                 ...purchaseData,
+                user_id: session.session.user.id
             })
             .select()
             .single()
@@ -64,7 +65,8 @@ export const purchaseService = {
         if (items && items.length > 0) {
             const itemsToInsert = items.map(item => ({
                 ...item,
-                purchase_id: newPurchase.id
+                purchase_id: newPurchase.id,
+                user_id: session.session.user.id
             }))
 
             const { error: itemsError } = await supabase
@@ -107,7 +109,8 @@ export const purchaseService = {
 
             const itemsToInsert = items.map(item => ({
                 ...item,
-                purchase_id: id
+                purchase_id: id,
+                user_id: session.session.user.id
             }))
 
             const { error: itemsError } = await supabase
