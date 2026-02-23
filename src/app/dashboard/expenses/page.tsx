@@ -1,22 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
+interface Expense {
+    id: string;
+    user_id: string;
+    title: string;
+    category?: string;
+    amount: number;
+    expense_date: string;
+    description?: string;
+    created_at?: string;
+}
+
 export default function ExpensesPage() {
     const router = useRouter()
-    const [expenses, setExpenses] = useState<any[]>([])
+    const [expenses, setExpenses] = useState<Expense[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
 
-    useEffect(() => {
-        fetchExpenses()
-    }, [])
-
-    async function fetchExpenses() {
+    const fetchExpenses = React.useCallback(async () => {
         try {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData.user) return
@@ -28,13 +35,18 @@ export default function ExpensesPage() {
                 .order('expense_date', { ascending: false })
 
             if (error) throw error
-            setExpenses(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+            setExpenses((data as Expense[]) || [])
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchExpenses()
+    }, [fetchExpenses])
 
     async function handleDeleteExpense(id: string) {
         if (!confirm('Are you sure you want to delete this expense record?')) return
@@ -48,8 +60,9 @@ export default function ExpensesPage() {
             if (error) throw error
             toast.success('Expense deleted successfully')
             fetchExpenses()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         }
     }
 

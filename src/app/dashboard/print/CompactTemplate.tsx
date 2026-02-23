@@ -1,16 +1,9 @@
 'use client'
 
-import React from 'react'
+import { PrintTemplateProps } from '@/types/print'
 
-interface CompactTemplateProps {
-    data: any;
-    profile: any;
-    items: any[];
-    settings: any;
-    type: 'invoice' | 'quotation';
-}
+export function CompactTemplate({ data, profile, items, settings, type }: PrintTemplateProps) {
 
-export function CompactTemplate({ data, profile, items, settings, type }: CompactTemplateProps) {
     const isInvoice = type === 'invoice';
 
     return (
@@ -25,7 +18,8 @@ export function CompactTemplate({ data, profile, items, settings, type }: Compac
                 <div className="text-right">
                     <h2 className="text-xl font-black uppercase opacity-20">{isInvoice ? 'Invoice' : 'Estimate'}</h2>
                     <p className="font-bold">{isInvoice ? data.invoice_number : data.quotation_number}</p>
-                    <p>{new Date(isInvoice ? data.invoice_date : data.quotation_date).toLocaleDateString()}</p>
+                    <p>{new Date((isInvoice ? data.invoice_date : data.quotation_date) || new Date()).toLocaleDateString()}</p>
+
                 </div>
             </div>
 

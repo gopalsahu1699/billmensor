@@ -1,20 +1,18 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, Save, ShoppingCart, Search, User, Package, IndianRupee, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, ShoppingCart, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
-}
+
 
 interface PurchaseItem {
     id: string
@@ -27,14 +25,36 @@ interface PurchaseItem {
     total: number
 }
 
+
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku?: string;
+    price: number;
+    purchase_price?: number;
+    tax_rate: number;
+    hsn_code?: string;
+    image_url?: string;
+}
+
 function CreatePurchaseForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [suppliers, setSuppliers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [suppliers, setSuppliers] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
 
     const [selectedSupplierId, setSelectedSupplierId] = useState('')
     const [purchaseNumber, setPurchaseNumber] = useState('')
@@ -49,16 +69,54 @@ function CreatePurchaseForm() {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchInitialData()
-        if (editId) {
-            fetchPurchaseForEdit()
-        } else {
-            generatePurchaseNumber()
-        }
-    }, [editId])
+    const calculateTotals = React.useCallback(() => {
+        let s = 0
+        let t = 0
+        items.forEach(item => {
+            s += item.unit_price * item.quantity
+            t += item.tax_amount
+        })
 
-    async function fetchPurchaseForEdit() {
+        setSubtotal(s)
+        setTaxTotal(t)
+        setGrandTotal(s + t)
+    }, [items])
+
+    useEffect(() => {
+        calculateTotals()
+    }, [calculateTotals])
+
+    const fetchInitialData = React.useCallback(async () => {
+        try {
+            const [suppRes, prodRes] = await Promise.all([
+                supabase.from('customers').select('*').in('type', ['supplier', 'both']).order('name'),
+                supabase.from('products').select('*').order('name')
+            ])
+            setSuppliers((suppRes.data as Customer[]) || [])
+            setProducts((prodRes.data as Product[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+            toast.error('Failed to load data')
+        }
+    }, [])
+
+    const generatePurchaseNumber = React.useCallback(async () => {
+        const { data } = await supabase
+            .from('purchases')
+            .select('purchase_number')
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+        if (data && data.length > 0) {
+            const lastNum = parseInt(data[0].purchase_number.replace('PUR-', '')) || 0
+            setPurchaseNumber(`PUR-${(lastNum + 1).toString().padStart(4, '0')}`)
+        } else {
+            setPurchaseNumber('PUR-0001')
+        }
+    }, [])
+
+    const fetchPurchaseForEdit = React.useCallback(async () => {
+        if (!editId) return
         try {
             setLoading(true)
             const { data: pur, error: purError } = await supabase
@@ -84,47 +142,25 @@ function CreatePurchaseForm() {
                 total: item.total
             }))
             setItems(mappedItems)
-        } catch (error: any) {
+        } catch (error: unknown) {
+            console.error('Fetch purchase for edit error:', error)
             toast.error('Failed to load purchase for editing')
             router.push('/dashboard/purchases')
         } finally {
             setLoading(false)
         }
-    }
+    }, [editId, router])
 
     useEffect(() => {
-        calculateTotals()
-    }, [items])
-
-    async function fetchInitialData() {
-        try {
-            const [suppRes, prodRes] = await Promise.all([
-                supabase.from('customers').select('*').in('type', ['supplier', 'both']).order('name'),
-                supabase.from('products').select('*').order('name')
-            ])
-            setSuppliers(suppRes.data || [])
-            setProducts(prodRes.data || [])
-        } catch (error: any) {
-            toast.error('Failed to load data')
-        }
-    }
-
-    async function generatePurchaseNumber() {
-        const { data } = await supabase
-            .from('purchases')
-            .select('purchase_number')
-            .order('created_at', { ascending: false })
-            .limit(1)
-
-        if (data && data.length > 0) {
-            const lastNum = parseInt(data[0].purchase_number.replace('PUR-', '')) || 0
-            setPurchaseNumber(`PUR-${(lastNum + 1).toString().padStart(4, '0')}`)
+        fetchInitialData()
+        if (editId) {
+            fetchPurchaseForEdit()
         } else {
-            setPurchaseNumber('PUR-0001')
+            generatePurchaseNumber()
         }
-    }
+    }, [editId, fetchInitialData, fetchPurchaseForEdit, generatePurchaseNumber])
 
-    const addItem = (product: any) => {
+    const addItem = (product: Product) => {
         const newItem: PurchaseItem = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
@@ -166,19 +202,6 @@ function CreatePurchaseForm() {
 
     const removeItem = (itemId: string) => {
         setItems(items.filter(item => item.id !== itemId))
-    }
-
-    const calculateTotals = () => {
-        let s = 0
-        let t = 0
-        items.forEach(item => {
-            s += item.unit_price * item.quantity
-            t += item.tax_amount
-        })
-
-        setSubtotal(s)
-        setTaxTotal(t)
-        setGrandTotal(s + t)
     }
 
     const handleSavePurchase = async () => {
@@ -273,7 +296,7 @@ function CreatePurchaseForm() {
                         if (product) {
                             await supabase
                                 .from('products')
-                                .update({ stock_quantity: product.stock_quantity + item.quantity })
+                                .update({ stock_quantity: (product.stock_quantity || 0) + item.quantity })
                                 .eq('id', item.product_id);
                         }
                     }
@@ -282,8 +305,9 @@ function CreatePurchaseForm() {
 
             toast.success(editId ? 'Purchase updated successfully!' : 'Purchase recorded and stock updated!')
             router.push('/dashboard/purchases')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }

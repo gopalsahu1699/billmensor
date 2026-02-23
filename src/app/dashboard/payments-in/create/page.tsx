@@ -1,13 +1,22 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Wallet, CheckCircle2, Loader2, ChevronDown, Calendar, Hash } from 'lucide-react'
+import { CheckCircle2, Loader2, ChevronDown, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
 
 function CreatePaymentForm() {
     const router = useRouter()
@@ -15,7 +24,7 @@ function CreatePaymentForm() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [customers, setCustomers] = useState<any[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
 
@@ -27,6 +36,68 @@ function CreatePaymentForm() {
     const [referenceNumber, setReferenceNumber] = useState('')
     const [notes, setNotes] = useState('')
 
+    const fetchInitialData = React.useCallback(async () => {
+        try {
+            const { data } = await supabase.from('customers').select('*').order('name')
+            setCustomers((data as Customer[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+        }
+    }, [])
+
+    const generatePaymentNumber = React.useCallback(async () => {
+        const prefix = 'PMT-IN-'
+        try {
+            const { data } = await supabase
+                .from('payments')
+                .select('payment_number')
+                .eq('type', 'payment_in')
+                .like('payment_number', `${prefix}%`)
+                .order('payment_number', { ascending: false })
+                .limit(1)
+
+            if (data && data.length > 0) {
+                const parts = data[0].payment_number.split('-')
+                const lastCounter = parseInt(parts[2]) || 0
+                setPaymentNumber(`${prefix}${(lastCounter + 1).toString().padStart(4, '0')}`)
+            } else {
+                setPaymentNumber(`${prefix}0001`)
+            }
+        } catch (error: unknown) {
+            console.error('Payment number generation error:', error)
+        }
+    }, [])
+
+    const fetchPaymentForEdit = React.useCallback(async () => {
+        if (!editId) return
+        try {
+            setLoading(true)
+            const { data, error } = await supabase
+                .from('payments')
+                .select('*')
+                .eq('id', editId)
+                .single()
+
+            if (error) {
+                toast.error('Failed to load payment details')
+                router.push('/dashboard/payments-in')
+                return
+            }
+
+            setSelectedCustomerId(data.customer_id)
+            setPaymentNumber(data.payment_number)
+            setPaymentDate(data.payment_date)
+            setAmount(data.amount)
+            setPaymentMode(data.payment_mode)
+            setReferenceNumber(data.reference_number || '')
+            setNotes(data.notes || '')
+        } catch (error: unknown) {
+            console.error('Fetch payment for edit error:', error)
+        } finally {
+            setLoading(false)
+        }
+    }, [editId, router])
+
     useEffect(() => {
         fetchInitialData()
         if (editId) {
@@ -34,55 +105,7 @@ function CreatePaymentForm() {
         } else {
             generatePaymentNumber()
         }
-    }, [editId])
-
-    async function fetchInitialData() {
-        const { data } = await supabase.from('customers').select('*').order('name')
-        setCustomers(data || [])
-    }
-
-    async function generatePaymentNumber() {
-        const prefix = 'PMT-IN-'
-        const { data } = await supabase
-            .from('payments')
-            .select('payment_number')
-            .eq('type', 'payment_in')
-            .like('payment_number', `${prefix}%`)
-            .order('payment_number', { ascending: false })
-            .limit(1)
-
-        if (data && data.length > 0) {
-            const parts = data[0].payment_number.split('-')
-            const lastCounter = parseInt(parts[2]) || 0
-            setPaymentNumber(`${prefix}${(lastCounter + 1).toString().padStart(4, '0')}`)
-        } else {
-            setPaymentNumber(`${prefix}0001`)
-        }
-    }
-
-    async function fetchPaymentForEdit() {
-        setLoading(true)
-        const { data, error } = await supabase
-            .from('payments')
-            .select('*')
-            .eq('id', editId)
-            .single()
-
-        if (error) {
-            toast.error('Failed to load payment details')
-            router.push('/dashboard/payments-in')
-            return
-        }
-
-        setSelectedCustomerId(data.customer_id)
-        setPaymentNumber(data.payment_number)
-        setPaymentDate(data.payment_date)
-        setAmount(data.amount)
-        setPaymentMode(data.payment_mode)
-        setReferenceNumber(data.reference_number || '')
-        setNotes(data.notes || '')
-        setLoading(false)
-    }
+    }, [editId, fetchInitialData, fetchPaymentForEdit, generatePaymentNumber])
 
     const handleSave = async () => {
         if (!selectedCustomerId) return toast.error('Please select a customer')
@@ -119,8 +142,9 @@ function CreatePaymentForm() {
 
             toast.success(editId ? 'Payment updated successfully!' : 'Payment recorded successfully!')
             router.push('/dashboard/payments-in')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }

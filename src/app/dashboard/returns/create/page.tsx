@@ -1,14 +1,46 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, Save, RotateCcw, Search, IndianRupee, ChevronDown, Package, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Search, ChevronDown, Package, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+
+
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku?: string;
+    price: number;
+    purchase_price?: number;
+    tax_rate: number;
+    hsn_code?: string;
+    image_url?: string;
+}
+
+interface ReturnItem {
+    id: string
+    product_id: string
+    name: string
+    quantity: number
+    unit_price: number
+    tax_rate: number
+    tax_amount: number
+    total: number
+}
 
 function CreateReturnForm() {
     const router = useRouter()
@@ -17,14 +49,13 @@ function CreateReturnForm() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [parties, setParties] = useState<any[]>([])
-    const [customers, setCustomers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [parties, setParties] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
 
     const [selectedPartyId, setSelectedPartyId] = useState('')
     const [returnNumber, setReturnNumber] = useState('')
     const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0])
-    const [items, setItems] = useState<any[]>([])
+    const [items, setItems] = useState<ReturnItem[]>([])
 
     // Totals
     const [subtotal, setSubtotal] = useState(0)
@@ -34,16 +65,50 @@ function CreateReturnForm() {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchInitialData()
-        if (editId) {
-            fetchReturnForEdit()
-        } else {
-            generateReturnNumber()
-        }
-    }, [type, editId])
+    const calculateTotals = React.useCallback(() => {
+        let s = 0, t = 0
+        items.forEach(i => { s += i.unit_price * i.quantity; t += i.tax_amount })
+        setSubtotal(s); setTaxTotal(t); setGrandTotal(s + t)
+    }, [items])
 
-    async function fetchReturnForEdit() {
+    useEffect(() => {
+        calculateTotals()
+    }, [calculateTotals])
+
+    const fetchInitialData = React.useCallback(async () => {
+        try {
+            const partyType = type === 'sales_return' ? ['customer', 'both'] : ['supplier', 'both']
+            const [partyRes, prodRes] = await Promise.all([
+                supabase.from('customers').select('*').in('type', partyType).order('name'),
+                supabase.from('products').select('*').order('name')
+            ])
+            setParties((partyRes.data as Customer[]) || [])
+            setProducts((prodRes.data as Product[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+            toast.error('Failed to load data')
+        }
+    }, [type])
+
+    const generateReturnNumber = React.useCallback(async () => {
+        const prefix = type === 'sales_return' ? 'SR-' : 'PR-'
+        const { data } = await supabase
+            .from('returns')
+            .select('return_number')
+            .eq('type', type)
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+        if (data && data.length > 0) {
+            const lastNum = parseInt(data[0].return_number.replace(prefix, '')) || 0
+            setReturnNumber(`${prefix}${(lastNum + 1).toString().padStart(4, '0')}`)
+        } else {
+            setReturnNumber(`${prefix}0001`)
+        }
+    }, [type])
+
+    const fetchReturnForEdit = React.useCallback(async () => {
+        if (!editId) return
         try {
             setLoading(true)
             const { data: ret, error: retError } = await supabase
@@ -69,51 +134,26 @@ function CreateReturnForm() {
                 total: item.total
             }))
             setItems(mappedItems)
-        } catch (error: any) {
+        } catch (error: unknown) {
+            console.error('Fetch return for edit error:', error)
             toast.error('Failed to load return for editing')
             router.push('/dashboard/returns')
         } finally {
             setLoading(false)
         }
-    }
+    }, [editId, router])
 
     useEffect(() => {
-        calculateTotals()
-    }, [items])
-
-    async function fetchInitialData() {
-        try {
-            const partyType = type === 'sales_return' ? ['customer', 'both'] : ['supplier', 'both']
-            const [partyRes, prodRes] = await Promise.all([
-                supabase.from('customers').select('*').in('type', partyType).order('name'),
-                supabase.from('products').select('*').order('name')
-            ])
-            setParties(partyRes.data || [])
-            setProducts(prodRes.data || [])
-        } catch (error: any) {
-            toast.error('Failed to load data')
-        }
-    }
-
-    async function generateReturnNumber() {
-        const prefix = type === 'sales_return' ? 'SR-' : 'PR-'
-        const { data } = await supabase
-            .from('returns')
-            .select('return_number')
-            .eq('type', type)
-            .order('created_at', { ascending: false })
-            .limit(1)
-
-        if (data && data.length > 0) {
-            const lastNum = parseInt(data[0].return_number.replace(prefix, '')) || 0
-            setReturnNumber(`${prefix}${(lastNum + 1).toString().padStart(4, '0')}`)
+        fetchInitialData()
+        if (editId) {
+            fetchReturnForEdit()
         } else {
-            setReturnNumber(`${prefix}0001`)
+            generateReturnNumber()
         }
-    }
+    }, [editId, fetchInitialData, fetchReturnForEdit, generateReturnNumber])
 
-    const addItem = (product: any) => {
-        const newItem = {
+    const addItem = (product: Product) => {
+        const newItem: ReturnItem = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
             name: product.name,
@@ -126,7 +166,7 @@ function CreateReturnForm() {
         setItems([...items, newItem])
     }
 
-    const updateItem = (itemId: string, updates: any) => {
+    const updateItem = (itemId: string, updates: Partial<ReturnItem>) => {
         setItems(items.map(item => {
             if (item.id === itemId) {
                 const updated = { ...item, ...updates }
@@ -151,12 +191,6 @@ function CreateReturnForm() {
     }
 
     const removeItem = (itemId: string) => setItems(items.filter(item => item.id !== itemId))
-
-    const calculateTotals = () => {
-        let s = 0, t = 0
-        items.forEach(i => { s += i.unit_price * i.quantity; t += i.tax_amount })
-        setSubtotal(s); setTaxTotal(t); setGrandTotal(s + t)
-    }
 
     const handleSaveReturn = async () => {
         if (!selectedPartyId) return toast.error('Please select a party')
@@ -192,8 +226,8 @@ function CreateReturnForm() {
                             if (prod) {
                                 // Revert previous impact
                                 const revertedQty = type === 'sales_return'
-                                    ? prod.stock_quantity - item.quantity // Was increased, now decrease
-                                    : prod.stock_quantity + item.quantity; // Was decreased, now increase
+                                    ? (prod.stock_quantity || 0) - item.quantity // Was increased, now decrease
+                                    : (prod.stock_quantity || 0) + item.quantity; // Was decreased, now increase
                                 await supabase.from('products').update({ stock_quantity: revertedQty }).eq('id', item.product_id)
                             }
                         }
@@ -237,8 +271,8 @@ function CreateReturnForm() {
                     const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).single()
                     if (prod) {
                         const newQty = type === 'sales_return'
-                            ? prod.stock_quantity + item.quantity  // Customers returning = more stock
-                            : prod.stock_quantity - item.quantity; // You returning to supplier = less stock
+                            ? (prod.stock_quantity || 0) + item.quantity  // Customers returning = more stock
+                            : (prod.stock_quantity || 0) - item.quantity; // You returning to supplier = less stock
 
                         await supabase.from('products').update({ stock_quantity: newQty }).eq('id', item.product_id)
                     }
@@ -247,8 +281,9 @@ function CreateReturnForm() {
 
             toast.success(editId ? 'Return updated successfully!' : 'Return recorded successfully!')
             router.push('/dashboard/returns')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }

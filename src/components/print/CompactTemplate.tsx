@@ -1,15 +1,7 @@
 'use client'
 
-import React from 'react'
-
-interface CompactTemplateProps {
-    data: any;
-    profile: any;
-    bankDetails?: any;
-    items: any[];
-    settings: any;
-    type: 'invoice' | 'quotation';
-}
+import Image from 'next/image'
+import { PrintTemplateProps } from '@/types/print'
 
 export function CompactTemplate({
     data,
@@ -18,226 +10,184 @@ export function CompactTemplate({
     items,
     settings,
     type
-}: CompactTemplateProps) {
+}: PrintTemplateProps) {
 
-    const isInvoice = type === 'invoice';
+    const isInvoice = type === 'invoice'
 
     return (
-        <div className="bg-white p-8 text-slate-900 font-sans text-sm leading-relaxed max-w-4xl mx-auto">
+        <div
+            id="invoice"
+            className="bg-white text-black font-sans text-[14px] leading-tight mx-auto"
+            style={{
+                width: '794px',
+                minHeight: '1123px',
+                padding: '24px',
+            }}
+        >
 
-            {/* ================= HEADER ================= */}
-            <div className="flex justify-between items-start border-b border-slate-300 pb-6 mb-6">
-                <div className="space-y-3">
+            {/* HEADER */}
+            <div className="flex justify-between border-b border-black pb-3 mb-3">
+
+                <div>
                     {profile?.logo_url && (
-                        <img
-                            src={profile.logo_url}
-                            alt="Logo"
-                            className="w-[160px] h-12 object-contain"
-                        />
+                        <div style={{ width: 140, height: 40, position: 'relative' }}>
+                            <Image
+                                src={profile.logo_url}
+                                alt="Logo"
+                                fill
+                                priority
+                                className="object-contain object-left"
+                            />
+                        </div>
                     )}
 
-                    <div>
-                        <h1 className="text-xl font-bold uppercase">
-                            {profile?.company_name}
-                        </h1>
-                        <p className="text-slate-600">{profile?.address}</p>
-                        <p className="text-slate-600">
-                            GSTIN: {profile?.gstin} | Ph: {profile?.phone}
-                        </p>
-                        <p className="text-slate-600">
-                            Email: {profile?.email}
-                        </p>
-                    </div>
+                    <h1 className="text-lg font-bold mt-2">
+                        {profile?.company_name}
+                    </h1>
+                    <p>{profile?.address}</p>
+                    <p>GSTIN: {profile?.gstin}</p>
+                    <p>Phone: {profile?.phone}</p>
+                    <p>Email: {profile?.email}</p>
                 </div>
 
-                <div className="text-right space-y-1">
-                    <h2 className="text-2xl font-bold uppercase text-slate-400">
-                        {isInvoice ? 'Invoice' : 'Quotation'}
+                <div className="text-right">
+                    <h2 className="text-xl font-bold">
+                        {isInvoice ? 'INVOICE' : 'QUOTATION'}
                     </h2>
-                    <p className="font-semibold text-base">
-                        {isInvoice ? data.invoice_number : data.quotation_number}
-                    </p>
-                    <p className="text-slate-600">
+                    <p>{isInvoice ? data.invoice_number : data.quotation_number}</p>
+                    <p>
                         {new Date(
-                            isInvoice ? data.invoice_date : data.quotation_date
+                            (isInvoice ? data.invoice_date : data.quotation_date) || new Date()
                         ).toLocaleDateString('en-IN')}
                     </p>
                 </div>
             </div>
 
-            {/* ================= BILLING ================= */}
-            <div className="grid grid-cols-2 gap-10 mb-6 border-b border-slate-200 pb-6">
+            {/* BILLING */}
+            <div className="flex justify-between border-b border-black pb-3 mb-3">
                 <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                        Billed To
-                    </h3>
-                    <p className="font-semibold">
-                        {data.customers?.name || data.parties?.name}
-                    </p>
-                    <p className="text-slate-600 whitespace-pre-line">
-                        {data.customers?.billing_address || data.parties?.billing_address}
-                    </p>
-                    <p className="text-slate-600 mt-1">
-                        GST: {data.customers?.gstin || data.parties?.gstin || 'N/A'}
-                    </p>
+                    <h3 className="font-bold">Billed To:</h3>
+                    <p>{data.customers?.name || data.parties?.name}</p>
+                    <p>{data.customers?.billing_address || data.parties?.billing_address}</p>
+                    <p>GST: {data.customers?.gstin || data.parties?.gstin || 'N/A'}</p>
                 </div>
 
                 {(data.customers?.shipping_address || data.parties?.shipping_address) && (
                     <div className="text-right">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                            Shipped To
-                        </h3>
-                        <p className="font-semibold">
-                            {data.customers?.name || data.parties?.name}
-                        </p>
-                        <p className="text-slate-600 whitespace-pre-line">
-                            {data.customers?.shipping_address || data.parties?.shipping_address}
-                        </p>
+                        <h3 className="font-bold">Shipped To:</h3>
+                        <p>{data.customers?.shipping_address || data.parties?.shipping_address}</p>
                     </div>
                 )}
             </div>
 
-            {/* ================= ITEMS TABLE ================= */}
-            <table className="w-full mb-8 border-collapse">
+            {/* ITEMS */}
+            <table className="w-full border-collapse mb-4 text-[13px]">
                 <thead>
-                    <tr className="bg-slate-100 text-xs uppercase text-slate-600">
-                        <th className="p-3 text-left">Description</th>
-                        <th className="p-3 text-center">HSN/SAC</th>
-                        <th className="p-3 text-center">Qty</th>
-                        <th className="p-3 text-center">Rate</th>
-                        <th className="p-3 text-right">Total</th>
+                    <tr className="border-b border-black">
+                        <th className="py-2 text-center w-8">#</th>
+                        <th className="py-2 text-center w-12">Image</th>
+                        <th className="py-2 text-left">Description</th>
+                        <th className="py-2 text-center">HSN</th>
+                        <th className="py-2 text-center">Qty</th>
+                        <th className="py-2 text-center">Rate</th>
+                        <th className="py-2 text-right">Total</th>
                     </tr>
+
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+
+                <tbody>
                     {items.map((item, idx) => (
-                        <tr key={idx}>
-                            <td className="p-3 font-medium">
-                                {item.item_name || item.name}
+                        <tr key={idx} className="border-b border-gray-300">
+                            <td className="py-2 text-center w-8">{idx + 1}</td>
+                            <td className="py-2 text-center w-12">
+                                {item.image_url ? (
+                                    <div style={{ width: 40, height: 40, position: 'relative' }} className="mx-auto">
+                                        <Image
+                                            src={item.image_url}
+                                            alt={item.item_name || item.name || 'Product'}
+                                            fill
+                                            style={{ objectFit: 'contain' }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mx-auto">
+                                        <span className="text-[8px] text-gray-400">No img</span>
+                                    </div>
+                                )}
                             </td>
-                            <td className="p-3 text-center text-slate-600">
-                                {item.hsn_code || '-'}
-                            </td>
-                            <td className="p-3 text-center">
-                                {item.quantity}
-                            </td>
-                            <td className="p-3 text-center">
+                            <td className="py-2 text-left">{item.item_name || item.name}</td>
+                            <td className="py-2 text-center">{item.hsn_code || '-'}</td>
+                            <td className="py-2 text-center">{item.quantity}</td>
+                            <td className="py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            <td className="p-3 text-right font-semibold">
+                            <td className="py-2 text-right">
                                 ₹{(item.total || 0).toLocaleString('en-IN')}
                             </td>
                         </tr>
+
                     ))}
                 </tbody>
             </table>
 
-            {/* ================= FOOTER ================= */}
-            <div className="flex justify-between items-start">
-
-                {/* LEFT SIDE */}
-                <div className="w-1/2 space-y-6">
-
-                    {settings.show_bank_details && (
-                        <div className="bg-slate-50 p-5 rounded-lg border border-slate-200">
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-3">
-                                Bank Details
-                            </h4>
-
-                            <div className="grid grid-cols-2 gap-4 text-xs">
-                                <div>
-                                    <p className="text-slate-500">Account Number</p>
-                                    <p className="font-medium">
-                                        {bankDetails?.account_number || 'Not set'}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-slate-500">IFSC Code</p>
-                                    <p className="font-medium uppercase">
-                                        {bankDetails?.ifsc_code || 'Not set'}
-                                    </p>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <p className="text-slate-500">Bank & Branch</p>
-                                    <p className="font-medium">
-                                        {bankDetails?.bank_branch_name || 'Not set'}
-                                    </p>
-                                </div>
-
-                                {bankDetails?.account_holder_name && (
-                                    <div className="col-span-2">
-                                        <p className="text-slate-500">Account Holder</p>
-                                        <p className="font-medium">
-                                            {bankDetails.account_holder_name}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {settings.show_terms && (
-                        <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                                Terms & Conditions
-                            </h4>
-                            <p className="text-xs text-slate-600 italic">
-                                {profile?.terms_and_conditions ||
-                                    'Goods once sold will not be taken back.'}
-                            </p>
-                        </div>
-                    )}
-                </div>
-
-                {/* RIGHT SIDE TOTALS */}
-                <div className="w-1/3 text-right space-y-2">
-
+            {/* TOTALS */}
+            <div className="flex justify-end mb-4">
+                <div style={{ width: 250 }}>
                     <div className="flex justify-between">
                         <span>Subtotal:</span>
                         <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
                     </div>
-
                     <div className="flex justify-between">
                         <span>GST:</span>
-                        <span>
-                            ₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}
-                        </span>
+                        <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
                     </div>
-
-                    {data.discount > 0 && (
-                        <div className="flex justify-between text-red-500">
-                            <span>Discount:</span>
-                            <span>-₹{data.discount.toLocaleString('en-IN')}</span>
-                        </div>
-                    )}
-
-                    <div className="flex justify-between border-t border-slate-400 pt-3 font-bold text-base mb-6">
+                    <div className="flex justify-between font-bold border-t border-black pt-2">
                         <span>Total:</span>
-                        <span>
-                            ₹{(data.total_amount || 0).toLocaleString('en-IN')}
-                        </span>
+                        <span>₹{(data.total_amount || 0).toLocaleString('en-IN')}</span>
                     </div>
-
-                    {settings.show_signature && (
-                        <div className="mt-8 border-t border-dashed border-slate-200 pt-4 flex flex-col items-end text-right">
-                            <div className="mb-2">
-                                {profile?.signature_url ? (
-                                    <img src={profile.signature_url} alt="Signature" className="h-12 w-auto grayscale" />
-                                ) : (
-                                    <div className="h-12 w-24 border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
-                                        <span className="text-[10px]">Sign Here</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="text-sm">
-                                <p className="font-semibold text-xs uppercase tracking-wider text-slate-700">Authorized Signatory</p>
-                                <p className="text-slate-500 text-xs mt-0.5 font-medium">For {profile?.company_name}</p>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {/* BANK + TERMS + SIGN */}
+            <div className="flex justify-between">
+
+                <div style={{ width: '60%' }}>
+                    {settings.show_bank_details && (
+                        <>
+                            <h4 className="font-bold">Bank Details:</h4>
+                            <p>Account: {bankDetails?.account_number}</p>
+                            <p>IFSC: {bankDetails?.ifsc_code}</p>
+                            <p>Bank: {bankDetails?.bank_branch_name}</p>
+                            <p>Holder: {bankDetails?.account_holder_name}</p>
+                        </>
+                    )}
+
+                    {settings.show_terms && (
+                        <>
+                            <h4 className="font-bold mt-3">Terms & Conditions:</h4>
+                            <p>{profile?.terms_and_conditions}</p>
+                        </>
+                    )}
+                </div>
+
+                {settings.show_signature && (
+                    <div className="text-right">
+                        <p className="mb-10">Authorized Signatory</p>
+                        {profile?.signature_url && (
+                            <div style={{ width: 120, height: 50, position: 'relative' }}>
+                                <Image
+                                    src={profile.signature_url}
+                                    alt="Signature"
+                                    fill
+                                    priority
+                                    className="object-contain object-right"
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
         </div>
-    );
+    )
 }

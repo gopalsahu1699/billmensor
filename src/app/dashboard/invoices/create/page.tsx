@@ -1,20 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Receipt, Save, Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
-}
 
 interface InvoiceItem {
     id: string
@@ -27,11 +20,34 @@ interface InvoiceItem {
     tax_amount: number
     discount: number
     total: number
+    image_url?: string
 }
+
 
 interface CustomCharge {
     name: string
     amount: number
+}
+
+
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku?: string;
+    price: number;
+    tax_rate: number;
+    hsn_code?: string;
+    image_url?: string;
 }
 
 function CreateInvoiceForm() {
@@ -40,8 +56,8 @@ function CreateInvoiceForm() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [customers, setCustomers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [invoiceNumber, setInvoiceNumber] = useState('')
@@ -64,16 +80,61 @@ function CreateInvoiceForm() {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchInitialData()
-        if (editId) {
-            fetchInvoiceForEdit()
-        } else {
-            generateInvoiceNumber()
-        }
-    }, [editId])
+    const calculateTotals = React.useCallback(() => {
+        let s = 0
+        let t = 0
+        items.forEach(item => {
+            s += item.unit_price * item.quantity
+            t += item.tax_amount
+        })
 
-    async function fetchInvoiceForEdit() {
+        const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
+        setSubtotal(s)
+        setTaxTotal(t)
+        setGrandTotal(s + t - generalDiscount + roundOff + transportCharges + installationCharges + customTotal)
+    }, [items, generalDiscount, roundOff, transportCharges, installationCharges, customCharges])
+
+    useEffect(() => {
+        calculateTotals()
+    }, [calculateTotals])
+
+    const fetchInitialData = React.useCallback(async () => {
+        try {
+            const [custRes, prodRes] = await Promise.all([
+                supabase.from('customers').select('*').order('name'),
+                supabase.from('products').select('*').order('name')
+            ])
+            setCustomers((custRes.data as Customer[]) || [])
+            setProducts((prodRes.data as Product[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+            toast.error('Failed to load data')
+        }
+    }, [])
+
+    const generateInvoiceNumber = React.useCallback(async () => {
+        const now = new Date()
+        const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
+        const prefix = `INV-${yearMonth}-`
+
+        const { data } = await supabase
+            .from('invoices')
+            .select('invoice_number')
+            .like('invoice_number', `${prefix}%`)
+            .order('invoice_number', { ascending: false })
+            .limit(1)
+
+        if (data && data.length > 0) {
+            const parts = data[0].invoice_number.split('-')
+            const lastCounter = parseInt(parts[2]) || 0
+            setInvoiceNumber(`${prefix}${(lastCounter + 1).toString().padStart(3, '0')}`)
+        } else {
+            setInvoiceNumber(`${prefix}001`)
+        }
+    }, [])
+
+    const fetchInvoiceForEdit = React.useCallback(async () => {
+        if (!editId) return
         try {
             setLoading(true)
             const { data: inv, error: invError } = await supabase
@@ -94,7 +155,21 @@ function CreateInvoiceForm() {
             setCustomCharges(inv.custom_charges || [])
             setNotes(inv.notes || '')
 
-            const mappedItems = inv.invoice_items.map((item: any) => ({
+            interface DBInvoiceItem {
+                id: string
+                product_id: string
+                name: string
+                hsn_code: string
+                quantity: number
+                unit_price: number
+                tax_rate: number
+                tax_amount: number
+                discount: number
+                total: number
+                image_url?: string
+            }
+
+            const mappedItems = (inv.invoice_items as DBInvoiceItem[]).map((item) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
@@ -104,56 +179,30 @@ function CreateInvoiceForm() {
                 tax_rate: item.tax_rate,
                 tax_amount: item.tax_amount,
                 discount: item.discount || 0,
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || '',
             }))
+
             setItems(mappedItems)
-        } catch (error: any) {
+        } catch (error: unknown) {
+            console.error('Fetch invoice for edit error:', error)
             toast.error('Failed to load invoice for editing')
             router.push('/dashboard/invoices')
         } finally {
             setLoading(false)
         }
-    }
+    }, [editId, router])
 
     useEffect(() => {
-        calculateTotals()
-    }, [items, generalDiscount, roundOff, transportCharges, installationCharges, customCharges])
-
-    async function fetchInitialData() {
-        try {
-            const [custRes, prodRes] = await Promise.all([
-                supabase.from('customers').select('*').order('name'),
-                supabase.from('products').select('*').order('name')
-            ])
-            setCustomers(custRes.data || [])
-            setProducts(prodRes.data || [])
-        } catch (error: any) {
-            toast.error('Failed to load data')
-        }
-    }
-
-    async function generateInvoiceNumber() {
-        const now = new Date()
-        const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
-        const prefix = `INV-${yearMonth}-`
-
-        const { data } = await supabase
-            .from('invoices')
-            .select('invoice_number')
-            .like('invoice_number', `${prefix}%`)
-            .order('invoice_number', { ascending: false })
-            .limit(1)
-
-        if (data && data.length > 0) {
-            const parts = data[0].invoice_number.split('-')
-            const lastCounter = parseInt(parts[2]) || 0
-            setInvoiceNumber(`${prefix}${(lastCounter + 1).toString().padStart(3, '0')}`)
+        fetchInitialData()
+        if (editId) {
+            fetchInvoiceForEdit()
         } else {
-            setInvoiceNumber(`${prefix}001`)
+            generateInvoiceNumber()
         }
-    }
+    }, [editId, fetchInitialData, fetchInvoiceForEdit, generateInvoiceNumber])
 
-    const addItem = (product: any) => {
+    const addItem = (product: Product) => {
         const newItem: InvoiceItem = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
@@ -164,10 +213,12 @@ function CreateInvoiceForm() {
             tax_rate: product.tax_rate,
             tax_amount: (product.price * product.tax_rate) / 100,
             discount: 0,
-            total: product.price + (product.price * product.tax_rate) / 100
+            total: product.price + (product.price * product.tax_rate) / 100,
+            image_url: product.image_url || '',
         }
         setItems([...items, newItem])
     }
+
 
     const updateItem = (itemId: string, updates: Partial<InvoiceItem>) => {
         setItems(items.map(item => {
@@ -189,7 +240,7 @@ function CreateInvoiceForm() {
                 const base = updated.quantity * updated.unit_price
                 const tax = (base * updated.tax_rate) / 100
                 updated.tax_amount = tax
-                updated.total = base + tax - updated.discount
+                updated.total = base + tax - (updated.discount || 0)
                 return updated
             }
             return item
@@ -198,20 +249,6 @@ function CreateInvoiceForm() {
 
     const removeItem = (itemId: string) => {
         setItems(items.filter(item => item.id !== itemId))
-    }
-
-    const calculateTotals = () => {
-        let s = 0
-        let t = 0
-        items.forEach(item => {
-            s += item.unit_price * item.quantity
-            t += item.tax_amount
-        })
-
-        const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
-        setSubtotal(s)
-        setTaxTotal(t)
-        setGrandTotal(s + t - generalDiscount + roundOff + transportCharges + installationCharges + customTotal)
     }
 
     const handleSaveInvoice = async () => {
@@ -279,8 +316,10 @@ function CreateInvoiceForm() {
                 tax_rate: item.tax_rate,
                 tax_amount: item.tax_amount,
                 discount: item.discount,
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || null,
             }))
+
 
             const { error: itemsError } = await supabase
                 .from('invoice_items')
@@ -290,8 +329,9 @@ function CreateInvoiceForm() {
 
             toast.success(editId ? 'Invoice updated successfully!' : 'Invoice created successfully!')
             router.push('/dashboard/invoices')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            console.error('Save invoice error:', error)
+            toast.error('Failed to save invoice')
         } finally {
             setLoading(false)
         }

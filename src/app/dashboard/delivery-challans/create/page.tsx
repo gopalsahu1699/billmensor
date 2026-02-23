@@ -1,19 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Truck, Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
-}
 
 interface ChallanItem {
     id: string
@@ -24,14 +18,35 @@ interface ChallanItem {
     total: number
 }
 
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku?: string;
+    price: number;
+    purchase_price?: number;
+    tax_rate: number;
+    hsn_code?: string;
+    image_url?: string;
+}
+
 function CreateChallanForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [customers, setCustomers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [challanNumber, setChallanNumber] = useState('')
@@ -45,25 +60,21 @@ function CreateChallanForm() {
 
     const totalAmount = items.reduce((acc, item) => acc + item.total, 0)
 
-    useEffect(() => {
-        fetchInitialData()
-        if (editId) {
-            fetchChallanForEdit()
-        } else {
-            generateChallanNumber()
+    const fetchInitialData = React.useCallback(async () => {
+        try {
+            const [custRes, prodRes] = await Promise.all([
+                supabase.from('customers').select('*').order('name'),
+                supabase.from('products').select('*').order('name')
+            ])
+            setCustomers((custRes.data as Customer[]) || [])
+            setProducts((prodRes.data as Product[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+            toast.error('Failed to load data')
         }
-    }, [editId])
+    }, [])
 
-    async function fetchInitialData() {
-        const [custRes, prodRes] = await Promise.all([
-            supabase.from('customers').select('*').order('name'),
-            supabase.from('products').select('*').order('name')
-        ])
-        setCustomers(custRes.data || [])
-        setProducts(prodRes.data || [])
-    }
-
-    async function generateChallanNumber() {
+    const generateChallanNumber = React.useCallback(async () => {
         const now = new Date()
         const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
         const prefix = `DC-${yearMonth}-`
@@ -81,33 +92,46 @@ function CreateChallanForm() {
         } else {
             setChallanNumber(`${prefix}001`)
         }
-    }
+    }, [])
 
-    async function fetchChallanForEdit() {
-        setLoading(true)
-        const { data, error } = await supabase
-            .from('delivery_challans')
-            .select('*')
-            .eq('id', editId)
-            .single()
+    const fetchChallanForEdit = React.useCallback(async () => {
+        if (!editId) return
+        try {
+            setLoading(true)
+            const { data, error } = await supabase
+                .from('delivery_challans')
+                .select('*')
+                .eq('id', editId)
+                .single()
 
-        if (error) {
+            if (error) throw error
+
+            setSelectedCustomerId(data.customer_id)
+            setChallanNumber(data.challan_number)
+            setChallanDate(data.challan_date)
+            setStatus(data.status)
+            setNotes(data.notes || '')
+            // items stored in DB as JSONB
+            setItems((data.items || []).map((item: any) => ({ ...item, id: item.id || Math.random().toString(36).substr(2, 9) })))
+        } catch (error: unknown) {
+            console.error('Fetch challan for edit error:', error)
             toast.error('Failed to load challan for editing')
             router.push('/dashboard/delivery-challans')
-            return
+        } finally {
+            setLoading(false)
         }
+    }, [editId, router])
 
-        setSelectedCustomerId(data.customer_id)
-        setChallanNumber(data.challan_number)
-        setChallanDate(data.challan_date)
-        setStatus(data.status)
-        setNotes(data.notes || '')
-        // items stored in DB as JSONB
-        setItems((data.items || []).map((item: any) => ({ ...item, id: item.id || Math.random().toString(36).substr(2, 9) })))
-        setLoading(false)
-    }
+    useEffect(() => {
+        fetchInitialData()
+        if (editId) {
+            fetchChallanForEdit()
+        } else {
+            generateChallanNumber()
+        }
+    }, [editId, fetchInitialData, fetchChallanForEdit, generateChallanNumber])
 
-    const addItem = (product: any) => {
+    const addItem = (product: Product) => {
         const newItem: ChallanItem = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
@@ -123,7 +147,7 @@ function CreateChallanForm() {
         setItems(prev => prev.map(item => {
             if (item.id !== itemId) return item
             const updated = { ...item, [field]: value }
-            updated.total = updated.quantity * updated.unit_price
+            updated.total = (updated.quantity || 0) * (updated.unit_price || 0)
             return updated
         }))
     }
@@ -165,8 +189,9 @@ function CreateChallanForm() {
 
             toast.success(editId ? 'Delivery Challan updated!' : 'Delivery Challan created!')
             router.push('/dashboard/delivery-challans')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }

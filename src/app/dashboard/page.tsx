@@ -3,7 +3,30 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Loader2, Banknote, Send, CreditCard, Wallet, ArrowRight, TrendingUp, TrendingDown, MoreVertical, PlusCircle, UserPlus, Receipt, BarChart3, FileText, LayoutDashboard } from 'lucide-react'
+import { Banknote, ArrowRight, MoreVertical, PlusCircle, UserPlus, Receipt, BarChart3, FileText, LayoutDashboard } from 'lucide-react'
+
+interface Customer {
+    name: string;
+}
+
+interface Invoice {
+    id: string;
+    invoice_number: string;
+    invoice_date: string;
+    total_amount: number;
+    payment_status: string;
+    created_at: string;
+    customers?: Customer;
+}
+
+interface Payment {
+    id: string;
+    payment_number: string;
+    payment_date: string;
+    amount: number;
+    payment_mode?: string;
+    customers?: Customer;
+}
 
 export default function DashboardPage() {
     const [stats, setStats] = useState([
@@ -12,8 +35,8 @@ export default function DashboardPage() {
         { label: 'Total Sales', value: '₹ 0' },
         { label: 'Total Expenses', value: '₹ 0' },
     ])
-    const [recentInvoices, setRecentInvoices] = useState<any[]>([])
-    const [recentPayments, setRecentPayments] = useState<any[]>([])
+    const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
+    const [recentPayments, setRecentPayments] = useState<Payment[]>([])
     const [totalSales, setTotalSales] = useState(0)
     const [totalExpenses, setTotalExpenses] = useState(0)
     const [chartData, setChartData] = useState<number[]>([180, 160, 80, 100, 40, 60]) // Scaled points
@@ -23,30 +46,31 @@ export default function DashboardPage() {
         fetchDashboardStats()
     }, [])
 
+
     async function fetchDashboardStats() {
         try {
-            const [custCount, invCount, expRes, invData, payData] = await Promise.all([
+            const [custCount, invCount, expRes, invData, payData, totalSalesData] = await Promise.all([
                 supabase.from('customers').select('*', { count: 'exact', head: true }),
                 supabase.from('invoices').select('*', { count: 'exact', head: true }),
                 supabase.from('expenses').select('amount'),
                 supabase.from('invoices').select('*, customers(name)').order('created_at', { ascending: false }).limit(5),
-                supabase.from('payments').select('*, customers(name)').eq('type', 'payment_in').order('payment_date', { ascending: false }).limit(5)
+                supabase.from('payments').select('*, customers(name)').eq('type', 'payment_in').order('payment_date', { ascending: false }).limit(5),
+                supabase.from('invoices').select('total_amount, created_at')
             ])
 
-            const totalSalesRes = await supabase.from('invoices').select('total_amount, created_at')
-            const computedSales = totalSalesRes.data?.reduce((acc: any, curr: any) => acc + curr.total_amount, 0) || 0
-            const computedExpenses = expRes.data?.reduce((acc: any, curr: any) => acc + curr.amount, 0) || 0
+            const computedSales = (totalSalesData.data as Invoice[])?.reduce((acc: number, curr: Invoice) => acc + (curr.total_amount || 0), 0) || 0
+            const computedExpenses = (expRes.data as { amount: number }[])?.reduce((acc: number, curr: { amount: number }) => acc + (curr.amount || 0), 0) || 0
 
             setTotalSales(computedSales)
             setTotalExpenses(computedExpenses)
 
             // Dynamic Chart Data Grouping (Last 30 Days)
-            if (totalSalesRes.data) {
+            if (totalSalesData.data) {
                 const now = new Date()
                 const buckets = [0, 0, 0, 0, 0, 0]
-                const bucketDays = 5
+                const bucketDays = 5;
 
-                totalSalesRes.data.forEach((inv: any) => {
+                (totalSalesData.data as Invoice[]).forEach((inv: Invoice) => {
                     const invDate = new Date(inv.created_at)
                     const diffTime = Math.abs(now.getTime() - invDate.getTime())
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -368,7 +392,17 @@ export default function DashboardPage() {
     )
 }
 
-function MetricCard({ label, value, icon, trend, trendColor, iconBg, loading }: any) {
+interface MetricCardProps {
+    label: string;
+    value: string;
+    icon: string;
+    trend: string;
+    trendColor: string;
+    iconBg: string;
+    loading?: boolean;
+}
+
+function MetricCard({ label, value, icon, trend, trendColor, iconBg, loading }: MetricCardProps) {
     return (
         <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:border-primary/20 group">
             <div className="flex justify-between items-start mb-6">
@@ -390,7 +424,13 @@ function MetricCard({ label, value, icon, trend, trendColor, iconBg, loading }: 
     )
 }
 
-function QuickAction({ icon, label, href }: any) {
+interface QuickActionProps {
+    icon: React.ReactNode;
+    label: string;
+    href: string;
+}
+
+function QuickAction({ icon, label, href }: QuickActionProps) {
     return (
         <Link href={href} className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-primary/50 hover:bg-primary/5 transition-all group active:scale-95">
             <div className="text-primary mb-3 group-hover:scale-110 group-hover:-rotate-6 transition-transform">{icon}</div>
@@ -399,6 +439,6 @@ function QuickAction({ icon, label, href }: any) {
     )
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: unknown[]) {
     return inputs.filter(Boolean).join(' ')
 }

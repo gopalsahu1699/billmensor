@@ -1,15 +1,17 @@
-import jsPDF from 'jspdf';
-import { toPng } from 'html-to-image';
 
 export const downloadPDF = async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
     if (!element) return;
 
     try {
+        // Dynamically import libraries to reduce initial bundle size
+        const { toPng } = await import('html-to-image');
+        const { default: jsPDF } = await import('jspdf');
+
         // html-to-image handles modern CSS (like oklch) much better than html2canvas
         const dataUrl = await toPng(element, {
             quality: 1.0,
-            pixelRatio: 2,
+            pixelRatio: 3,
             backgroundColor: '#ffffff',
             skipFonts: true, // Fixes SecurityError: Failed to read 'cssRules' from 'CSSStyleSheet'
             style: { margin: '0' },
@@ -51,9 +53,12 @@ export const getPDFBlob = async (elementId: string): Promise<Blob | null> => {
     if (!element) return null;
 
     try {
+        const { toPng } = await import('html-to-image');
+        const { default: jsPDF } = await import('jspdf');
+
         const dataUrl = await toPng(element, {
             quality: 1.0,
-            pixelRatio: 2,
+            pixelRatio: 3,
             backgroundColor: '#ffffff',
             skipFonts: true,
             style: { margin: '0' },

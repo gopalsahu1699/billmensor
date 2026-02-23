@@ -1,29 +1,43 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { toast } from 'sonner'
-import { Plus, Search, ArrowUpRight, Wallet, Banknote, CreditCard } from 'lucide-react'
-import { cn } from '../../../lib/utils'
+import { Plus, Search, ArrowUpRight, Wallet, Banknote } from 'lucide-react'
+
+interface Customer {
+    name: string;
+}
+
+interface Payment {
+    id: string;
+    payment_number: string;
+    payment_date: string;
+    amount: number;
+    mode: string;
+    customers: Customer | null;
+    created_at: string;
+}
 
 export default function PaymentOutPage() {
     const router = useRouter()
-    const [payments, setPayments] = useState<any[]>([])
+    const [payments, setPayments] = useState<Payment[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
 
-    useEffect(() => {
-        fetchPayments()
-    }, [])
-
-    async function fetchPayments() {
+    const fetchPayments = React.useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('payments')
                 .select(`
-                    *,
+                    id,
+                    payment_number,
+                    payment_date,
+                    amount,
+                    mode,
+                    created_at,
                     customers ( name )
                 `)
                 .eq('type', 'payment_out')
@@ -36,13 +50,21 @@ export default function PaymentOutPage() {
                 }
                 throw error
             }
-            setPayments(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+            setPayments((data as unknown as Payment[])?.map(p => ({
+                ...p,
+                customers: Array.isArray(p.customers) ? p.customers[0] : p.customers
+            })) || [])
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchPayments()
+    }, [fetchPayments])
 
     const filteredPayments = payments.filter(pmt =>
         (pmt.payment_number?.toLowerCase() || '').includes(search.toLowerCase()) ||

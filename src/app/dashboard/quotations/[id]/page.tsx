@@ -7,17 +7,89 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowLeft, Download, RotateCcw, Loader2, Layout, Mail, FileText, Share2, Trash2, Edit } from 'lucide-react'
+import { ArrowLeft, Download, RotateCcw, Loader2, Layout, Mail, Share2, Trash2, Edit } from 'lucide-react'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { downloadPDF, getPDFBlob } from '@/lib/pdf-utils'
+import Image from 'next/image'
+
+interface Customer {
+    id: string
+    name: string
+    email?: string
+    phone?: string
+    billing_address?: string
+    gstin?: string
+    supply_place?: string
+}
+
+interface QuotationItem {
+    id: string
+    name: string
+    hsn_code?: string
+    quantity: number
+    unit_price: number
+    tax_rate: number
+    tax_amount: number
+    discount: number
+    total: number
+    item_name?: string
+    rate?: number
+    product_id?: string
+}
+
+interface Quotation {
+    id: string
+    user_id: string
+    customer_id: string
+    quotation_number: string
+    quotation_date: string
+    expiry_date?: string
+    status: string
+    subtotal: number
+    tax_total: number
+    discount: number
+    round_off: number
+    transport_charges: number
+    installation_charges: number
+    custom_charges: { name: string; amount: number }[]
+    total_amount: number
+    notes?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+    customers?: Customer
+}
+
+interface Profile {
+    id: string
+    company_name: string
+    address?: string
+    gstin?: string
+    phone?: string
+    email?: string
+    logo_url?: string
+    signature_url?: string
+    print_template?: string
+    show_transport?: boolean
+    show_installation?: boolean
+    show_bank_details?: boolean
+    show_upi_qr?: boolean
+    show_terms?: boolean
+    show_signature?: boolean
+    show_custom_fields?: boolean
+    custom_field_1_label?: string
+    custom_field_1_value?: string
+    custom_field_2_label?: string
+    custom_field_2_value?: string
+}
 
 export default function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [quotation, setQuotation] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [items, setItems] = useState<any[]>([])
+    const [quotation, setQuotation] = useState<Quotation | null>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
+    const [items, setItems] = useState<QuotationItem[]>([])
     const [loading, setLoading] = useState(true)
     const [converting, setConverting] = useState(false)
     const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
@@ -32,6 +104,46 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
         show_signature: true,
         show_custom_fields: true,
     })
+
+    const fetchQuotation = React.useCallback(async () => {
+        try {
+            setLoading(true)
+            const [quoteRes, itemsRes] = await Promise.all([
+                supabase.from('quotations').select('*, customers(*)').eq('id', resolvedParams.id).single(),
+                supabase.from('quotation_items').select('*').eq('quotation_id', resolvedParams.id)
+            ])
+
+            if (quoteRes.error) throw quoteRes.error
+            setQuotation(quoteRes.data as Quotation)
+            setItems((itemsRes.data as QuotationItem[]) || [])
+
+            const { data: profData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', quoteRes.data.user_id)
+                .single()
+
+            if (profData) {
+                setProfile(profData as Profile)
+                setPrintSettings({
+                    print_template: profData.print_template || 'modern',
+                    show_transport: profData.show_transport ?? true,
+                    show_installation: profData.show_installation ?? true,
+                    show_bank_details: profData.show_bank_details ?? true,
+                    show_upi_qr: profData.show_upi_qr ?? true,
+                    show_terms: profData.show_terms ?? true,
+                    show_signature: profData.show_signature ?? true,
+                    show_custom_fields: profData.show_custom_fields ?? true,
+                })
+            }
+        } catch (err: unknown) {
+            console.error('Fetch quotation error:', err)
+            toast.error('Failed to load quotation details')
+            router.push('/dashboard/quotations')
+        } finally {
+            setLoading(false)
+        }
+    }, [resolvedParams.id, router])
 
     useEffect(() => {
         // Add print-specific styles
@@ -52,50 +164,12 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
     useEffect(() => {
         fetchQuotation()
-    }, [resolvedParams.id])
+    }, [fetchQuotation])
 
-    async function fetchQuotation() {
-        try {
-            setLoading(true)
-            // Updated to use parties and party_id
-            const [quoteRes, itemsRes] = await Promise.all([
-                supabase.from('quotations').select('*, customers(*)').eq('id', resolvedParams.id).single(),
-                supabase.from('quotation_items').select('*').eq('quotation_id', resolvedParams.id)
-            ])
 
-            if (quoteRes.error) throw quoteRes.error
-            setQuotation(quoteRes.data)
-            setItems(itemsRes.data || [])
-
-            // Fetch business profile and print settings
-            const { data: profData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', quoteRes.data.user_id)
-                .single()
-
-            if (profData) {
-                setProfile(profData)
-                setPrintSettings({
-                    print_template: profData.print_template || 'modern',
-                    show_transport: profData.show_transport ?? true,
-                    show_installation: profData.show_installation ?? true,
-                    show_bank_details: profData.show_bank_details ?? true,
-                    show_upi_qr: profData.show_upi_qr ?? true,
-                    show_terms: profData.show_terms ?? true,
-                    show_signature: profData.show_signature ?? true,
-                    show_custom_fields: profData.show_custom_fields ?? true,
-                })
-            }
-        } catch (error: any) {
-            toast.error('Failed to load quotation details')
-            router.push('/dashboard/quotations')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handleConvertToInvoice = async () => {
+        if (!quotation) return
         setConverting(true)
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -128,16 +202,16 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     customer_id: quotation.customer_id,
                     invoice_number: nextInvoiceNumber,
                     invoice_date: new Date().toISOString().split('T')[0],
-                    subtotal: quotation.subtotal,
-                    discount: quotation.discount || 0,
-                    round_off: quotation.round_off || 0,
-                    tax_total: quotation.tax_total || 0,
-                    transport_charges: quotation.transport_charges || 0,
-                    installation_charges: quotation.installation_charges || 0,
-                    custom_charges: quotation.custom_charges || [],
-                    shipping_address: quotation.shipping_address || null,
-                    total_amount: quotation.total_amount,
-                    notes: quotation.notes || '',
+                    subtotal: quotation?.subtotal || 0,
+                    discount: quotation?.discount || 0,
+                    round_off: quotation?.round_off || 0,
+                    tax_total: quotation?.tax_total || 0,
+                    transport_charges: quotation?.transport_charges || 0,
+                    installation_charges: quotation?.installation_charges || 0,
+                    custom_charges: quotation?.custom_charges || [],
+                    shipping_address: quotation?.shipping_address || null,
+                    total_amount: quotation?.total_amount || 0,
+                    notes: quotation?.notes || '',
                     payment_status: 'unpaid'
                 }])
                 .select()
@@ -168,19 +242,20 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
             toast.success('Successfully converted Quotation to Invoice!')
             router.push(`/dashboard/invoices/${invoice.id}`)
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Unknown error')
         } finally {
             setConverting(false)
         }
     }
 
     async function handleDownload() {
+        if (!quotation) return
         try {
             const fileName = `Quotation-${quotation.quotation_number}`
             await downloadPDF('quotation-render-area', fileName)
             toast.success('Quotation downloaded successfully')
-        } catch (error) {
+        } catch {
             toast.error('Failed to generate PDF')
         }
     }
@@ -189,16 +264,16 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
         if (sharing) return
         setSharing(true)
 
-        const shareData: any = {
-            title: `Quotation ${quotation.quotation_number}`,
-            text: `View estimate ${quotation.quotation_number} from ${profile?.company_name || 'Billmensor'}`,
+        const shareData = {
+            title: `Quotation ${quotation?.quotation_number || ''}`,
+            text: `View estimate ${quotation?.quotation_number || ''} from ${profile?.company_name || 'Billmensor'}`,
             url: window.location.href,
         }
 
         try {
             // Try to share as a file first if supported
             const blob = await getPDFBlob('quotation-render-area')
-            if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], `Quotation-${quotation.quotation_number}.pdf`, { type: 'application/pdf' })] })) {
+            if (blob && quotation && navigator.canShare && navigator.canShare({ files: [new File([blob], `Quotation-${quotation.quotation_number}.pdf`, { type: 'application/pdf' })] })) {
                 const file = new File([blob], `Quotation-${quotation.quotation_number}.pdf`, { type: 'application/pdf' })
                 await navigator.share({
                     ...shareData,
@@ -216,10 +291,10 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 await navigator.clipboard.writeText(window.location.href)
                 toast.success('Link copied to clipboard')
             }
-        } catch (error) {
-            console.error('Error sharing:', error)
+        } catch (err: unknown) {
+            console.error('Error sharing:', err)
             // Only show error if it's not the user cancelling
-            if ((error as any).name !== 'AbortError') {
+            if (err instanceof Error && err.name !== 'AbortError') {
                 toast.error('Sharing failed')
             }
         } finally {
@@ -228,6 +303,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
     }
 
     const handleEmail = () => {
+        if (!quotation) return
         const subject = encodeURIComponent(`Quotation ${quotation.quotation_number} from ${profile?.company_name || 'Billmensor'}`)
         const body = encodeURIComponent(`Hello,\n\nPlease find the quotation details for ${quotation.quotation_number} at the following link:\n\n${window.location.href}\n\nTotal Amount: ₹${quotation.total_amount.toLocaleString('en-IN')}\n\nThank you,\n${profile?.company_name || 'Billmensor'}`)
         window.location.href = `mailto:${quotation.customers?.email || ''}?subject=${subject}&body=${body}`
@@ -256,8 +332,9 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
             toast.success('Estimate deleted successfully')
             router.push('/dashboard/quotations')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Unknown error'
+            toast.error(msg)
             setLoading(false)
         }
     }
@@ -417,7 +494,9 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col gap-6">
                                         {profile?.logo_url ? (
-                                            <img src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" />
+                                            <div className="relative w-[140px] h-10">
+                                                <Image src={profile.logo_url} alt="Logo" fill className="object-contain" />
+                                            </div>
                                         ) : (
                                             <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-slate-900/30">
                                                 <span className="material-symbols-outlined text-[32px]">payments</span>
@@ -536,7 +615,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                                 <span className="text-slate-900 font-black">₹{(quotation.installation_charges).toLocaleString('en-IN')}</span>
                                             </div>
                                         )}
-                                        {quotation.custom_charges && Array.isArray(quotation.custom_charges) && quotation.custom_charges.map((charge: any, idx: number) => (
+                                        {quotation.custom_charges && Array.isArray(quotation.custom_charges) && quotation.custom_charges.map((charge: { name: string, amount: number }, idx: number) => (
                                             <div key={idx} className="flex justify-between text-sm font-bold text-slate-400 uppercase tracking-widest italic">
                                                 <span>{charge.name || 'Custom Charge'}</span>
                                                 <span className="text-slate-900 font-black">₹{(charge.amount || 0).toLocaleString('en-IN')}</span>
@@ -550,7 +629,9 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                             <div className="pt-8 border-t border-dashed border-slate-200 mt-6 flex flex-col items-end text-right">
                                                 <div className="mb-2">
                                                     {profile?.signature_url ? (
-                                                        <img src={profile.signature_url} alt="Signature" className="h-12 w-auto grayscale opacity-80" />
+                                                        <div className="relative h-12 w-24">
+                                                            <Image src={profile.signature_url} alt="Signature" fill className="object-contain grayscale opacity-80" />
+                                                        </div>
                                                     ) : (
                                                         <div className="h-12 w-24 border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
                                                             <span className="text-[10px] uppercase font-bold tracking-widest">Sign Here</span>

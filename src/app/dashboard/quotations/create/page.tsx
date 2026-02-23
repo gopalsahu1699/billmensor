@@ -18,11 +18,35 @@ interface QuotationItem {
     tax_amount: number
     discount: number
     total: number
+    image_url?: string
 }
+
 
 interface CustomCharge {
     name: string
     amount: number
+}
+
+
+
+interface Customer {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    billing_address?: string;
+    shipping_address?: string;
+    supply_place?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku?: string;
+    price: number;
+    tax_rate: number;
+    hsn_code?: string;
+    image_url?: string;
 }
 
 function CreateQuotationForm() {
@@ -31,13 +55,13 @@ function CreateQuotationForm() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
-    const [customers, setCustomers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [quotationNumber, setQuotationNumber] = useState('')
     const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0])
-    const [expiryDate, setExpiryDate] = useState('')
+    const [validUntil, setValidUntil] = useState('')
     const [items, setItems] = useState<QuotationItem[]>([])
     const [notes, setNotes] = useState('')
     const [transportCharges, setTransportCharges] = useState(0)
@@ -54,77 +78,41 @@ function CreateQuotationForm() {
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchInitialData()
-        if (editId) {
-            fetchQuotationForEdit()
-        } else {
-            generateQuotationNumber()
-        }
-    }, [editId])
-
-    async function fetchQuotationForEdit() {
-        try {
-            setLoading(true)
-            const { data: q, error: qError } = await supabase
-                .from('quotations')
-                .select('*, quotation_items(*)')
-                .eq('id', editId)
-                .single()
-
-            if (qError) throw qError
-
-            setSelectedCustomerId(q.customer_id)
-            setQuotationNumber(q.quotation_number)
-            setQuotationDate(q.quotation_date)
-            setExpiryDate(q.expiry_date || '')
-            setTransportCharges(q.transport_charges || 0)
-            setInstallationCharges(q.installation_charges || 0)
-            setCustomCharges(q.custom_charges || [])
-            setNotes(q.notes || '')
-
-            const mappedItems = q.quotation_items.map((item: any) => ({
-                id: item.id,
-                product_id: item.product_id || '',
-                name: item.name,
-                hsn_code: item.hsn_code || '',
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                tax_rate: item.tax_rate,
-                tax_amount: item.tax_amount,
-                discount: item.discount || 0,
-                total: item.total
-            }))
-            setItems(mappedItems)
-        } catch (error: any) {
-            toast.error('Failed to load quotation for editing')
-            router.push('/dashboard/quotations')
-        } finally {
-            setLoading(false)
-        }
-    }
+    const calculateTotals = React.useCallback(() => {
+        let s = 0
+        let t = 0
+        items.forEach(item => {
+            s += item.unit_price * item.quantity
+            t += item.tax_amount
+        })
+        const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
+        setSubtotal(s)
+        setTaxTotal(t)
+        setGrandTotal(s + t + transportCharges + installationCharges + customTotal)
+    }, [items, transportCharges, installationCharges, customCharges])
 
     useEffect(() => {
         calculateTotals()
-    }, [items, transportCharges, installationCharges, customCharges])
+    }, [calculateTotals])
 
-    async function fetchInitialData() {
+    const fetchInitialData = React.useCallback(async () => {
         try {
             const [custRes, prodRes] = await Promise.all([
                 supabase.from('customers').select('*').order('name'),
                 supabase.from('products').select('*').order('name')
             ])
-            setCustomers(custRes.data || [])
-            setProducts(prodRes.data || [])
-        } catch (error: any) {
-            toast.error('Failed to load customers or products')
+            setCustomers((custRes.data as Customer[]) || [])
+            setProducts((prodRes.data as Product[]) || [])
+        } catch (error: unknown) {
+            console.error('Initial data fetch error:', error)
+            toast.error('Failed to load data')
         }
-    }
+    }, [])
 
-    async function generateQuotationNumber() {
+    const generateQuotationNumber = React.useCallback(async () => {
         const now = new Date()
         const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
-        const prefix = `QT-${yearMonth}-`
+        const prefix = `QUO-${yearMonth}-`
 
         const { data } = await supabase
             .from('quotations')
@@ -140,9 +128,60 @@ function CreateQuotationForm() {
         } else {
             setQuotationNumber(`${prefix}001`)
         }
-    }
+    }, [])
 
-    const addItem = (product: any) => {
+    const fetchQuotationForEdit = React.useCallback(async () => {
+        if (!editId) return
+        try {
+            setLoading(true)
+            const { data: quo, error: quoError } = await supabase
+                .from('quotations')
+                .select('*, quotation_items(*)')
+                .eq('id', editId)
+                .single()
+
+            if (quoError) throw quoError
+
+            setSelectedCustomerId(quo.customer_id)
+            setQuotationNumber(quo.quotation_number)
+            setQuotationDate(quo.quotation_date)
+            setValidUntil(quo.valid_until || '')
+            setNotes(quo.notes || '')
+
+            const mappedItems = quo.quotation_items.map((item: QuotationItem) => ({
+                id: item.id,
+                product_id: item.product_id || '',
+                name: item.name,
+                hsn_code: item.hsn_code || '',
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                tax_rate: item.tax_rate,
+                tax_amount: item.tax_amount,
+                discount: item.discount || 0,
+                total: item.total,
+                image_url: item.image_url || '',
+            }))
+
+            setItems(mappedItems)
+        } catch (error: unknown) {
+            console.error('Fetch quotation for edit error:', error)
+            toast.error('Failed to load quotation for editing')
+            router.push('/dashboard/quotations')
+        } finally {
+            setLoading(false)
+        }
+    }, [editId, router])
+
+    useEffect(() => {
+        fetchInitialData()
+        if (editId) {
+            fetchQuotationForEdit()
+        } else {
+            generateQuotationNumber()
+        }
+    }, [editId, fetchInitialData, fetchQuotationForEdit, generateQuotationNumber])
+
+    const addItem = (product: Product) => {
         const newItem: QuotationItem = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
@@ -153,7 +192,8 @@ function CreateQuotationForm() {
             tax_rate: product.tax_rate,
             tax_amount: (product.price * product.tax_rate) / 100,
             discount: 0,
-            total: product.price + (product.price * product.tax_rate) / 100
+            total: product.price + (product.price * product.tax_rate) / 100,
+            image_url: product.image_url || '',
         }
         setItems([...items, newItem])
     }
@@ -163,6 +203,7 @@ function CreateQuotationForm() {
             if (item.id === itemId) {
                 const updated = { ...item, ...updates }
 
+                // Auto-fill from product selection
                 if (updates.product_id) {
                     const product = products.find(p => p.id === updates.product_id)
                     if (product) {
@@ -173,10 +214,11 @@ function CreateQuotationForm() {
                     }
                 }
 
+                // Calculate item total
                 const base = updated.quantity * updated.unit_price
                 const tax = (base * updated.tax_rate) / 100
                 updated.tax_amount = tax
-                updated.total = base + tax - updated.discount
+                updated.total = base + tax - (updated.discount || 0)
                 return updated
             }
             return item
@@ -185,19 +227,6 @@ function CreateQuotationForm() {
 
     const removeItem = (itemId: string) => {
         setItems(items.filter(item => item.id !== itemId))
-    }
-
-    const calculateTotals = () => {
-        let s = 0
-        let t = 0
-        items.forEach(item => {
-            s += item.unit_price * item.quantity
-            t += item.tax_amount
-        })
-        const customTotal = customCharges.reduce((acc, curr) => acc + curr.amount, 0)
-        setSubtotal(s)
-        setTaxTotal(t)
-        setGrandTotal(s + t + transportCharges + installationCharges + customTotal)
     }
 
     const handleSaveQuotation = async () => {
@@ -216,12 +245,9 @@ function CreateQuotationForm() {
                 customer_id: selectedCustomerId,
                 quotation_number: quotationNumber,
                 quotation_date: quotationDate,
-                expiry_date: expiryDate || null,
+                valid_until: validUntil || null,
                 subtotal,
                 tax_total: taxTotal,
-                transport_charges: transportCharges,
-                installation_charges: installationCharges,
-                custom_charges: customCharges,
                 billing_address: customer?.billing_address || null,
                 shipping_address: customer?.shipping_address || null,
                 supply_place: customer?.supply_place || null,
@@ -232,24 +258,25 @@ function CreateQuotationForm() {
 
             let quotationId = editId
             if (editId) {
-                const { error: quoteError } = await supabase
+                const { error: quoError } = await supabase
                     .from('quotations')
                     .update(quotationPayload)
                     .eq('id', editId)
-                if (quoteError) throw quoteError
+                if (quoError) throw quoError
 
+                // Delete old items to re-insert
                 await supabase.from('quotation_items').delete().eq('quotation_id', editId)
             } else {
-                const { data: quote, error: quoteError } = await supabase
+                const { data: quotation, error: quoError } = await supabase
                     .from('quotations')
                     .insert([quotationPayload])
                     .select()
                     .single()
-                if (quoteError) throw quoteError
-                quotationId = quote.id
+                if (quoError) throw quoError
+                quotationId = quotation.id
             }
 
-            // 2. Insert Quotation Items
+            // 2. Insert/Update Quotation Items
             const quotationItems = items.map(item => ({
                 user_id: userData.user.id,
                 quotation_id: quotationId,
@@ -261,8 +288,10 @@ function CreateQuotationForm() {
                 tax_rate: item.tax_rate,
                 tax_amount: item.tax_amount,
                 discount: item.discount,
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || null,
             }))
+
 
             const { error: itemsError } = await supabase
                 .from('quotation_items')
@@ -270,10 +299,11 @@ function CreateQuotationForm() {
 
             if (itemsError) throw itemsError
 
-            toast.success(editId ? 'Quotation updated successfully!' : 'Quotation generated successfully!')
+            toast.success(editId ? 'Quotation updated successfully!' : 'Quotation created successfully!')
             router.push('/dashboard/quotations')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            console.error('Save quotation error:', error)
+            toast.error('Failed to save quotation')
         } finally {
             setLoading(false)
         }
@@ -368,8 +398,8 @@ function CreateQuotationForm() {
                             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Expiry Date (Optional)</label>
                             <input
                                 type="date"
-                                value={expiryDate}
-                                onChange={(e) => setExpiryDate(e.target.value)}
+                                value={validUntil}
+                                onChange={(e) => setValidUntil(e.target.value)}
                                 className="w-full max-w-xs bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold"
                             />
                         </div>

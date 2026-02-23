@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -21,11 +21,8 @@ export default function CreateExpensePage() {
         description: '',
     })
 
-    useEffect(() => {
-        if (editId) fetchExpense()
-    }, [editId])
-
-    async function fetchExpense() {
+    const fetchExpense = React.useCallback(async () => {
+        if (!editId) return
         try {
             const { data, error } = await supabase
                 .from('expenses')
@@ -41,13 +38,20 @@ export default function CreateExpensePage() {
                 expense_date: data.expense_date || new Date().toISOString().split('T')[0],
                 description: data.description || '',
             })
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
             router.push('/dashboard/expenses')
         } finally {
             setFetching(false)
         }
-    }
+    }, [editId, router])
+
+    useEffect(() => {
+        if (editId) {
+            fetchExpense()
+        }
+    }, [editId, fetchExpense])
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -77,8 +81,9 @@ export default function CreateExpensePage() {
                 toast.success('Expense added successfully')
             }
             router.push('/dashboard/expenses')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
