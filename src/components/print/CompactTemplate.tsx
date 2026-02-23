@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { PrintTemplateProps } from '@/types/print'
+import { BILLMENSOR_PROMO } from '@/lib/marketing'
 
 export function CompactTemplate({
     data,
@@ -14,6 +15,9 @@ export function CompactTemplate({
 
     const isInvoice = type === 'invoice'
 
+    const brandColor = profile?.brand_color || '#000000'
+    const fontFamily = profile?.font_family || 'Inter'
+
     return (
         <div
             id="invoice"
@@ -21,6 +25,7 @@ export function CompactTemplate({
             style={{
                 width: '794px',
                 padding: '24px',
+                fontFamily
             }}
         >
 
@@ -40,7 +45,10 @@ export function CompactTemplate({
                         </div>
                     )}
 
-                    <h1 className="text-lg font-bold mt-2">
+                    <h1
+                        className="text-lg font-bold mt-2"
+                        style={{ color: brandColor }}
+                    >
                         {profile?.company_name}
                     </h1>
                     <p>{profile?.address}</p>
@@ -209,6 +217,13 @@ export function CompactTemplate({
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* PROMO FOOTER */}
+            <div className="mt-8 text-center border-t border-gray-200 pt-6">
+                <p className="text-[10px] text-gray-400 font-medium">
+                    {BILLMENSOR_PROMO}
+                </p>
             </div>
 
         </div>

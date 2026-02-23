@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { PrintTemplateProps } from '@/types/print'
+import { BILLMENSOR_PROMO } from '@/lib/marketing'
 
 export function ModernTemplate({
     data,
@@ -12,8 +13,15 @@ export function ModernTemplate({
     settings,
     type,
 }: PrintTemplateProps) {
+    const brandColor = profile?.brand_color || '#2563eb'
+    const accentColor = profile?.accent_color || '#1e293b'
+    const fontFamily = profile?.font_family || 'Inter'
+
     return (
-        <Card className="rounded-4xl border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0">
+        <Card
+            className="rounded-4xl border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0"
+            style={{ fontFamily }}
+        >
             <div className="p-6 lg:p-8 space-y-6 print:p-0 text-[12px] leading-snug text-slate-900 bg-white">
 
                 {/* HEADER */}
@@ -30,7 +38,10 @@ export function ModernTemplate({
                                 />
                             </div>
                         ) : (
-                            <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
+                            <div
+                                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
+                                style={{ backgroundColor: brandColor }}
+                            >
                                 <span className="material-symbols-outlined text-[20px]">analytics</span>
                             </div>
                         )}
@@ -112,7 +123,10 @@ export function ModernTemplate({
                 <div>
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="border-b border-slate-300 text-[11px] font-semibold text-slate-700 uppercase">
+                            <tr
+                                className="border-b border-slate-300 text-[11px] font-semibold uppercase"
+                                style={{ color: accentColor }}
+                            >
                                 <th className="px-2 pb-2 text-left w-8">#</th>
                                 <th className="px-2 pb-2 text-center w-12">Image</th>
                                 <th className="px-2 pb-2 text-left">Description</th>
@@ -248,6 +262,13 @@ export function ModernTemplate({
                         )}
                     </div>
 
+                </div>
+
+                {/* PROMO FOOTER */}
+                <div className="pt-8 text-center border-t border-slate-100">
+                    <p className="text-[10px] text-slate-400 font-medium tracking-tight">
+                        {BILLMENSOR_PROMO}
+                    </p>
                 </div>
             </div>
         </Card>

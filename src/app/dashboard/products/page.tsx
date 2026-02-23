@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 import { Product } from '@/types'
 
@@ -140,7 +141,17 @@ export default function ProductsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredProducts.map((product) => (
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-48" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-32" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-24" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-20" /></td>
+                                        <td className="px-8 py-5 text-right"><Skeleton className="h-10 w-16 ml-auto" /></td>
+                                    </tr>
+                                ))
+                            ) : filteredProducts.map((product) => (
                                 <tr
                                     key={product.id}
                                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"

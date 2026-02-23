@@ -28,53 +28,118 @@ export default function ProfitLossStockReport() {
         try {
             setLoading(true)
 
-            // 1. Get Closing Stock (Current Inventory Valuation)
-            const { data: products } = await supabase.from('products').select('stock_quantity, purchase_price')
-            const closingStock = products?.reduce((acc, p) => acc + (Number(p.stock_quantity) * Number(p.purchase_price)), 0) || 0
+            // 1. Fetch all products for base opening stock and current unit costs
+            const { data: products, error: prodError } = await supabase
+                .from('products')
+                .select('id, opening_stock_value, purchase_price, stock_quantity')
+            if (prodError) throw prodError
 
-            // 2. Get Total Purchases (Taxable Value) and Purchase Returns
-            const { data: purchases } = await supabase
-                .from('purchases')
-                .select('subtotal')
-                .gte('purchase_date', dateRange.start)
-                .lte('purchase_date', dateRange.end)
+            const unitCosts = new Map(products.map(p => [p.id, Number(p.purchase_price || 0)]))
+            const initialBaseValue = products.reduce((acc, p) => acc + Number(p.opening_stock_value || 0), 0)
 
-            const totalPurchasesRaw = purchases?.reduce((acc, p) => acc + Number(p.subtotal || 0), 0) || 0
+            // 2. Fetch all movements to reconstruct history
+            const [salesRes, purRes, retRes, adjRes] = await Promise.all([
+                supabase.from('invoice_items').select('product_id, quantity, invoices(invoice_date)').not('invoices.status', 'in', '("void", "draft", "cancelled")'),
+                supabase.from('purchase_items').select('product_id, quantity, unit_price, purchases(purchase_date)'),
+                supabase.from('return_items').select('product_id, quantity, returns(return_date, type)'),
+                supabase.from('stock_adjustments').select('product_id, quantity, adjustment_type, created_at')
+            ])
 
-            const { data: purReturns } = await supabase
-                .from('returns')
-                .select('subtotal, type')
-                .eq('type', 'purchase_return')
-                .gte('return_date', dateRange.start)
-                .lte('return_date', dateRange.end)
+            const startDate = new Date(dateRange.start)
+            const endDate = new Date(dateRange.end)
+            endDate.setHours(23, 59, 59, 999) // End of day
 
-            const totalPurReturns = (purReturns || []).reduce((acc, r) => acc + Number(r.subtotal || 0), 0)
+            // Valuation helper
+            interface MovementItem {
+                product_id: string;
+                quantity: number;
+                unit_price?: number;
+                adjustment_type?: string;
+                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                invoices?: any; // Supabase returns as array or object depending on join
+                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                purchases?: any;
+                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                returns?: any;
+                created_at?: string;
+            }
 
-            const netPurchases = totalPurchasesRaw - totalPurReturns
+            const getValuation = (items: MovementItem[], type: 'sales' | 'purchases' | 'returns' | 'adjustments', filter: (date: Date) => boolean) => {
+                return items.reduce((acc, item) => {
+                    let dateStr: string | undefined
 
-            // 3. Get Total Sales (Taxable Value) and Sales Returns
-            const { data: invoices } = await supabase
-                .from('invoices')
-                .select('subtotal')
-                .gte('invoice_date', dateRange.start)
-                .lte('invoice_date', dateRange.end)
+                    if (type === 'sales') {
+                        const inv = Array.isArray(item.invoices) ? item.invoices[0] : item.invoices
+                        dateStr = inv?.invoice_date
+                    } else if (type === 'purchases') {
+                        const pur = Array.isArray(item.purchases) ? item.purchases[0] : item.purchases
+                        dateStr = pur?.purchase_date
+                    } else if (type === 'returns') {
+                        const ret = Array.isArray(item.returns) ? item.returns[0] : item.returns
+                        dateStr = ret?.return_date
+                    } else {
+                        dateStr = item.created_at
+                    }
+
+                    if (!dateStr) return acc
+                    const date = new Date(dateStr)
+                    if (!filter(date)) return acc
+
+                    const unitCost = unitCosts.get(item.product_id) || 0
+                    const qty = Number(item.quantity || 0)
+
+                    if (type === 'sales') return acc + (qty * unitCost)
+                    if (type === 'purchases') return acc + (qty * Number(item.unit_price || unitCost))
+                    if (type === 'returns') {
+                        const ret = Array.isArray(item.returns) ? item.returns[0] : item.returns
+                        if (!ret) return acc
+                        const isSalesReturn = ret.type === 'sales_return'
+                        return isSalesReturn ? acc + (qty * unitCost) : acc - (qty * unitCost)
+                    }
+                    if (type === 'adjustments') {
+                        return item.adjustment_type === 'add' ? acc + (qty * unitCost) : acc - (qty * unitCost)
+                    }
+                    return acc
+                }, 0)
+            }
+
+            // Calculations for BEFORE period (to get Opening Stock)
+            const beforeFilter = (d: Date) => d < startDate
+            const valBefore =
+                getValuation(purRes.data || [], 'purchases', beforeFilter) +
+                getValuation(adjRes.data || [], 'adjustments', beforeFilter) +
+                getValuation(retRes.data || [], 'returns', beforeFilter) -
+                getValuation(salesRes.data || [], 'sales', beforeFilter)
+
+            const openingStock = initialBaseValue + valBefore
+
+            // Calculations DURING period
+            const duringFilter = (d: Date) => d >= startDate && d <= endDate
+
+            // For P&L, we need Net Sales and Net Purchases (Taxable Value) during the period
+            // Not just stock valuation, but the actual transaction revenue/cost
+            const { data: invDuring } = await supabase.from('invoices')
+                .select('subtotal').gte('invoice_date', dateRange.start).lte('invoice_date', dateRange.end)
                 .not('status', 'in', '("void", "draft", "cancelled")')
+            const { data: purDuring } = await supabase.from('purchases')
+                .select('subtotal').gte('purchase_date', dateRange.start).lte('purchase_date', dateRange.end)
+            const { data: retDuring } = await supabase.from('returns')
+                .select('subtotal, type').gte('return_date', dateRange.start).lte('return_date', dateRange.end)
 
-            const totalSalesRaw = invoices?.reduce((acc, inv) => acc + Number(inv.subtotal || 0), 0) || 0
+            const netSales = (invDuring?.reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0) -
+                (retDuring?.filter(r => r.type === 'sales_return').reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0)
 
-            const { data: salesReturns } = await supabase
-                .from('returns')
-                .select('subtotal, type')
-                .eq('type', 'sales_return')
-                .gte('return_date', dateRange.start)
-                .lte('return_date', dateRange.end)
+            const netPurchases = (purDuring?.reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0) -
+                (retDuring?.filter(r => r.type === 'purchase_return').reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0)
 
-            const totalSalesReturns = (salesReturns || []).reduce((acc, r) => acc + Number(r.subtotal || 0), 0)
+            // Net Stock Movement during period at COST
+            const stockMovementDuring =
+                getValuation(purRes.data || [], 'purchases', duringFilter) +
+                getValuation(adjRes.data || [], 'adjustments', duringFilter) +
+                getValuation(retRes.data || [], 'returns', duringFilter) -
+                getValuation(salesRes.data || [], 'sales', duringFilter)
 
-            const netSales = totalSalesRaw - totalSalesReturns
-
-            // 4. Calculate Opening Stock (Derived from lifetime history before current period)
-            const openingStock = 0
+            const closingStock = openingStock + stockMovementDuring
 
             const grossProfit = (netSales + closingStock) - (openingStock + netPurchases)
             const margin = netSales > 0 ? (grossProfit / netSales) * 100 : 0

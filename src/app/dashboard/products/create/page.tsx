@@ -25,6 +25,7 @@ export default function CreateProductPage() {
         purchase_price: '',
         wholesale_price: '',
         stock_quantity: '',
+        opening_stock_value: '',
         tax_rate: '0',
         unit: 'pcs',
         image_url: '',
@@ -54,6 +55,7 @@ export default function CreateProductPage() {
                 purchase_price: String(data.purchase_price || ''),
                 wholesale_price: String(data.wholesale_price || ''),
                 stock_quantity: String(data.stock_quantity || ''),
+                opening_stock_value: String(data.opening_stock_value || ''),
                 tax_rate: String(data.tax_rate || '0'),
                 unit: data.unit || 'pcs',
                 image_url: data.image_url || '',
@@ -115,6 +117,7 @@ export default function CreateProductPage() {
                 purchase_price: parseFloat(form.purchase_price) || 0,
                 wholesale_price: parseFloat(form.wholesale_price) || 0,
                 stock_quantity: parseInt(form.stock_quantity) || 0,
+                opening_stock_value: parseFloat(form.opening_stock_value) || 0,
                 tax_rate: parseFloat(form.tax_rate) || 0,
                 unit: form.unit,
                 image_url: form.image_url,
@@ -390,6 +393,20 @@ export default function CreateProductPage() {
                                         onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                         placeholder="50"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Opening Stock Value (₹)</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">account_balance_wallet</span>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={form.opening_stock_value}
+                                        onChange={(e) => setForm({ ...form, opening_stock_value: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                        placeholder="5000.00"
                                     />
                                 </div>
                             </div>

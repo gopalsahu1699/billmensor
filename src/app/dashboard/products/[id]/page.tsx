@@ -135,9 +135,25 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 })
             })
 
+            // Calculate Virtual Opening Balance
+            // Opening Balance = Current Stock - (Total In - Total Out from transactions)
+            const transactionsNet = entries.reduce((acc, e) => acc + (e.qty_in - e.qty_out), 0)
+            const openingBalanceQty = (prod.stock_quantity || 0) - transactionsNet
+
+            if (openingBalanceQty !== 0) {
+                entries.push({
+                    id: 'opening-balance',
+                    date: prod.created_at,
+                    type: 'adjustment_add',
+                    reference: 'SYSTEM',
+                    qty_in: openingBalanceQty > 0 ? openingBalanceQty : 0,
+                    qty_out: openingBalanceQty < 0 ? Math.abs(openingBalanceQty) : 0,
+                    balance: 0,
+                    description: 'Opening Balance'
+                })
+            }
+
             // Sort by date and calculate running balance
-            // Note: Since we don't have historical snapshots, we calculate backwards from current stock
-            // or forwards from 0. For simplicity, let's sort purely by date.
             const sorted = entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
             let runningBal = 0
@@ -234,6 +250,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Cost Price</p>
                                         <p className="text-lg font-black text-slate-400 italic">₹{product.purchase_price || 0}</p>
                                     </div>
+                                </div>
+                                <div className="pt-4 border-t border-slate-800">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Opening Stock Value</p>
+                                    <p className="text-sm font-bold text-slate-300 italic">₹{product.opening_stock_value || 0}</p>
                                 </div>
                             </div>
                         </div>

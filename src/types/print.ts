@@ -21,6 +21,9 @@ export interface Profile {
     custom_field_1_value?: string
     custom_field_2_label?: string
     custom_field_2_value?: string
+    brand_color?: string
+    accent_color?: string
+    font_family?: string
 }
 
 export interface BankDetails {

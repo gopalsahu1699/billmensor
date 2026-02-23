@@ -22,7 +22,9 @@ import {
     Hash,
     Smartphone,
     BookOpen,
-    Layout
+    Layout,
+    Palette,
+    Type
 } from 'lucide-react'
 
 export default function AccountSettingsPage() {
@@ -52,6 +54,9 @@ export default function AccountSettingsPage() {
         custom_field_2_value: '',
         custom_field_3_label: '',
         custom_field_3_value: '',
+        brand_color: '#2563eb',
+        accent_color: '#1e293b',
+        font_family: 'Inter',
     })
 
     /* ----------- BANK STATE ----------- */
@@ -103,6 +108,9 @@ export default function AccountSettingsPage() {
                     custom_field_2_value: p.custom_field_2_value || '',
                     custom_field_3_label: p.custom_field_3_label || '',
                     custom_field_3_value: p.custom_field_3_value || '',
+                    brand_color: p.brand_color || '#2563eb',
+                    accent_color: p.accent_color || '#1e293b',
+                    font_family: p.font_family || 'Inter',
                 })
 
                 // Load bank details
@@ -555,6 +563,85 @@ export default function AccountSettingsPage() {
                                 onChange={(e) => setProfile({ ...profile, terms_and_conditions: e.target.value })}
                                 placeholder="Enter terms and conditions that will appear on your invoices..."
                             />
+                        </div>
+                    </div>
+
+                    {/* Branding & Appearance Card */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
+                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                                <Palette size={16} className="text-pink-500" />
+                                Branding & Appearance
+                            </h2>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <SettingsField icon={<Palette size={16} />} label="Brand Color">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="color"
+                                            className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
+                                            value={profile.brand_color}
+                                            onChange={(e) => setProfile({ ...profile, brand_color: e.target.value })}
+                                        />
+                                        <input
+                                            className="settings-input font-mono uppercase"
+                                            value={profile.brand_color}
+                                            onChange={(e) => setProfile({ ...profile, brand_color: e.target.value })}
+                                            placeholder="#2563EB"
+                                        />
+                                    </div>
+                                </SettingsField>
+
+                                <SettingsField icon={<Palette size={16} />} label="Accent Color">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="color"
+                                            className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
+                                            value={profile.accent_color}
+                                            onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })}
+                                        />
+                                        <input
+                                            className="settings-input font-mono uppercase"
+                                            value={profile.accent_color}
+                                            onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })}
+                                            placeholder="#1E293B"
+                                        />
+                                    </div>
+                                </SettingsField>
+                            </div>
+
+                            <SettingsField icon={<Type size={16} />} label="Font Family">
+                                <select
+                                    className="settings-input"
+                                    value={profile.font_family}
+                                    onChange={(e) => setProfile({ ...profile, font_family: e.target.value })}
+                                >
+                                    <option value="Inter">Inter (Sans Serif)</option>
+                                    <option value="Roboto">Roboto</option>
+                                    <option value="Outfit">Outfit</option>
+                                    <option value="Geist">Geist</option>
+                                    <option value="system-ui">System Sans</option>
+                                </select>
+                            </SettingsField>
+
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                <p className="text-[10px] font-black uppercase text-slate-500 mb-2">Preview</p>
+                                <div className="flex items-center gap-4">
+                                    <div
+                                        className="px-4 py-2 rounded-lg text-white text-xs font-bold"
+                                        style={{ backgroundColor: profile.brand_color, fontFamily: profile.font_family }}
+                                    >
+                                        Brand Button
+                                    </div>
+                                    <div
+                                        className="px-4 py-2 rounded-lg text-white text-xs font-bold"
+                                        style={{ backgroundColor: profile.accent_color, fontFamily: profile.font_family }}
+                                    >
+                                        Accent Button
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

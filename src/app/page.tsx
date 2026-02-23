@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3, Users, Star } from "lucide-react";
+import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3 } from "lucide-react";
+import { User } from "@supabase/supabase-js";
+import Image from "next/image";
 
 export default function LandingPage() {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -82,9 +84,9 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400"
+            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-linear-to-b from-white to-slate-400"
           >
-            Manage Your Billing <br /> With Precision
+            Free Billing Software <br /> <span className="text-blue-500 italic">Only Pay for Backup</span>
           </motion.h1>
 
           <motion.p
@@ -93,7 +95,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto text-xl text-slate-400 mb-10"
           >
-            The all-in-one platform for invoices, inventory, and expense tracking. Designed for modern businesses that demand speed and reliability.
+            The most powerful, GST-ready billing and inventory platform for Indian entrepreneurs. All essential features are free forever. Only pay if you need cloud backups.
           </motion.p>
 
           <motion.div
@@ -113,7 +115,7 @@ export default function LandingPage() {
               <>
                 <Link href="/register">
                   <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
-                    Start Free Trial
+                    Get Started for Free
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -133,13 +135,15 @@ export default function LandingPage() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="mt-20 relative px-4 sm:px-0"
           >
-            <div className="relative p-2 rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-3xl overflow-hidden shadow-2xl skew-y-[-1deg] transition-transform hover:skew-y-0 duration-700">
-              <img
+            <div className="relative p-2 rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-3xl overflow-hidden shadow-2xl -skew-y-1 transition-transform hover:skew-y-0 duration-700">
+              <Image
                 src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426"
                 alt="Dashboard"
+                width={1200}
+                height={675}
                 className="rounded-2xl opacity-80"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-[#020617] via-transparent to-transparent" />
             </div>
           </motion.div>
         </div>
@@ -202,6 +206,79 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-32 bg-slate-950/30">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-bold mb-4 italic uppercase tracking-tight">Transparent Pricing</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">No hidden costs. No monthly subscriptions for billing. Pay only for the security of your data.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Tier */}
+            <div className="p-10 rounded-[40px] bg-slate-900/50 border border-white/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Zap size={80} />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Core Billing</h3>
+              <div className="flex items-baseline gap-2 mb-6">
+                <span className="text-5xl font-black italic">FREE</span>
+                <span className="text-slate-500 font-bold uppercase text-xs tracking-widest">Forever</span>
+              </div>
+              <ul className="space-y-4 mb-10">
+                {[
+                  "Unlimited GST Invoices",
+                  "Inventory Management",
+                  "Quotations & Delivery Challans",
+                  "Sales & Purchase Returns",
+                  "CA Audit & GST Reports",
+                  "Standard Support"
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3 text-sm text-slate-300">
+                    <CheckCircle2 className="text-blue-500 w-5 h-5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register">
+                <Button className="w-full h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10">Start Billing Now</Button>
+              </Link>
+            </div>
+
+            {/* Paid Tier */}
+            <div className="p-10 rounded-[40px] bg-blue-600 border border-blue-400 relative overflow-hidden shadow-2xl shadow-blue-500/20 group">
+              <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:rotate-12 transition-transform">
+                <Shield size={80} />
+              </div>
+              <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-widest mb-4">Recommended</div>
+              <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Premium Backup</h3>
+              <div className="flex items-baseline gap-2 mb-6">
+                <span className="text-5xl font-black italic">₹499</span>
+                <span className="text-blue-200 font-bold uppercase text-xs tracking-widest">/ Year</span>
+              </div>
+              <ul className="space-y-4 mb-10 text-blue-50">
+                {[
+                  "Automatic Daily Cloud Backup",
+                  "Data Security & Restoration",
+                  "Multi-Device Sync",
+                  "Priority WhatsApp Support",
+                  "Professional Branding",
+                  "Custom Domain (Add-on)"
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3 text-sm">
+                    <CheckCircle2 className="text-white w-5 h-5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register">
+                <Button className="w-full h-12 rounded-2xl bg-white text-blue-600 hover:bg-white/90 font-black uppercase tracking-widest text-xs shadow-xl">Get Secure Backup</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-20 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 text-center">
@@ -209,11 +286,27 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">B</div>
             <span className="text-xl font-bold">Billmensor</span>
           </div>
-          <p className="text-slate-500 text-sm mb-8 italic">Crafted with precision for modern Indian entrepreneurs.</p>
-          <div className="flex justify-center gap-8 text-sm text-slate-400">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+          <p className="text-slate-500 text-sm mb-6 italic">Crafted with precision for modern Indian entrepreneurs.</p>
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex justify-center gap-8 text-sm text-slate-400">
+              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <a href="#" className="hover:text-white transition-colors">Contact</a>
+            </div>
+            <div className="pt-8 border-t border-white/5 w-full max-w-sm flex flex-col items-center gap-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Built by</p>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-bold text-white">Gopal Krishn Sahu</span>
+                <a
+                  href="https://gksportfolio.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20 transition-all hover:scale-105 active:scale-95"
+                >
+                  Hire Me
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

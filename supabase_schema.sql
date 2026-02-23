@@ -42,6 +42,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   show_signature BOOLEAN DEFAULT true,
   show_custom_fields BOOLEAN DEFAULT true,
 
+  -- Branding items
+  brand_color TEXT DEFAULT '#2563eb', -- blue-600
+  accent_color TEXT DEFAULT '#1e293b', -- slate-800
+  font_family TEXT DEFAULT 'Inter',
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -98,6 +103,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   item_type TEXT DEFAULT 'product',
   image_url TEXT,
   stock_quantity DECIMAL(15,2) DEFAULT 0,
+  opening_stock_value DECIMAL(15,2) DEFAULT 0,
   min_stock_level DECIMAL(15,2) DEFAULT 0,
   category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()

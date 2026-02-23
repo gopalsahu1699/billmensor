@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { PenTool } from 'lucide-react'
 import { PrintTemplateProps } from '@/types/print'
+import { BILLMENSOR_PROMO } from '@/lib/marketing'
 
 export function ProfessionalTemplate({
     data,
@@ -15,12 +16,18 @@ export function ProfessionalTemplate({
 
     const isInvoice = type === 'invoice'
 
+    const brandColor = profile?.brand_color || '#000000'
+    const fontFamily = profile?.font_family || 'Inter'
+
     const paymentStatus = data.payment_status || 'UNPAID'
 
 
 
     return (
-        <div className="bg-white w-[210mm] mx-auto p-8 text-[13px] text-black font-sans leading-relaxed">
+        <div
+            className="bg-white w-[210mm] mx-auto p-8 text-[13px] text-black font-sans leading-relaxed"
+            style={{ fontFamily }}
+        >
 
             {/* HEADER */}
             <div className="flex justify-between items-start border-b pb-4 mb-6">
@@ -39,7 +46,10 @@ export function ProfessionalTemplate({
                         </div>
                     )}
 
-                    <h1 className="font-bold text-[18px] uppercase tracking-wide">
+                    <h1
+                        className="font-bold text-[18px] uppercase tracking-wide"
+                        style={{ color: brandColor }}
+                    >
                         {profile?.company_name}
                     </h1>
                     <p className="text-[13px]">{profile?.address}</p>
@@ -219,6 +229,13 @@ export function ProfessionalTemplate({
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* PROMO FOOTER */}
+            <div className="mt-12 text-center border-t border-gray-100 pt-8">
+                <p className="text-[10px] text-gray-400 font-medium">
+                    {BILLMENSOR_PROMO}
+                </p>
             </div>
 
         </div>

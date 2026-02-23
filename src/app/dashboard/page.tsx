@@ -37,6 +37,17 @@ interface Purchase {
     total_amount: number;
 }
 
+interface TopProduct {
+    name: string;
+    quantity: number;
+    total: number;
+}
+
+interface PaymentMode {
+    mode: string;
+    amount: number;
+}
+
 export default function DashboardPage() {
     const [stats, setStats] = useState([
         { label: 'Total Customers', value: '0' },
@@ -49,7 +60,10 @@ export default function DashboardPage() {
     const [totalSales, setTotalSales] = useState(0)
     const [totalReceived, setTotalReceived] = useState(0)
     const [totalExpenses, setTotalExpenses] = useState(0)
-    const [chartData, setChartData] = useState<number[]>([180, 160, 80, 100, 40, 60]) // Scaled points
+    const [chartData, setChartData] = useState<number[]>([])
+    const [chartLabels, setChartLabels] = useState<string[]>([])
+    const [topProducts, setTopProducts] = useState<TopProduct[]>([])
+    const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -87,27 +101,59 @@ export default function DashboardPage() {
             setTotalReceived(computedReceived)
             setTotalExpenses(computedExpenses)
 
-            // Dynamic Chart Data Grouping (Last 30 Days)
+            // Dynamic Chart Data Grouping (Last 15 Days - DAILY)
             if (totalSalesData.data) {
                 const now = new Date()
-                const buckets = [0, 0, 0, 0, 0, 0]
-                const bucketDays = 5;
+                now.setHours(23, 59, 59, 999)
+                const buckets = Array(15).fill(0)
+                const labels = Array(15).fill('')
+
+                for (let i = 0; i < 15; i++) {
+                    const d = new Date()
+                    d.setDate(d.getDate() - (14 - i))
+                    labels[i] = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                }
 
                 (totalSalesData.data as Invoice[]).forEach((inv: Invoice) => {
                     const invDate = new Date(inv.created_at)
-                    const diffTime = Math.abs(now.getTime() - invDate.getTime())
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    const diffTime = now.getTime() - invDate.getTime()
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
-                    if (diffDays <= 30) {
-                        const bucketIndex = Math.min(Math.floor((diffDays - 1) / bucketDays), 5)
-                        buckets[5 - bucketIndex] += inv.total_amount
+                    if (diffDays >= 0 && diffDays < 15) {
+                        buckets[14 - diffDays] += inv.total_amount
                     }
                 })
 
-                // Scale buckets for SVG height (240px)
                 const maxVal = Math.max(...buckets, 1000)
-                const scaled = buckets.map(v => 240 - ((v / maxVal) * 160 + 20)) // Keep some padding
+                const scaled = buckets.map(v => 240 - ((v / maxVal) * 180 + 20))
                 setChartData(scaled)
+                setChartLabels(labels)
+            }
+
+            // Top Products Aggregation
+            const { data: itemData } = await supabase.from('invoice_items').select('name, quantity, total')
+            if (itemData) {
+                const productMap: Record<string, TopProduct> = {}
+                itemData.forEach(item => {
+                    if (!productMap[item.name]) {
+                        productMap[item.name] = { name: item.name, quantity: 0, total: 0 }
+                    }
+                    productMap[item.name].quantity += Number(item.quantity)
+                    productMap[item.name].total += Number(item.total)
+                })
+                const sorted = Object.values(productMap).sort((a, b) => b.total - a.total).slice(0, 5)
+                setTopProducts(sorted)
+            }
+
+            // Payment Mode Aggregation
+            const { data: allPayData } = await supabase.from('payments').select('amount, payment_mode').eq('type', 'payment_in')
+            if (allPayData) {
+                const modeMap: Record<string, number> = {}
+                allPayData.forEach(p => {
+                    const mode = p.payment_mode || 'Cash'
+                    modeMap[mode] = (modeMap[mode] || 0) + Number(p.amount)
+                })
+                setPaymentModes(Object.entries(modeMap).map(([mode, amount]) => ({ mode, amount })))
             }
 
             setStats([
@@ -245,21 +291,77 @@ export default function DashboardPage() {
                                     cx={(i * 800) / (chartData.length - 1)}
                                     cy={y}
                                     fill="#2563eb"
-                                    r="6"
-                                    className="hover:r-8 transition-all cursor-pointer box-content border-4 border-white dark:border-slate-900 shadow-xl"
+                                    r="4"
+                                    className="hover:r-6 transition-all cursor-pointer box-content border-2 border-white dark:border-slate-900 shadow-lg"
                                 />
                             ))}
                         </svg>
                         <div className="flex justify-between mt-8 px-2 overflow-hidden">
-                            {['Day 1-5', '6-10', '11-15', '16-20', '21-25', '26-30'].map((w) => (
-                                <span key={w} className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{w}</span>
+                            {chartLabels.map((lbl, idx) => (
+                                (idx % 2 === 0 || chartLabels.length < 10) && (
+                                    <span key={idx} className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{lbl}</span>
+                                )
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Actions & Stats */}
+                {/* Additional Insights Section */}
                 <div className="space-y-6">
+                    {/* Top Selling Products */}
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
+                        <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[16px]">stars</span>
+                            Top Selling Products
+                        </h3>
+                        <div className="space-y-4">
+                            {topProducts.map((p, i) => (
+                                <div key={i} className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                            #{i + 1}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-32">{p.name}</p>
+                                            <p className="text-[10px] text-slate-500">{p.quantity} Units</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-black text-slate-900 dark:text-white">₹{p.total.toLocaleString()}</p>
+                                </div>
+                            ))}
+                            {topProducts.length === 0 && <p className="text-xs text-slate-400 italic">No sales data yet.</p>}
+                        </div>
+                    </div>
+
+                    {/* Payment Mode Distribution */}
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
+                        <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                            <span className="material-symbols-outlined text-green-500 text-[16px]">pie_chart</span>
+                            Payment Modes
+                        </h3>
+                        <div className="space-y-3">
+                            {paymentModes.map((m, i) => {
+                                const total = paymentModes.reduce((acc, curr) => acc + curr.amount, 0)
+                                const percent = (m.amount / total) * 100
+                                return (
+                                    <div key={i} className="space-y-1.5">
+                                        <div className="flex justify-between text-[10px] font-bold">
+                                            <span className="text-slate-500 uppercase">{m.mode}</span>
+                                            <span className="text-slate-900 dark:text-white">{percent.toFixed(0)}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                style={{ width: `${percent}%`, backgroundColor: i === 0 ? '#2563eb' : i === 1 ? '#10b981' : '#f59e0b' }}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            {paymentModes.length === 0 && <p className="text-xs text-slate-400 italic">No payments recorded.</p>}
+                        </div>
+                    </div>
+
                     <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
                         <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
                             <PlusCircle size={14} className="text-blue-500" />

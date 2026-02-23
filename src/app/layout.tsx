@@ -15,8 +15,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Billmensor - Secure & Easy Billing Software",
-  description: "Best software for billing, inventory & accounting. Simple, secure & easy.",
+  title: "Billmensor - Free GST Billing & Inventory Management Software",
+  description: "Billmensor is the best free GST billing software in India. Manage invoices, inventory, quotations, and accounting with ease. Secure, easy-to-use, and production-ready.",
+  keywords: ["free billing software", "gst billing india", "inventory management", "invoice generator", "billmensor", "small business accounting"],
+  authors: [{ name: "Gopal Krishn Sahu" }],
+  openGraph: {
+    title: "Billmensor - Free GST Billing & Inventory Management Software",
+    description: "The complete solution for small business billing and inventory. Free and secure.",
+    type: "website",
+    locale: "en_IN",
+    siteName: "Billmensor",
+  },
 };
 
 export default function RootLayout({

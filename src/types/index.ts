@@ -31,6 +31,8 @@ export interface Product {
     unit?: string
     tax_rate?: number
     category?: string
+    image_url?: string
+    opening_stock_value?: number
     created_at: string
 }
 
@@ -306,6 +308,9 @@ export interface Profile {
     custom_field_2_value?: string;
     custom_field_3_label?: string;
     custom_field_3_value?: string;
+    brand_color?: string;
+    accent_color?: string;
+    font_family?: string;
     created_at: string;
 }
 
