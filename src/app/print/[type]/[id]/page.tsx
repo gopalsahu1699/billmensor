@@ -77,16 +77,19 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
 
             const { data: docData, error: docError } = await supabase
                 .from(tableName as 'invoices' | 'quotations' | 'delivery_challans' | 'purchases' | 'returns')
-                .select('*, customers(*), parties(*), suppliers:supplier_id(*)')
+                .select('*, customers(*), suppliers:supplier_id(*)')
                 .eq('id', id)
                 .single()
 
-            if (docError) throw docError
+            if (docError) {
+                console.error("fetchDocument docError on", tableName, id, docError)
+                throw docError
+            }
 
             // Normalize data for templates
             const normalizedData = {
                 ...docData,
-                customers: docData.customers || docData.parties || docData.suppliers
+                customers: docData.customers || docData.suppliers
             }
             setData(normalizedData as InvoiceData)
 
@@ -125,12 +128,15 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
                 .select('*')
                 .eq(foreignKey, id)
 
-            if (itemsError) throw itemsError
+            if (itemsError) {
+                console.error("fetchDocument itemsError on", itemsTableName, id, itemsError)
+                throw itemsError
+            }
             if (itemsData) setItems(itemsData as Item[])
 
         } catch (error) {
-            console.error('Failed to load document:', error)
-            alert('Failed to load document for printing.')
+            console.error('Failed to load document, caught error:', error)
+            alert('Failed to load document for printing. Check console for details.')
         } finally {
             setLoading(false)
         }
