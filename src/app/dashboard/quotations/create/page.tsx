@@ -573,7 +573,7 @@ function CreateQuotationForm() {
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Add specific terms or follow-up notes..."
-                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-3xl p-5 text-sm focus:ring-2 focus:ring-primary/10 outline-none text-slate-900 dark:text-slate-100 min-h-[150px] font-medium placeholder:text-slate-400"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-3xl p-5 text-sm focus:ring-2 focus:ring-primary/10 outline-none text-slate-900 dark:text-slate-100 min-h-37.5 font-medium placeholder:text-slate-400"
                         />
                     </div>
                 </div>

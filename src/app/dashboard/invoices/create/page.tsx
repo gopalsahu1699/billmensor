@@ -457,7 +457,7 @@ function CreateInvoiceForm() {
                                                 </td>
                                                 <td className="py-4 w-32 px-4">
                                                     <div className="relative">
-                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs text-xs">₹</span>
+                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
                                                         <input
                                                             type="number"
                                                             value={item.unit_price}
@@ -610,7 +610,7 @@ function CreateInvoiceForm() {
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
-                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-25"
                                 placeholder="Thanks for your business!"
                             />
                         </CardContent>

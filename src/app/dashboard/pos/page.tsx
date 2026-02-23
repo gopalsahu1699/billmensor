@@ -17,23 +17,7 @@ import {
 } from 'lucide-react'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 
-interface Product {
-    id: string
-    name: string
-    price: number
-    sku?: string
-    tax_rate?: number
-}
-
-interface Customer {
-    id: string
-    name: string
-    phone?: string
-    email?: string
-    billing_address?: string
-    shipping_address?: string
-    supply_place?: string
-}
+import { Product, Customer } from '@/types'
 
 interface CartItem extends Product {
     quantity: number
@@ -175,7 +159,7 @@ export default function POSPage() {
                             <Zap className="text-blue-500" fill="currentColor" size={20} />
                             Terminal
                         </h2>
-                        <p className="text-xs text-slate-500 font-medium">Quick item search and selection</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-tight">Quick item search and selection</p>
                     </div>
                     <div className="relative group w-full max-w-xs">
                         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
@@ -184,7 +168,7 @@ export default function POSPage() {
                             placeholder="Scan SKU or name..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-blue-500/20 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-medium"
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-blue-500/20 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                     </div>
                 </div>
@@ -206,16 +190,16 @@ export default function POSPage() {
                         ))}
                     </div>
                     {filteredProducts.length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 py-20">
-                            <Package size={48} strokeWidth={1} className="mb-4 text-slate-200 dark:text-slate-800" />
-                            <p className="font-medium italic">No products found matching your search.</p>
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 py-20">
+                            <Package size={48} strokeWidth={1} className="mb-4 text-slate-200 dark:text-slate-800/50" />
+                            <p className="font-medium italic text-sm">No products found matching your search.</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Right Column: Cart & Checkout */}
-            <div className="w-full lg:w-[400px] flex flex-col bg-slate-900 border border-white/5 rounded-3xl shadow-2xl overflow-hidden relative">
+            <div className="w-full lg:w-100 flex flex-col bg-slate-900 border border-white/5 rounded-3xl shadow-2xl overflow-hidden relative">
                 <div className="p-6 border-b border-white/5 flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
                         <ShoppingCart size={20} />
@@ -224,7 +208,7 @@ export default function POSPage() {
                         <h2 className="text-xl font-black text-white leading-none">Cart</h2>
                         <span className="text-[10px] text-blue-300 font-black uppercase tracking-widest mt-1 block">Checkout Ledger</span>
                     </div>
-                    <button onClick={() => setCart([])} className="ml-auto p-2 text-slate-500 hover:text-red-400 transition-colors">
+                    <button onClick={() => setCart([])} className="ml-auto p-2 text-slate-500 hover:text-red-400 transition-colors" title="Clear Cart">
                         <Trash2 size={18} />
                     </button>
                 </div>
@@ -257,9 +241,9 @@ export default function POSPage() {
                         </div>
                     ))}
                     {cart.length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-600 py-10">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-500 py-10 opacity-50">
                             <ShoppingCart size={32} strokeWidth={1} className="mb-2" />
-                            <p className="text-xs font-bold uppercase tracking-widest italic">Order is empty</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest italic">Order is empty</p>
                         </div>
                     )}
                 </div>

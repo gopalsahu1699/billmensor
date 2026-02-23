@@ -183,7 +183,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                         {isShareOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setIsShareOpen(false)} />
-                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[24px] shadow-2xl z-20 py-2 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl z-20 py-2 animate-in fade-in zoom-in-95 duration-200">
                                     <button
                                         onClick={handleEmail}
                                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 transition-all group"
@@ -267,7 +267,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                     </Card>
 
                     {/* Meta Section */}
-                    <Card className="rounded-[32px] border-slate-100 shadow-xl overflow-hidden">
+                    <Card className="rounded-4xl border-slate-100 shadow-xl overflow-hidden">
                         <div className="p-8 space-y-8">
                             <div>
                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Supplier Info</h3>
@@ -317,7 +317,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <div className="space-y-6">
-                    <Card className="bg-slate-50 border-slate-100 rounded-[32px] p-8">
+                    <Card className="bg-slate-50 border-slate-100 rounded-4xl p-8">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Voucher Tracking</h3>
                         <div className="space-y-6">
                             <div className="flex justify-between items-center group cursor-pointer">

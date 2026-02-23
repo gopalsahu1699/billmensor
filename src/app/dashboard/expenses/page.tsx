@@ -6,16 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
-interface Expense {
-    id: string;
-    user_id: string;
-    title: string;
-    category?: string;
-    amount: number;
-    expense_date: string;
-    description?: string;
-    created_at?: string;
-}
+import { Expense } from '@/types'
 
 export default function ExpensesPage() {
     const router = useRouter()
@@ -99,36 +90,36 @@ export default function ExpensesPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-xl">
+                        <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
                             <span className="material-symbols-outlined">account_balance_wallet</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Spent</p>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Spent</p>
                             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">₹{totalExpenses.toLocaleString('en-IN')}</h3>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 delay-75">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
                             <span className="material-symbols-outlined">receipt_long</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Entries</p>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Entries</p>
                             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{expenses.length}</h3>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 delay-150">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
                             <span className="material-symbols-outlined">category</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Top Category</p>
-                            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{topCategory ? topCategory[0] : '-'}</h3>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Top Category</p>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 italic">{topCategory ? topCategory[0] : '-'}</h3>
                         </div>
                     </div>
                 </div>
@@ -153,11 +144,11 @@ export default function ExpensesPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50">
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Expense</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Category</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Date</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Amount</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -175,10 +166,10 @@ export default function ExpensesPage() {
                                             {expense.category || 'General'}
                                         </span>
                                     </td>
-                                    <td className="px-8 py-5 text-sm text-slate-500">
+                                    <td className="px-8 py-5 text-sm text-slate-500 dark:text-slate-400 font-medium">
                                         {new Date(expense.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </td>
-                                    <td className="px-8 py-5 text-sm font-black text-red-600">
+                                    <td className="px-8 py-5 text-sm font-black text-red-600 dark:text-red-400 font-mono">
                                         ₹{(expense.amount || 0).toLocaleString('en-IN')}
                                     </td>
                                     <td className="px-8 py-5 text-right flex justify-end gap-2">
@@ -214,7 +205,7 @@ export default function ExpensesPage() {
                                             </div>
                                             <div>
                                                 <p className="text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight italic">No Expenses Record</p>
-                                                <p className="text-slate-500 text-xs mt-1">Start recording your business expenses.</p>
+                                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Start recording your business expenses.</p>
                                             </div>
                                         </div>
                                     </td>

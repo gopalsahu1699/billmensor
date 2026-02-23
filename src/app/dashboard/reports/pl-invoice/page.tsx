@@ -234,7 +234,7 @@ export default function ProfitLossInvoiceReport() {
                                     <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="py-4 px-2">
                                             <p className="font-bold text-slate-900">{inv.invoice_number}</p>
-                                            <p className="text-xs text-slate-500 truncate max-w-[150px]">{inv.customers?.name}</p>
+                                            <p className="text-xs text-slate-500 truncate max-w-37.5">{inv.customers?.name}</p>
                                         </td>
                                         <td className="py-4 px-2 text-right font-medium">
                                             {inv.taxable_value.toLocaleString('en-IN')}

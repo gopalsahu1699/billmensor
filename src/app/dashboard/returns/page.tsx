@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useReturns } from '@/hooks/useReturn'
@@ -14,19 +14,7 @@ import {
     RotateCcw
 } from 'lucide-react'
 
-interface ReturnRecord {
-    id: string
-    return_number: string
-    return_date: string
-    type: 'sales_return' | 'purchase_return'
-    total_amount: number
-    party?: {
-        name: string
-    }
-    customers?: {
-        name: string
-    }
-}
+
 
 function ReturnsContent() {
     const router = useRouter()

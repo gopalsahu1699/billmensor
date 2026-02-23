@@ -1,25 +1,25 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { ArrowLeft, User, Mail, Phone, MapPin, Receipt, IndianRupee, Clock, TrendingUp } from 'lucide-react'
+import { ArrowLeft, User, Mail, Phone, MapPin, Receipt, Clock, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { Customer, Invoice } from '@/types'
 
 export default function CustomerLedgerPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
-    const [customer, setCustomer] = useState<any | null>(null)
-    const [invoices, setInvoices] = useState<any[]>([])
+    const [customer, setCustomer] = useState<Customer | null>(null)
+    const [invoices, setInvoices] = useState<Invoice[]>([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetchCustomerDetails()
-    }, [id])
 
-    async function fetchCustomerDetails() {
+
+    const fetchCustomerDetails = useCallback(async () => {
         try {
             const { data: custData, error: custError } = await supabase
                 .from('customers')
@@ -28,7 +28,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                 .single()
 
             if (custError) throw custError
-            setCustomer(custData)
+            setCustomer(custData as Customer)
 
             const { data: invData, error: invError } = await supabase
                 .from('invoices')
@@ -37,14 +37,19 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                 .order('created_at', { ascending: false })
 
             if (invError) throw invError
-            setInvoices(invData || [])
+            setInvoices((invData as Invoice[]) || [])
         } catch (error: unknown) {
-            toast.error(error.message)
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
             router.push('/dashboard/customers')
         } finally {
             setLoading(false)
         }
-    }
+    }, [id, router])
+
+    useEffect(() => {
+        fetchCustomerDetails()
+    }, [fetchCustomerDetails])
 
     const totalBilled = invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
     const totalPaid = invoices.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0)
@@ -54,7 +59,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
         return (
             <div className="py-20 flex flex-col items-center justify-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="text-slate-500 font-medium">Loading customer ledger...</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Loading customer ledger...</p>
             </div>
         )
     }
@@ -64,12 +69,12 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-20">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full">
+                <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full dark:text-slate-300">
                     <ArrowLeft size={20} />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">{customer.name}</h1>
-                    <p className="text-slate-500">Customer Ledger & Transaction History</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight italic">{customer.name}</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Customer Ledger & Transaction History</p>
                 </div>
             </div>
 
@@ -81,47 +86,55 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                             <User size={20} className="text-blue-600" /> Contact Details
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3 text-slate-600">
-                                <Mail size={16} /> <span className="text-sm">{customer.email || 'No Email'}</span>
+                    <CardContent className="p-6 pt-0 space-y-5">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                                <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                                    <Mail size={16} className="text-blue-500" />
+                                </div>
+                                <span className="text-sm font-medium">{customer.email || 'No Email'}</span>
                             </div>
-                            <div className="flex items-center gap-3 text-slate-600">
-                                <Phone size={16} /> <span className="text-sm">{customer.phone || 'No Phone'}</span>
+                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                                <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                                    <Phone size={16} className="text-green-500" />
+                                </div>
+                                <span className="text-sm font-medium">{customer.phone || 'No Phone'}</span>
                             </div>
-                            <div className="flex items-start gap-3 text-slate-600">
-                                <MapPin size={16} className="mt-1 flex-shrink-0" />
-                                <div className="space-y-4">
+                            <div className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
+                                <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5 mt-1">
+                                    <MapPin size={16} className="text-red-500" />
+                                </div>
+                                <div className="space-y-4 pt-1">
                                     {customer.billing_address && (
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Billing Address</p>
-                                            <span className="text-sm leading-relaxed">{customer.billing_address}</span>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">Billing Address</p>
+                                            <span className="text-sm leading-relaxed font-medium">{customer.billing_address}</span>
                                         </div>
                                     )}
                                     {customer.shipping_address && (
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Shipping Address</p>
-                                            <span className="text-sm leading-relaxed">{customer.shipping_address}</span>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">Shipping Address</p>
+                                            <span className="text-sm leading-relaxed font-medium">{customer.shipping_address}</span>
                                         </div>
                                     )}
                                     {!customer.billing_address && !customer.shipping_address && (
-                                        <span className="text-sm leading-relaxed italic text-slate-400">No Address Provided</span>
+                                        <span className="text-sm leading-relaxed italic text-slate-400 dark:text-slate-500">No Address Provided</span>
                                     )}
                                 </div>
                             </div>
                         </div>
                         {(customer.gstin || customer.supply_place) && (
-                            <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-6">
+                            <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap gap-6">
                                 {customer.gstin && (
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">GSTIN</p>
-                                        <p className="font-mono text-sm text-slate-900 mt-1">{customer.gstin}</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">GSTIN</p>
+                                        <p className="font-mono text-sm text-slate-900 dark:text-slate-100 mt-1 font-bold">{customer.gstin}</p>
                                     </div>
                                 )}
                                 {customer.supply_place && (
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Supply Place (POS)</p>
-                                        <p className="text-sm text-slate-900 mt-1 uppercase font-black">{customer.supply_place}</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Supply Place (POS)</p>
+                                        <p className="text-sm text-slate-900 dark:text-white mt-1 uppercase font-black">{customer.supply_place}</p>
                                     </div>
                                 )}
                             </div>
@@ -131,29 +144,29 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
 
                 {/* Financial Summary */}
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Card className="bg-slate-50 border-none shadow-sm shadow-slate-100">
+                    <Card className="bg-slate-50 dark:bg-white/5 border-none shadow-sm">
                         <CardContent className="p-6">
-                            <p className="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Billed</p>
-                            <p className="text-2xl font-black text-slate-900 mt-2">₹{totalBilled.toLocaleString('en-IN')}</p>
-                            <div className="mt-4 flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                                <Receipt size={12} /> {invoices.length} Invoices
+                            <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Total Billed</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono">₹{totalBilled.toLocaleString('en-IN')}</p>
+                            <div className="mt-4 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">
+                                <Receipt size={12} className="text-blue-500" /> {invoices.length} Invoices
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-green-50/50 border-none shadow-sm shadow-green-100/50">
+                    <Card className="bg-green-50/50 dark:bg-green-900/10 border-none shadow-sm">
                         <CardContent className="p-6">
-                            <p className="text-xs font-bold uppercase text-green-600 tracking-wider">Total Collected</p>
-                            <p className="text-2xl font-black text-green-700 mt-2">₹{totalPaid.toLocaleString('en-IN')}</p>
-                            <div className="mt-4 flex items-center gap-1 text-[10px] text-green-500 font-bold uppercase">
+                            <p className="text-xs font-bold uppercase text-green-600 dark:text-green-400 tracking-widest">Total Collected</p>
+                            <p className="text-2xl font-black text-green-700 dark:text-green-300 mt-2 font-mono">₹{totalPaid.toLocaleString('en-IN')}</p>
+                            <div className="mt-4 flex items-center gap-1 text-[10px] text-green-500 dark:text-green-600 font-black uppercase tracking-widest">
                                 <TrendingUp size={12} /> Payment Received
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className={`${outstanding > 0 ? 'bg-orange-50 border-none shadow-sm shadow-orange-100' : 'bg-slate-50 border-none opacity-50'}`}>
+                    <Card className={`${outstanding > 0 ? 'bg-orange-50 dark:bg-orange-900/10 border-none shadow-sm' : 'bg-slate-50 dark:bg-white/5 border-none opacity-50'}`}>
                         <CardContent className="p-6">
-                            <p className="text-xs font-bold uppercase text-orange-600 tracking-wider">Outstanding Balance</p>
-                            <p className="text-2xl font-black text-orange-700 mt-2">₹{outstanding.toLocaleString('en-IN')}</p>
-                            <div className="mt-4 flex items-center gap-1 text-[10px] text-orange-500 font-bold uppercase">
+                            <p className="text-xs font-bold uppercase text-orange-600 dark:text-orange-400 tracking-widest">Outstanding</p>
+                            <p className="text-2xl font-black text-orange-700 dark:text-orange-300 mt-2 font-mono">₹{outstanding.toLocaleString('en-IN')}</p>
+                            <div className="mt-4 flex items-center gap-1 text-[10px] text-orange-500 dark:text-orange-600 font-black uppercase tracking-widest">
                                 <Clock size={12} /> Pending Amount
                             </div>
                         </CardContent>
@@ -175,36 +188,38 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b border-slate-100 text-xs font-bold uppercase text-slate-400 tracking-wider">
-                                        <th className="py-4">Invoice #</th>
-                                        <th className="py-4">Date</th>
-                                        <th className="py-4">Amount</th>
-                                        <th className="py-4">Status</th>
-                                        <th className="py-4 text-right">Action</th>
+                                    <tr className="border-b border-slate-100 dark:border-white/5 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+                                        <th className="py-4 pl-4 px-6">Invoice #</th>
+                                        <th className="py-4 px-6">Date</th>
+                                        <th className="py-4 px-6">Amount</th>
+                                        <th className="py-4 px-6">Status</th>
+                                        <th className="py-4 px-6 text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                                     {invoices.map((inv) => (
                                         <tr
                                             key={inv.id}
-                                            className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                                            className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
                                             onClick={() => router.push(`/dashboard/invoices/${inv.id}`)}
                                         >
-                                            <td className="py-4 font-bold text-blue-600">{inv.invoice_number}</td>
-                                            <td className="py-4 text-sm text-slate-500">{new Date(inv.invoice_date).toLocaleDateString()}</td>
-                                            <td className="py-4 font-bold text-slate-900 font-mono">₹{inv.total_amount.toLocaleString('en-IN')}</td>
-                                            <td className="py-4">
-                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${inv.payment_status === 'paid'
-                                                    ? 'bg-green-50 text-green-700 border-green-100'
-                                                    : 'bg-orange-50 text-orange-700 border-orange-100'
+                                            <td className="py-4 px-6 font-bold text-blue-600 dark:text-blue-400">{inv.invoice_number}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-500 dark:text-slate-400 font-medium">{new Date(inv.invoice_date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                            <td className="py-4 px-6 font-bold text-slate-900 dark:text-white font-mono">₹{inv.total_amount.toLocaleString('en-IN')}</td>
+                                            <td className="py-4 px-6">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${inv.payment_status === 'paid'
+                                                    ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/30'
+                                                    : 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/30'
                                                     }`}>
                                                     {inv.payment_status}
                                                 </span>
                                             </td>
-                                            <td className="py-4 text-right">
-                                                <Button variant="ghost" size="sm" className="text-slate-400 group-hover:text-blue-600">
-                                                    View Details
-                                                </Button>
+                                            <td className="py-4 px-6 text-right">
+                                                <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-bold text-xs uppercase tracking-widest">
+                                                        View
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

@@ -1,31 +1,45 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Users, Calendar, ChevronLeft, Download, Receipt, ArrowRightLeft, ShoppingCart, CreditCard, FileText } from 'lucide-react'
+import { ChevronLeft, Download, Receipt, ShoppingCart, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
+interface PartyOption {
+    id: string
+    name: string
+}
+
+interface LedgerRow {
+    type: string
+    doc: string
+    date: string
+    amount: number
+    paid: number
+    side: 'Sale' | 'Purchase' | 'Payment'
+}
+
 export default function PartyLedgerReport() {
     const [loading, setLoading] = useState(false)
-    const [parties, setParties] = useState<any[]>([])
+    const [parties, setParties] = useState<PartyOption[]>([])
     const [selectedParty, setSelectedParty] = useState('')
-    const [ledger, setLedger] = useState<any[]>([])
+    const [ledger, setLedger] = useState<LedgerRow[]>([])
     const [summary, setSummary] = useState({ totalBill: 0, totalPaid: 0, balance: 0 })
+
+    const fetchParties = useCallback(async () => {
+        const { data } = await supabase.from('customers').select('id, name').order('name')
+        setParties(data || [])
+    }, [])
 
     useEffect(() => {
         fetchParties()
-    }, [])
+    }, [fetchParties])
 
-    async function fetchParties() {
-        const { data } = await supabase.from('customers').select('id, name').order('name')
-        setParties(data || [])
-    }
-
-    async function fetchLedger() {
+    const fetchLedger = useCallback(async () => {
         if (!selectedParty) return toast.error('Please select a party')
         setLoading(true)
         try {
@@ -37,16 +51,30 @@ export default function PartyLedgerReport() {
             ])
 
             // Combine and sort by date
-            const combined = [
-                ...(invRes.data || []).map(i => ({ type: 'Invoice', doc: i.invoice_number, date: i.invoice_date, amount: i.total_amount, paid: i.amount_paid, side: 'Sale' })),
-                ...(purRes.data || []).map(p => ({ type: 'Purchase', doc: p.purchase_number, date: p.purchase_date, amount: p.total_amount, paid: 0, side: 'Purchase' })),
+            const combined: LedgerRow[] = [
+                ...(invRes.data || []).map(i => ({
+                    type: 'Invoice',
+                    doc: i.invoice_number,
+                    date: i.invoice_date,
+                    amount: i.total_amount,
+                    paid: i.amount_paid,
+                    side: 'Sale' as const
+                })),
+                ...(purRes.data || []).map(p => ({
+                    type: 'Purchase',
+                    doc: p.purchase_number,
+                    date: p.purchase_date,
+                    amount: p.total_amount,
+                    paid: 0,
+                    side: 'Purchase' as const
+                })),
                 ...(payRes.data || []).map(pay => ({
                     type: pay.type === 'payment_in' ? 'Payment In' : 'Payment Out',
                     doc: pay.payment_number,
                     date: pay.payment_date,
                     amount: 0,
                     paid: pay.type === 'payment_in' ? pay.amount : -pay.amount,
-                    side: pay.type === 'payment_in' ? 'Payment' : 'Payment'
+                    side: 'Payment' as const
                 }))
             ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
@@ -56,11 +84,11 @@ export default function PartyLedgerReport() {
             const totalPaid = combined.reduce((acc, curr) => acc + curr.paid, 0)
             setSummary({ totalBill, totalPaid, balance: totalBill - totalPaid })
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to fetch ledger')
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedParty])
 
     const exportToXLS = () => {
         const partyName = parties.find(p => p.id === selectedParty)?.name || 'Ledger'

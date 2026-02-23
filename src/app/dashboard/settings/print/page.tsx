@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../../../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import {
     Printer,
@@ -174,11 +174,11 @@ export default function PrintSettingsPage() {
                                         : 'border-slate-100 dark:border-white/5 hover:border-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
                                         }`}
                                 >
-                                    <div className={`w-full aspect-[3/4] rounded-lg mb-3 border border-dashed ${template.preview} flex items-center justify-center`}>
+                                    <div className={`w-full aspect-3/4 rounded-lg mb-3 border border-dashed ${template.preview} flex items-center justify-center`}>
                                         <Printer size={24} className="text-slate-300 group-hover:scale-110 transition-transform" />
                                     </div>
                                     <h3 className="font-bold text-slate-900 dark:text-white">{template.name}</h3>
-                                    <p className="text-[10px] text-slate-500 mt-1 leading-tight">{template.description}</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">{template.description}</p>
 
                                     {settings.print_template === template.id && (
                                         <div className="absolute top-2 right-2 text-blue-600">
@@ -265,8 +265,8 @@ function ToggleField({ icon, label, active, onChange }: { icon: React.ReactNode,
         <button
             onClick={() => onChange(!active)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${active
-                ? 'bg-blue-600/5 border-blue-600/20 text-blue-600'
-                : 'bg-slate-50 border-slate-100 text-slate-400 dark:bg-white/5 dark:border-white/5'
+                ? 'bg-blue-600/5 dark:bg-blue-600/10 border-blue-600/20 text-blue-600 dark:text-blue-400'
+                : 'bg-slate-50 border-slate-100 text-slate-400 dark:bg-white/5 dark:border-white/5 dark:text-slate-500'
                 }`}
         >
             <div className="flex items-center gap-3 font-bold text-xs uppercase tracking-widest">

@@ -9,47 +9,14 @@ import { ArrowLeft, Download, Loader2, Trash2, Edit, RotateCcw } from 'lucide-re
 import { downloadPDF } from '@/lib/pdf-utils'
 import Image from 'next/image'
 
-interface ReturnItem {
-    name: string;
-    quantity: number;
-    unit_price: number;
-    tax_rate: number;
-    total: number;
-}
-
-interface ReturnCustomer {
-    name?: string;
-    billing_address?: string;
-    gstin?: string;
-    supply_place?: string;
-    phone?: string;
-}
-
-interface ReturnDoc {
-    id: string;
-    return_number: string;
-    type: string;
-    return_date: string;
-    total_amount: number;
-    notes?: string;
-    billing_address?: string;
-    supply_place?: string;
-    user_id: string;
-    customers?: ReturnCustomer;
-}
-
-interface ReturnProfile {
-    company_name?: string;
-    address?: string;
-    logo_url?: string;
-}
+import type { Return, ReturnItem, Profile } from '@/types'
 
 export default function ReturnDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
-    const [returnDoc, setReturnDoc] = useState<ReturnDoc | null>(null)
+    const [returnDoc, setReturnDoc] = useState<Return | null>(null)
     const [items, setItems] = useState<ReturnItem[]>([])
-    const [profile, setProfile] = useState<ReturnProfile | null>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
 
     const fetchReturn = useCallback(async () => {
@@ -57,7 +24,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
             setLoading(true)
             const { data, error } = await supabase
                 .from('returns')
-                .select('*, customers!customer_id(*)')
+                .select('*, customers:customer_id(*)')
                 .eq('id', resolvedParams.id)
                 .single()
 
@@ -80,8 +47,8 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                 .single()
 
             if (profData) setProfile(profData)
-        } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : 'Failed to load return details')
+        } catch {
+            toast.error('Failed to load return details')
             router.push('/dashboard/returns')
         } finally {
             setLoading(false)
@@ -93,8 +60,9 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
     }, [fetchReturn])
 
     async function handleDownload() {
+        if (!returnDoc) return
         try {
-            const fileName = `Return-${returnDoc?.return_number}`
+            const fileName = `Adjustment-${returnDoc.return_number}`
             await downloadPDF('return-render-area', fileName)
             toast.success('Return note downloaded')
         } catch {
@@ -144,10 +112,10 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isSalesReturn ? 'text-orange-500' : 'text-blue-500'}`}>
                                 {isSalesReturn ? 'Sales Return' : 'Purchase Return'}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{returnDoc.return_number}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-400">{returnDoc.return_number}</span>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase">
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">
                             {isSalesReturn ? 'Credit Note' : 'Debit Note'}
                         </h1>
                     </div>
@@ -177,12 +145,12 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
             </div>
 
             <div className="w-full overflow-x-auto pb-8 custom-scrollbar">
-                <div id="return-render-area" className="w-[794px] shrink-0 bg-white rounded-[40px] border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
+                <div id="return-render-area" className="w-198.5 shrink-0 bg-white rounded-4xl border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
                     <div className="p-10 lg:p-16 space-y-12">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <Image src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" width={140} height={40} />
+                                    <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
                                 ) : (
                                     <div className={`w-16 h-16 rounded-3xl flex items-center justify-center text-white shadow-xl ${isSalesReturn ? 'bg-orange-600 shadow-orange-600/30' : 'bg-blue-600 shadow-blue-600/30'}`}>
                                         <RotateCcw size={32} />
@@ -204,7 +172,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-[32px] border border-slate-100">
+                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-4xl border border-slate-100">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{isSalesReturn ? 'Customer' : 'Supplier'}</p>
                                 <p className="font-black text-slate-900 text-2xl tracking-tight">{returnDoc.customers?.name}</p>
@@ -268,11 +236,13 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
             <style jsx global>{`
                 @media print {
                     .no-print { display: none !important; }
-                    body { background: white !important; padding: 0 !important; }
+                    body { background: white !important; padding: 0 !important; overflow: visible !important; }
                     .max-w-5xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-                    main { padding: 0 !important; margin: 0 !important; }
+                    main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
                     .shadow-2xl { box-shadow: none !important; border: none !important; }
                     .rounded-[40px], .rounded-[32px] { border-radius: 0 !important; }
+                    * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+                    *::-webkit-scrollbar { display: none !important; }
                 }
             `}</style>
         </div>

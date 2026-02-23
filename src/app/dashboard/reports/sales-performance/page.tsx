@@ -121,7 +121,7 @@ export default function ItemProfitSummary() {
             <Card className="border-purple-100 bg-purple-50/20">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap items-end gap-4">
-                        <div className="space-y-1.5 flex-1 min-w-[300px]">
+                        <div className="space-y-1.5 flex-1 min-w-75">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
                                 <Calendar size={12} /> Analysis Period
                             </label>

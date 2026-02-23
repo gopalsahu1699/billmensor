@@ -274,12 +274,12 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
             {/* Render Area */}
             <div className="w-full overflow-x-auto pb-8 custom-scrollbar">
-                <div id="challan-render-area" className="w-[794px] shrink-0 bg-white rounded-[40px] border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
+                <div id="challan-render-area" className="w-198.5 shrink-0 bg-white rounded-4xl border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
                     <div className="p-10 lg:p-16 space-y-12">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <div className="relative w-[140px] h-10">
+                                    <div className="relative w-35 h-10">
                                         <Image src={profile.logo_url} alt="Logo" fill className="object-contain" />
                                     </div>
                                 ) : (
@@ -304,7 +304,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-[32px] border border-slate-100">
+                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-4xl border border-slate-100">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">From</p>
                                 <p className="font-black text-slate-900 text-xl">{profile?.company_name || 'Your Business'}</p>
@@ -364,8 +364,11 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
             <style jsx global>{`
                 @media print {
                     .no-print { display: none !important; }
-                    body { background: white !important; }
-                    .max-w-5xl { max-width: 100% !important; margin: 0 !important; }
+                    body { background: white !important; padding: 0 !important; overflow: visible !important; }
+                    .max-w-5xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
+                    main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+                    * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+                    *::-webkit-scrollbar { display: none !important; }
                 }
             `}</style>
         </div>

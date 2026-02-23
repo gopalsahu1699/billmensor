@@ -39,13 +39,15 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
         style.innerHTML = `
             @media print {
                 nav, aside, button, .no-print, .action-sidebar { display: none !important; }
-                body { background: white !important; padding: 0 !important; margin: 0 !important; }
+                body { background: white !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
                 .max-w-5xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-                main { padding: 0 !important; margin: 0 !important; }
+                main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
                 .shadow-xl, .shadow-2xl, .shadow-md { box-shadow: none !important; border: none !important; }
                 .rounded-[48px], .rounded-[40px], .rounded-[32px] { border-radius: 0 !important; }
                 .bg-slate-50\/50 { background-color: transparent !important; }
                 #invoice-render-area * { color: #000 !important; }
+                * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+                *::-webkit-scrollbar { display: none !important; }
                 @page { margin: 1cm; }
             }
         `
@@ -354,7 +356,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
             <div className="flex justify-center w-full overflow-x-auto pb-8 custom-scrollbar">
                 {/* Main Content Area */}
-                <div id="invoice-render-area" className="w-[794px] shrink-0 space-y-8 print:w-full">
+                <div id="invoice-render-area" className="w-198.5 shrink-0 space-y-8 print:w-full">
                     {/* Template Rendering */}
                     {printSettings.print_template === 'professional' ? (
                         <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
@@ -368,7 +370,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                             />
                         </div>
                     ) : printSettings.print_template === 'compact' ? (
-                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden print:border-none print:shadow-none">
+                        <div className="bg-white rounded-4xl border border-slate-100 shadow-xl overflow-hidden print:border-none print:shadow-none">
                             <CompactTemplate
                                 data={invoice}
                                 profile={profile}

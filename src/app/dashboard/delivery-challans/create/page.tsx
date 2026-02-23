@@ -389,7 +389,7 @@ function CreateChallanForm() {
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
-                                className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] text-slate-900 dark:text-white"
+                                className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-25 text-slate-900 dark:text-white"
                                 placeholder="Delivery instructions, vehicle details, etc."
                             />
                         </CardContent>

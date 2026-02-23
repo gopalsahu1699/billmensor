@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -56,19 +57,17 @@ export default function ReportsDashboard() {
     })
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetchStats()
-    }, [])
-
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             setLoading(true)
             // Fetch total sales
-            const { data: invoices } = await supabase.from('invoices').select('total_amount')
+            const { data: invoices, error: invError } = await supabase.from('invoices').select('total_amount')
+            if (invError) throw invError
             const totalSales = invoices?.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0) || 0
 
             // Fetch total expenses
-            const { data: expenses } = await supabase.from('expenses').select('amount')
+            const { data: expenses, error: expError } = await supabase.from('expenses').select('amount')
+            if (expError) throw expError
             const totalExpenses = expenses?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0
 
             setStats({
@@ -77,12 +76,17 @@ export default function ReportsDashboard() {
                 profit: totalSales - totalExpenses,
                 count: (invoices?.length || 0)
             })
-        } catch (error) {
-            console.error('Error fetching stats:', error)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Failed to fetch stats'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchStats()
+    }, [fetchStats])
 
     const filteredGroups = reportGroups.map(group => ({
         ...group,
@@ -96,7 +100,7 @@ export default function ReportsDashboard() {
         <div className="max-w-7xl mx-auto space-y-12 pb-20 animate-in fade-in duration-700">
             {/* Enterprise Header Section */}
             <div className="relative overflow-hidden bg-slate-900 dark:bg-primary/5 rounded-[40px] p-10 md:p-16 text-white shadow-2xl border border-slate-800">
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/20 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-linear-to-l from-primary/20 to-transparent pointer-events-none"></div>
                 <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                 <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-12">
@@ -113,7 +117,7 @@ export default function ReportsDashboard() {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 bg-white/5 border border-white/10 backdrop-blur-xl p-8 rounded-[32px] ring-1 ring-white/10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 bg-white/5 border border-white/10 backdrop-blur-xl p-8 rounded-4xl ring-1 ring-white/10">
                         <div className="space-y-2">
                             <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest">Gross Sales</p>
                             <p className="text-3xl font-black text-white italic">₹{stats.sales.toLocaleString('en-IN')}</p>
@@ -167,7 +171,7 @@ export default function ReportsDashboard() {
                                 <Link
                                     key={reportIndex}
                                     href={report.href}
-                                    className="group block relative bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1.5"
+                                    className="group block relative bg-white dark:bg-slate-900 p-6 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1.5"
                                 >
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 transition-all duration-500 group-hover:bg-primary group-hover:text-white group-hover:rotate-12 group-hover:scale-110">
@@ -177,7 +181,7 @@ export default function ReportsDashboard() {
                                         </div>
                                         <div className="flex-1 pr-8">
                                             <h3 className="font-black text-slate-900 dark:text-slate-100 tracking-tight text-sm group-hover:text-primary transition-colors">{report.name}</h3>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-bold uppercase tracking-tighter opacity-70">{report.desc}</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-bold uppercase tracking-widest opacity-80">{report.desc}</p>
                                         </div>
                                         <div className="absolute right-8 top-1/2 -translate-y-1/2">
                                             <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/10 transition-all duration-300">
@@ -195,7 +199,7 @@ export default function ReportsDashboard() {
             {/* Empty Discovery State */}
             {filteredGroups.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
-                    <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-[32px] flex items-center justify-center text-slate-300">
+                    <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-4xl flex items-center justify-center text-slate-300">
                         <span className="material-symbols-outlined text-[48px]">search_off</span>
                     </div>
                     <div>

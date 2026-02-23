@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../../../../lib/supabase'
+import Image from 'next/image'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { Profile, BankDetails } from '@/types'
 import {
     Building2,
     Phone,
     Mail,
-    Globe,
     MapPin,
     FileText,
     CreditCard,
@@ -17,8 +18,6 @@ import {
     Save,
     Loader2,
     BadgeCheck,
-    Briefcase,
-    Factory,
     Hash,
     Smartphone,
     BookOpen,
@@ -29,7 +28,6 @@ export default function AccountSettingsPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [bankSaving, setBankSaving] = useState(false)
-    const [profileId, setProfileId] = useState<string | null>(null)
 
     /* ----------- COMPANY STATE ----------- */
     const [profile, setProfile] = useState({
@@ -82,28 +80,28 @@ export default function AccountSettingsPage() {
 
             if (error && error.code !== 'PGRST116') throw error
             if (data) {
-                setProfileId(data.id)
+                const p = data as Profile
                 setProfile({
-                    company_name: data.company_name || '',
-                    full_name: data.full_name || '',
-                    designation: data.designation || '',
-                    phone: data.phone || '',
-                    email: data.email || '',
-                    address: data.address || '',
-                    gstin: data.gstin || '',
-                    website: data.website || '',
-                    business_type: data.business_type || '',
-                    industry_type: data.industry_type || '',
-                    place_of_supply: data.place_of_supply || '',
-                    terms_and_conditions: data.terms_and_conditions || '',
-                    logo_url: data.logo_url || '',
-                    signature_url: data.signature_url || '',
-                    custom_field_1_label: data.custom_field_1_label || '',
-                    custom_field_1_value: data.custom_field_1_value || '',
-                    custom_field_2_label: data.custom_field_2_label || '',
-                    custom_field_2_value: data.custom_field_2_value || '',
-                    custom_field_3_label: data.custom_field_3_label || '',
-                    custom_field_3_value: data.custom_field_3_value || '',
+                    company_name: p.company_name || '',
+                    full_name: p.full_name || '',
+                    designation: p.designation || '',
+                    phone: p.phone || '',
+                    email: p.email || '',
+                    address: p.address || '',
+                    gstin: p.gstin || '',
+                    website: p.website || '',
+                    business_type: p.business_type || '',
+                    industry_type: p.industry_type || '',
+                    place_of_supply: p.place_of_supply || '',
+                    terms_and_conditions: p.terms_and_conditions || '',
+                    logo_url: p.logo_url || '',
+                    signature_url: p.signature_url || '',
+                    custom_field_1_label: p.custom_field_1_label || '',
+                    custom_field_1_value: p.custom_field_1_value || '',
+                    custom_field_2_label: p.custom_field_2_label || '',
+                    custom_field_2_value: p.custom_field_2_value || '',
+                    custom_field_3_label: p.custom_field_3_label || '',
+                    custom_field_3_value: p.custom_field_3_value || '',
                 })
 
                 // Load bank details
@@ -114,17 +112,18 @@ export default function AccountSettingsPage() {
                     .single()
 
                 if (bankData) {
+                    const b = bankData as BankDetails
                     setBank({
-                        account_number: bankData.account_number || '',
-                        account_holder_name: bankData.account_holder_name || '',
-                        ifsc_code: bankData.ifsc_code || '',
-                        bank_branch_name: bankData.bank_branch_name || '',
-                        upi_id: bankData.upi_id || '',
+                        account_number: b.account_number || '',
+                        account_holder_name: b.account_holder_name || '',
+                        ifsc_code: b.ifsc_code || '',
+                        bank_branch_name: b.bank_branch_name || '',
+                        upi_id: b.upi_id || '',
                     })
                 }
             }
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'An error occurred')
         } finally {
             setLoading(false)
         }
@@ -154,7 +153,7 @@ export default function AccountSettingsPage() {
             }
             toast.success('Settings saved successfully')
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to save settings')
         } finally {
             setSaving(false)
         }
@@ -188,7 +187,7 @@ export default function AccountSettingsPage() {
 
             toast.success('Bank details saved successfully')
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to save bank details')
         } finally {
             setBankSaving(false)
         }
@@ -223,7 +222,7 @@ export default function AccountSettingsPage() {
 
             toast.success(`${field === 'logo_url' ? 'Logo' : 'Signature'} uploaded successfully`)
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Upload failed')
         }
     }
 
@@ -314,7 +313,14 @@ export default function AccountSettingsPage() {
                             <div className="flex gap-4">
                                 <label className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group">
                                     {profile.logo_url ? (
-                                        <img src={profile.logo_url} alt="Logo" className="w-full h-full object-contain p-2" />
+                                        <div className="relative w-full h-full">
+                                            <Image
+                                                src={profile.logo_url}
+                                                alt="Logo"
+                                                fill
+                                                className="object-contain p-2"
+                                            />
+                                        </div>
                                     ) : (
                                         <>
                                             <Upload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />
@@ -325,7 +331,14 @@ export default function AccountSettingsPage() {
                                 </label>
                                 <label className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group">
                                     {profile.signature_url ? (
-                                        <img src={profile.signature_url} alt="Signature" className="w-full h-full object-contain p-2" />
+                                        <div className="relative w-full h-full">
+                                            <Image
+                                                src={profile.signature_url}
+                                                alt="Signature"
+                                                fill
+                                                className="object-contain p-2"
+                                            />
+                                        </div>
                                     ) : (
                                         <>
                                             <Upload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />

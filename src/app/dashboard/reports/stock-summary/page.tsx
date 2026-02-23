@@ -9,9 +9,11 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
 
+import { Product } from '@/types'
+
 export default function StockSummaryReport() {
     const [loading, setLoading] = useState(true)
-    const [products, setProducts] = useState<{ id: string; name: string; category: string; stock_quantity: number; purchase_price: number; unit?: string; min_stock_level?: number }[]>([])
+    const [products, setProducts] = useState<Product[]>([])
     const [searchTerm, setSearchTerm] = useState('')
 
     const fetchStockData = React.useCallback(async () => {
@@ -75,49 +77,49 @@ export default function StockSummaryReport() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Stock Summary</h1>
-                    <p className="text-slate-500 text-sm">Real-time inventory valuation and replenishment status.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Stock Summary</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">Real-time inventory valuation and replenishment status.</p>
                 </div>
             </div>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="border-none shadow-sm bg-blue-50">
+                <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-900/10">
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-blue-600 text-sm font-bold uppercase">Total Valuation</p>
-                                <h3 className="text-2xl font-black text-blue-900">₹{totalValuation.toLocaleString('en-IN')}</h3>
+                                <p className="text-blue-600 dark:text-blue-400 text-sm font-black uppercase tracking-widest">Total Valuation</p>
+                                <h3 className="text-2xl font-black text-blue-900 dark:text-blue-100">₹{totalValuation.toLocaleString('en-IN')}</h3>
                             </div>
-                            <div className="p-3 bg-blue-200/50 rounded-xl text-blue-700">
+                            <div className="p-3 bg-blue-200/50 dark:bg-blue-900/30 rounded-xl text-blue-700 dark:text-blue-400">
                                 <TrendingUp size={24} />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-orange-50">
+                <Card className="border-none shadow-sm bg-orange-50 dark:bg-orange-900/10">
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-orange-600 text-sm font-bold uppercase">Low Stock Alerts</p>
-                                <h3 className="text-2xl font-black text-orange-900">{lowStockItems} Items</h3>
+                                <p className="text-orange-600 dark:text-orange-400 text-sm font-black uppercase tracking-widest">Low Stock Alerts</p>
+                                <h3 className="text-2xl font-black text-orange-900 dark:text-orange-100">{lowStockItems} Items</h3>
                             </div>
-                            <div className="p-3 bg-orange-200/50 rounded-xl text-orange-700">
+                            <div className="p-3 bg-orange-200/50 dark:bg-orange-900/30 rounded-xl text-orange-700 dark:text-orange-400">
                                 <AlertTriangle size={24} />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-purple-50">
+                <Card className="border-none shadow-sm bg-purple-50 dark:bg-purple-900/10">
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-purple-600 text-sm font-bold uppercase">Total Items In Stock</p>
-                                <h3 className="text-2xl font-black text-purple-900">{products.length} Products</h3>
+                                <p className="text-purple-600 dark:text-purple-400 text-sm font-black uppercase tracking-widest">Total Items In Stock</p>
+                                <h3 className="text-2xl font-black text-purple-900 dark:text-purple-100">{products.length} Products</h3>
                             </div>
-                            <div className="p-3 bg-purple-200/50 rounded-xl text-purple-700">
+                            <div className="p-3 bg-purple-200/50 dark:bg-purple-900/30 rounded-xl text-purple-700 dark:text-purple-400">
                                 <Package size={24} />
                             </div>
                         </div>
@@ -156,14 +158,14 @@ export default function StockSummaryReport() {
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Product Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Category</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Current Stock</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Purchase Rate</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Stock Valuation</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase no-print">Status</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Product Name</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Category</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Current Stock</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Purchase Rate</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Stock Valuation</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest no-print">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -176,19 +178,19 @@ export default function StockSummaryReport() {
                                         <td colSpan={6} className="px-6 py-12 text-center text-slate-400">No products found matching your search.</td>
                                     </tr>
                                 ) : filteredProducts.map((p) => (
-                                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-slate-900">{p.name}</td>
-                                        <td className="px-6 py-4 text-slate-600">{p.category || 'N/A'}</td>
+                                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-slate-100">{p.name}</td>
+                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{p.category || 'N/A'}</td>
                                         <td className="px-6 py-4">
                                             <span className={cn(
                                                 "font-bold px-2 py-0.5 rounded",
-                                                p.stock_quantity <= (p.min_stock_level || 5) ? "bg-red-50 text-red-600" : "text-slate-900"
+                                                p.stock_quantity <= (p.min_stock_level || 5) ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400" : "text-slate-900 dark:text-slate-100"
                                             )}>
                                                 {p.stock_quantity} {p.unit || 'pcs'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 underline decoration-slate-200">₹{p.purchase_price.toLocaleString('en-IN')}</td>
-                                        <td className="px-6 py-4 font-bold text-blue-600">₹{(p.stock_quantity * p.purchase_price).toLocaleString('en-IN')}</td>
+                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 underline decoration-slate-200 dark:decoration-slate-800 font-mono">₹{(p.purchase_price || 0).toLocaleString('en-IN')}</td>
+                                        <td className="px-6 py-4 font-black text-blue-600 dark:text-blue-400">₹{((p.stock_quantity || 0) * (p.purchase_price || 0)).toLocaleString('en-IN')}</td>
                                         <td className="px-6 py-4 no-print">
                                             {p.stock_quantity <= (p.min_stock_level || 5) ? (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">

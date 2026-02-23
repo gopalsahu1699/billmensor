@@ -12,14 +12,14 @@ export function ModernTemplate({
     settings,
 }: PrintTemplateProps) {
     return (
-        <Card className="rounded-[40px] border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0">
+        <Card className="rounded-4xl border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0">
             <div className="p-6 lg:p-8 space-y-6 print:p-0 text-[12px] leading-snug text-slate-900 bg-white">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-3">
                         {profile?.logo_url ? (
-                            <div className="relative w-[120px] h-8">
+                            <div className="relative w-30 h-8">
                                 <Image
                                     src={profile.logo_url}
                                     alt="Logo"
@@ -70,7 +70,7 @@ export function ModernTemplate({
                 </div>
 
                 {/* VENDOR + CLIENT */}
-                <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-[24px] border border-slate-200">
+                <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-3xl border border-slate-200">
 
                     <div>
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-2">
@@ -153,7 +153,7 @@ export function ModernTemplate({
                 <div className="flex justify-between items-start pt-6 border-t border-slate-300">
 
                     {/* BANK + TERMS */}
-                    <div className="max-w-[230px] space-y-4">
+                    <div className="max-w-57.5 space-y-4">
 
                         {settings.show_bank_details && bankDetails && (
                             <div>

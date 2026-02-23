@@ -9,6 +9,9 @@ export interface Party {
     billing_address?: string
     shipping_address?: string
     supply_place?: string
+    business_type?: string
+    industry_type?: string
+    category?: string
 }
 
 export interface InvoiceItem {
@@ -61,6 +64,8 @@ export interface PurchaseItem {
     tax_rate: number
     tax_amount: number
     total: number
+    name?: string
+    unit_price?: number
 }
 
 export interface Purchase {
@@ -78,6 +83,11 @@ export interface Purchase {
     igst?: number
     total_amount: number
     payment_status?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+    notes?: string
+    user_id?: string
     status: "draft" | "paid" | "partial" | "overdue"
     created_at: string
 }
@@ -91,6 +101,8 @@ export interface ReturnItem {
     tax_rate: number
     tax_amount: number
     total: number
+    name?: string
+    unit_price?: number
 }
 
 export interface Return {
@@ -112,6 +124,8 @@ export interface Return {
     billing_address?: string | null
     shipping_address?: string | null
     supply_place?: string | null
+    notes?: string | null
+    user_id?: string
     status: "draft" | "paid" | "partial" | "overdue"
     created_at: string
 }
@@ -189,16 +203,16 @@ export interface Payment {
     payment_number: string
     payment_date: string
     type: "payment_in" | "payment_out"
-    party_id?: string
-    customer_id?: string
-    supplier_id?: string
+    party_id?: string | null
+    customer_id?: string | null
+    supplier_id?: string | null
     party?: Party
     customers?: Party
-    invoice_id?: string
-    purchase_id?: string
+    invoice_id?: string | null
+    purchase_id?: string | null
     amount: number
     payment_mode: string
-    reference_number?: string
+    reference_number?: string | null
     billing_address?: string | null
     shipping_address?: string | null
     supply_place?: string | null
@@ -208,22 +222,42 @@ export interface Payment {
     created_at: string
 }
 
-export interface Customer {
-    id: string;
-    name: string;
-    phone?: string;
-    email?: string;
-    gstin?: string;
-    billing_address?: string;
-    shipping_address?: string;
-    supply_place?: string;
-    category?: string;
+export interface Customer extends Party {
     created_at: string;
+}
+
+export interface Product {
+    id: string
+    name: string
+    sku?: string
+    hsn_code?: string
+    description?: string
+    price: number
+    purchase_price: number
+    stock_quantity: number
+    min_stock_level?: number
+    unit?: string
+    tax_rate?: number
+    category?: string
+    created_at: string
+}
+
+export interface Expense {
+    id: string
+    user_id: string
+    title: string
+    category?: string
+    amount: number
+    expense_date: string
+    description?: string
+    created_at?: string
 }
 
 export interface Profile {
     id: string;
     company_name: string;
+    full_name?: string;
+    designation?: string;
     email: string;
     phone?: string;
     gstin?: string;
@@ -231,11 +265,28 @@ export interface Profile {
     city?: string;
     state?: string;
     pincode?: string;
-    bank_name?: string;
-    bank_account_number?: string;
-    bank_ifsc_code?: string;
-    bank_branch?: string;
-    upi_id?: string;
-    upi_qr_code_url?: string;
+    business_type?: string;
+    industry_type?: string;
+    place_of_supply?: string;
+    website?: string;
+    terms_and_conditions?: string;
+    logo_url?: string;
+    signature_url?: string;
+    custom_field_1_label?: string;
+    custom_field_1_value?: string;
+    custom_field_2_label?: string;
+    custom_field_2_value?: string;
+    custom_field_3_label?: string;
+    custom_field_3_value?: string;
     created_at: string;
+}
+export interface BankDetails {
+    id?: string;
+    user_id: string;
+    account_number?: string;
+    account_holder_name?: string;
+    ifsc_code?: string;
+    bank_branch_name?: string;
+    upi_id?: string;
+    created_at?: string;
 }

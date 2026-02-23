@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { FileJson, FileSpreadsheet, Download, Filter, Search, Calendar, ChevronLeft, FileText } from 'lucide-react'
+import { FileJson, FileSpreadsheet, Calendar, ChevronLeft, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -22,16 +22,14 @@ type InvoiceData = {
 export default function GSTR1Report() {
     const [loading, setLoading] = useState(false)
     const [invoices, setInvoices] = useState<InvoiceData[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [profile, setProfile] = useState<any>(null)
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     })
 
-    useEffect(() => {
-        fetchInvoices()
-    }, [])
-
-    async function fetchInvoices() {
+    const fetchInvoices = useCallback(async () => {
         setLoading(true)
         try {
             const { data, error } = await supabase
@@ -53,11 +51,27 @@ export default function GSTR1Report() {
             if (error) throw error
             setInvoices(data || [])
         } catch (error: unknown) {
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to fetch invoices')
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange.start, dateRange.end])
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+                setProfile(data)
+            }
+        }
+        fetchProfile()
+        fetchInvoices()
+    }, [fetchInvoices])
 
     const b2bInvoices = invoices.filter(inv => inv.customers?.gstin)
     const b2cInvoices = invoices.filter(inv => !inv.customers?.gstin)
@@ -111,7 +125,7 @@ export default function GSTR1Report() {
             })
 
             const gstr1Data = {
-                gstin: "USER_GSTIN_HERE", // Should come from profile
+                gstin: profile?.gstin || "USER_GSTIN",
                 fp: dateRange.start.substring(5, 7) + dateRange.start.substring(0, 4),
                 gt: totals.total,
                 cur_gt: totals.total,
@@ -171,7 +185,7 @@ export default function GSTR1Report() {
             link.setAttribute("download", `GSTR1_Filing_${dateRange.start}.json`)
             link.click()
             toast.success("GSTR-1 JSON Exported (Includes HSN & CDN)")
-        } catch (err) {
+        } catch {
             toast.error("JSON Export failed")
         }
     }
@@ -189,37 +203,37 @@ export default function GSTR1Report() {
 
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
-                    <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
+                    <Button variant="outline" size="sm" className="rounded-full w-10 px-0 dark:border-slate-800">
                         <ChevronLeft size={18} />
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">GSTR-1 Filing Report</h1>
-                    <p className="text-slate-500">Generate your monthly sales return for the GST portal.</p>
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">GSTR-1 Filing Report</h1>
+                    <p className="text-slate-500 dark:text-slate-400">Generate your monthly sales return for the GST portal.</p>
                 </div>
             </div>
 
-            <Card className="border-blue-100 bg-blue-50/30">
+            <Card className="border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-900/10">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                                 <Calendar size={12} /> Start Date
                             </label>
                             <input
                                 type="date"
-                                className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-100"
                                 value={dateRange.start}
                                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                                 <Calendar size={12} /> End Date
                             </label>
                             <input
                                 type="date"
-                                className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-100"
                                 value={dateRange.end}
                                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                             />
@@ -228,13 +242,13 @@ export default function GSTR1Report() {
                             Apply Filters
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
-                            <Button variant="outline" onClick={handlePrint} className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                            <Button variant="outline" onClick={handlePrint} className="border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                                 <FileText size={18} className="mr-2" /> PDF
                             </Button>
-                            <Button variant="outline" onClick={exportToXLS} className="border-green-200 text-green-700 hover:bg-green-50">
+                            <Button variant="outline" onClick={exportToXLS} className="border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20">
                                 <FileSpreadsheet size={18} className="mr-2" /> XLS Summary
                             </Button>
-                            <Button variant="outline" onClick={exportToJSON} className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                            <Button variant="outline" onClick={exportToJSON} className="border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                                 <FileJson size={18} className="mr-2" /> JSON Filing
                             </Button>
                         </div>
@@ -243,33 +257,33 @@ export default function GSTR1Report() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
+                <Card className="dark:bg-slate-900 dark:border-slate-800">
                     <CardHeader className="pb-2">
-                        <CardDescription>Taxable Value</CardDescription>
-                        <CardTitle className="text-2xl">₹ {totals.taxable.toLocaleString('en-IN')}</CardTitle>
+                        <CardDescription className="dark:text-slate-400">Taxable Value</CardDescription>
+                        <CardTitle className="text-2xl dark:text-slate-100">₹ {totals.taxable.toLocaleString('en-IN')}</CardTitle>
                     </CardHeader>
                 </Card>
-                <Card>
+                <Card className="dark:bg-slate-900 dark:border-slate-800">
                     <CardHeader className="pb-2">
-                        <CardDescription>Tax Collected</CardDescription>
-                        <CardTitle className="text-2xl text-blue-600">₹ {totals.tax.toLocaleString('en-IN')}</CardTitle>
+                        <CardDescription className="dark:text-slate-400">Tax Collected</CardDescription>
+                        <CardTitle className="text-2xl text-blue-600 dark:text-blue-400">₹ {totals.tax.toLocaleString('en-IN')}</CardTitle>
                     </CardHeader>
                 </Card>
-                <Card>
+                <Card className="dark:bg-slate-900 dark:border-slate-800">
                     <CardHeader className="pb-2">
-                        <CardDescription>Total Sales</CardDescription>
-                        <CardTitle className="text-2xl text-green-600">₹ {totals.total.toLocaleString('en-IN')}</CardTitle>
+                        <CardDescription className="dark:text-slate-400">Total Sales</CardDescription>
+                        <CardTitle className="text-2xl text-green-600 dark:text-green-400">₹ {totals.total.toLocaleString('en-IN')}</CardTitle>
                     </CardHeader>
                 </Card>
             </div>
 
-            <Card>
+            <Card className="dark:bg-slate-900 dark:border-slate-800">
                 <CardHeader>
-                    <CardTitle className="text-lg flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center justify-between dark:text-slate-100">
                         <span>Invoice Breakdown</span>
                         <div className="flex gap-4 text-sm font-medium">
-                            <span className="text-blue-600">B2B: {b2bInvoices.length}</span>
-                            <span className="text-slate-500">B2C: {b2cInvoices.length}</span>
+                            <span className="text-blue-600 dark:text-blue-400">B2B: {b2bInvoices.length}</span>
+                            <span className="text-slate-500 dark:text-slate-400">B2C: {b2cInvoices.length}</span>
                         </div>
                     </CardTitle>
                 </CardHeader>
@@ -288,13 +302,13 @@ export default function GSTR1Report() {
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {invoices.map((inv) => (
-                                    <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="py-3 px-2 font-bold">{inv.invoice_number}</td>
-                                        <td className="py-3 px-2 font-medium">{inv.customers?.name}</td>
-                                        <td className="py-3 px-2 text-slate-500">{inv.customers?.gstin || <span className="text-slate-300 italic">Unregistered</span>}</td>
-                                        <td className="py-3 px-2">₹ {(inv.total_amount - inv.tax_total).toLocaleString('en-IN')}</td>
-                                        <td className="py-3 px-2 text-blue-600 font-medium">₹ {inv.tax_total.toLocaleString('en-IN')}</td>
-                                        <td className="py-3 px-2 text-right font-bold">₹ {inv.total_amount.toLocaleString('en-IN')}</td>
+                                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="py-3 px-2 font-black text-slate-900 dark:text-slate-100">{inv.invoice_number}</td>
+                                        <td className="py-3 px-2 font-black text-slate-700 dark:text-slate-300 uppercase">{inv.customers?.name}</td>
+                                        <td className="py-3 px-2 text-slate-500 dark:text-slate-400 font-bold uppercase">{inv.customers?.gstin || <span className="text-slate-300 dark:text-slate-600 italic">Unregistered</span>}</td>
+                                        <td className="py-3 px-2 dark:text-slate-300">₹ {(inv.total_amount - inv.tax_total).toLocaleString('en-IN')}</td>
+                                        <td className="py-3 px-2 text-blue-600 dark:text-blue-400 font-bold">₹ {inv.tax_total.toLocaleString('en-IN')}</td>
+                                        <td className="py-3 px-2 text-right font-black text-slate-900 dark:text-slate-100">₹ {inv.total_amount.toLocaleString('en-IN')}</td>
                                     </tr>
                                 ))}
                                 {invoices.length === 0 && !loading && (

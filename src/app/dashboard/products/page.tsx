@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
+import { Product } from '@/types'
+
 export default function ProductsPage() {
     const router = useRouter()
-    const [products, setProducts] = useState<any[]>([])
+    const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
 
@@ -26,7 +28,8 @@ export default function ProductsPage() {
             if (error) throw error
             setProducts(data || [])
         } catch (error: unknown) {
-            toast.error(error.message)
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
@@ -45,7 +48,8 @@ export default function ProductsPage() {
             toast.success('Product deleted successfully')
             fetchProducts()
         } catch (error: unknown) {
-            toast.error(error.message)
+            const msg = error instanceof Error ? error.message : 'An error occurred'
+            toast.error(msg)
         }
     }
 
@@ -74,35 +78,35 @@ export default function ProductsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl">
                             <span className="material-symbols-outlined">inventory_2</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Products</p>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Products</p>
                             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{products.length}</h3>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 delay-75">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-green-50 dark:bg-green-900/30 text-green-600 rounded-xl">
                             <span className="material-symbols-outlined">payments</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Inventory Value</p>
-                            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">₹{totalValue.toLocaleString('en-IN')}</h3>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Inventory Value</p>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 italic">₹{totalValue.toLocaleString('en-IN')}</h3>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 delay-150">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-xl">
                             <span className="material-symbols-outlined">production_quantity_limits</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Low Stock</p>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Low Stock</p>
                             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{products.filter(p => (p.stock_quantity || 0) < 10).length}</h3>
                         </div>
                     </div>
@@ -128,11 +132,11 @@ export default function ProductsPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50">
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">SKU / HSN</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock</th>
-                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Product</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">SKU / HSN</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Price</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Stock</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -203,7 +207,7 @@ export default function ProductsPage() {
                                             </div>
                                             <div>
                                                 <p className="text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight italic">No Products Found</p>
-                                                <p className="text-slate-500 text-xs mt-1">Add your first product to the catalog.</p>
+                                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 font-medium">Add your first product to the catalog.</p>
                                             </div>
                                         </div>
                                     </td>

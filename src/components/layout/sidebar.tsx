@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useCallback } from "react";
+import { ThemeToggle } from "./theme-toggle";
 import { LayoutDashboard, Users, Package, ShoppingCart, CreditCard, BarChart3, Settings, Store, ChevronDown, Wallet, X, LogOut, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/utils";
@@ -81,7 +82,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
                 {/* Header */}
                 <div className="p-6 flex items-center justify-between border-b border-white/5 bg-slate-900 dark:bg-slate-950">
                     <div className="flex items-center gap-3 overflow-hidden text-nowrap">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20 text-white flex-shrink-0">B</div>
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20 text-white shrink-0">B</div>
                         {(!isCollapsed || showMobileMenu) && (
                             <div className="animate-in fade-in slide-in-from-left-2 duration-300">
                                 <span className="text-xl font-bold tracking-tight text-white block">Billmensor</span>
@@ -215,8 +216,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
                         >
                             <SubLink href="/dashboard/settings/account" label="Account Setting" onClick={closeMobileMenu} />
                             <SubLink href="/dashboard/settings/print" label="Print Setting" onClick={closeMobileMenu} />
-                            {/* <SubLink href="/dashboard/settings/theme" label="Theme Setting" onClick={closeMobileMenu} /> */}
                         </Dropdown>
+
+                        <div className="px-3 mt-4">
+                            <ThemeToggle />
+                        </div>
                     </div>
                 </nav>
 

@@ -39,7 +39,7 @@ export default function QuotationsPage() {
             </div>
 
             {/* Filters and Search */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4">
                 <div className="relative group flex-1">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
                     <input
@@ -58,7 +58,7 @@ export default function QuotationsPage() {
             </div>
 
             {/* Quotations Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -120,7 +120,7 @@ export default function QuotationsPage() {
                                 <tr>
                                     <td colSpan={7} className="px-8 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="w-16 h-16 rounded-[24px] bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300">
+                                            <div className="w-16 h-16 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300">
                                                 <span className="material-symbols-outlined text-[32px]">assignment</span>
                                             </div>
                                             <div>

@@ -89,7 +89,7 @@ export default function ExpenseSummaryReport() {
             <Card className="border-red-100 bg-red-50/20">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap items-end gap-4">
-                        <div className="space-y-1.5 min-w-[300px]">
+                        <div className="space-y-1.5 min-w-75">
                             <label className="text-xs font-bold text-red-500 uppercase flex items-center gap-1">
                                 <Calendar size={12} /> Date Range
                             </label>

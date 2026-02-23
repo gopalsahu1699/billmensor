@@ -133,11 +133,13 @@ export default function DashboardPage() {
             {/* Welcome Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <LayoutDashboard className="text-primary" size={24} />
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
+                            <LayoutDashboard size={24} />
+                        </div>
                         Financial Dashboard
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Monitor your company&apos;s billing performance and incoming revenue.</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Monitor your company&apos;s billing performance and incoming revenue.</p>
                 </div>
                 <div className="flex gap-3">
                     <button
@@ -201,24 +203,27 @@ export default function DashboardPage() {
             {/* Charts & Secondary Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                 {/* Revenue Overview Chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">Revenue Overview</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Sales vs Expenses performance</p>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest text-[10px] flex items-center gap-2">
+                                <BarChart3 size={16} className="text-blue-500" />
+                                Revenue Overview
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Sales performance over last 30 days</p>
                         </div>
-                        <select className="bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer w-full sm:w-auto">
+                        <select className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black px-4 py-2.5 outline-none cursor-pointer w-full sm:w-auto text-slate-900 dark:text-white">
                             <option>Current Month</option>
                             <option>Last 6 Months</option>
                         </select>
                     </div>
 
-                    <div className="relative h-[200px] sm:h-[240px] w-full mt-4 group">
-                        <svg className="w-full h-full drop-shadow-lg" preserveAspectRatio="none" viewBox="0 0 800 240">
+                    <div className="relative h-50 sm:h-60 w-full mt-4 group">
+                        <svg className="w-full h-full drop-shadow-xl" preserveAspectRatio="none" viewBox="0 0 800 240">
                             <defs>
                                 <linearGradient id="gradient" x1="0%" x2="0%" y1="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#1152d4" stopOpacity="0.3"></stop>
-                                    <stop offset="100%" stopColor="#1152d4" stopOpacity="0"></stop>
+                                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.2"></stop>
+                                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0"></stop>
                                 </linearGradient>
                             </defs>
                             <path
@@ -229,7 +234,7 @@ export default function DashboardPage() {
                             <path
                                 d={`M0,${chartData[0]} ${chartData.map((y, i) => `L${(i * 800) / (chartData.length - 1)},${y}`).join(' ')}`}
                                 fill="none"
-                                stroke="#1152d4"
+                                stroke="#2563eb"
                                 strokeLinecap="round"
                                 strokeWidth="4"
                                 className="transition-all duration-1000 ease-out"
@@ -239,15 +244,15 @@ export default function DashboardPage() {
                                     key={i}
                                     cx={(i * 800) / (chartData.length - 1)}
                                     cy={y}
-                                    fill="#1152d4"
-                                    r="5"
-                                    className="hover:r-7 transition-all cursor-pointer box-content border-4 border-white dark:border-slate-900 shadow-sm"
+                                    fill="#2563eb"
+                                    r="6"
+                                    className="hover:r-8 transition-all cursor-pointer box-content border-4 border-white dark:border-slate-900 shadow-xl"
                                 />
                             ))}
                         </svg>
-                        <div className="flex justify-between mt-6 px-2 overflow-hidden">
+                        <div className="flex justify-between mt-8 px-2 overflow-hidden">
                             {['Day 1-5', '6-10', '11-15', '16-20', '21-25', '26-30'].map((w) => (
-                                <span key={w} className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{w}</span>
+                                <span key={w} className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{w}</span>
                             ))}
                         </div>
                     </div>
@@ -255,8 +260,11 @@ export default function DashboardPage() {
 
                 {/* Quick Actions & Stats */}
                 <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-6 tracking-tight">Quick Actions</h3>
+                    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
+                        <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                            <PlusCircle size={14} className="text-blue-500" />
+                            Quick Actions
+                        </h3>
                         <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             <QuickAction icon={<PlusCircle size={20} />} label="Invoice" href="/dashboard/invoices/create" />
                             <QuickAction icon={<UserPlus size={20} />} label="Client" href="/dashboard/customers" />
@@ -264,7 +272,7 @@ export default function DashboardPage() {
                             <QuickAction icon={<BarChart3 size={20} />} label="Reports" href="/dashboard/reports" />
                         </div>
                     </div>
-                    <div className="bg-gradient-to-br from-primary to-blue-700 p-6 sm:p-8 rounded-2xl text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">
+                    <div className="bg-linear-to-br from-primary to-blue-700 p-6 sm:p-8 rounded-2xl text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                         <h3 className="text-lg font-bold mb-1 relative z-10">Business Insights</h3>
                         <p className="text-blue-100 text-sm mb-6 relative z-10 leading-relaxed">Upgrade to unlock advanced tax reports and inventory forecasting.</p>
@@ -355,7 +363,7 @@ export default function DashboardPage() {
                         <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center">
                             <Banknote size={20} />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight uppercase italic text-green-600">Recent Payments Received</h3>
+                        <h3 className="text-lg font-bold tracking-tight uppercase italic text-green-600">Recent Payments Received</h3>
                     </div>
                     <Link href="/dashboard/payments-in">
                         <button className="text-primary text-sm font-bold hover:underline transition-all underline-offset-4 flex items-center gap-1 group">
@@ -429,20 +437,20 @@ interface MetricCardProps {
 
 function MetricCard({ label, value, icon, trend, trendColor, iconBg, loading }: MetricCardProps) {
     return (
-        <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:border-primary/20 group">
-            <div className="flex justify-between items-start mb-6">
-                <div className={cn("p-2.5 rounded-xl transition-transform group-hover:rotate-6", iconBg)}>
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group">
+            <div className="flex justify-between items-start mb-8">
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6", iconBg)}>
                     <span className="material-symbols-outlined text-[24px]">{icon}</span>
                 </div>
-                <span className={cn("text-[11px] font-black flex items-center gap-1 uppercase tracking-tighter", trendColor)}>
+                <span className={cn("text-[10px] font-black flex items-center gap-1 uppercase tracking-widest", trendColor)}>
                     {trend}
                     <span className="material-symbols-outlined text-[14px]">
                         {trend.includes('+') ? 'trending_up' : trend.includes('-') ? 'trending_down' : 'horizontal_rule'}
                     </span>
                 </span>
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">{label}</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1 tracking-tight">
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">{label}</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
                 {loading ? <span className="animate-pulse">...</span> : value}
             </h3>
         </div>

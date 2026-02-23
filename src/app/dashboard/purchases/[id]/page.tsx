@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ArrowLeft, Download, Loader2, Trash2, Edit, ShoppingCart, Calendar, Hash, Truck, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Trash2, Edit, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { downloadPDF } from '@/lib/pdf-utils'
+import Image from 'next/image'
 import type { Purchase, PurchaseItem, Profile } from '@/types'
 
 export default function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,11 +74,12 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
     }
 
     async function handleDownload() {
+        if (!purchase) return
         try {
             const fileName = `Purchase-${purchase.purchase_number}`
             await downloadPDF('purchase-render-area', fileName)
             toast.success('Purchase bill downloaded')
-        } catch (error) {
+        } catch {
             toast.error('Failed to generate PDF')
         }
     }
@@ -169,12 +170,12 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div className="w-full overflow-x-auto pb-8 custom-scrollbar">
-                <div id="purchase-render-area" className="w-[794px] shrink-0 bg-white rounded-[40px] border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
+                <div id="purchase-render-area" className="w-198.5 shrink-0 bg-white rounded-4xl border border-slate-100 shadow-2xl overflow-hidden print:w-full print:shadow-none print:border-none">
                     <div className="p-10 lg:p-16 space-y-12">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <img src={profile.logo_url} alt="Logo" className="w-[140px] h-10 object-contain" />
+                                    <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
                                 ) : (
                                     <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                                         <ShoppingCart size={32} />
@@ -193,7 +194,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-[32px] border border-slate-100">
+                        <div className="grid grid-cols-2 gap-12 bg-slate-50/50 p-10 rounded-4xl border border-slate-100">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Supplier / Vendor</p>
                                 <p className="font-black text-slate-900 text-2xl tracking-tight">{purchase.suppliers?.name}</p>
@@ -257,11 +258,13 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             <style jsx global>{`
                 @media print {
                     .no-print { display: none !important; }
-                    body { background: white !important; padding: 0 !important; }
+                    body { background: white !important; padding: 0 !important; overflow: visible !important; }
                     .max-w-5xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-                    main { padding: 0 !important; margin: 0 !important; }
+                    main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
                     .shadow-2xl { box-shadow: none !important; border: none !important; }
                     .rounded-[40px], .rounded-[32px] { border-radius: 0 !important; }
+                    * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+                    *::-webkit-scrollbar { display: none !important; }
                 }
             `}</style>
         </div>

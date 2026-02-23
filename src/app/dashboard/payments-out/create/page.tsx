@@ -253,7 +253,7 @@ function CreatePaymentForm() {
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-4 text-sm font-medium text-slate-900 dark:text-white focus:ring-4 focus:ring-red-500/10 outline-none transition-all min-h-[120px]"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-4 text-sm font-medium text-slate-900 dark:text-white focus:ring-4 focus:ring-red-500/10 outline-none transition-all min-h-30"
                                 placeholder="Payment made for bill #..."
                             />
                         </div>
