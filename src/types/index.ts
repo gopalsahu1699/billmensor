@@ -311,6 +311,10 @@ export interface Profile {
     brand_color?: string;
     accent_color?: string;
     font_family?: string;
+    plan_type?: 'free' | 'monthly' | 'yearly';
+    plan_status?: 'active' | 'expired' | 'canceled';
+    plan_expiry?: string;
+    last_payment_id?: string;
     created_at: string;
 }
 

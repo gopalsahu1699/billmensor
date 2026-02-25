@@ -263,35 +263,40 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Paid Tier */}
-            <div className="p-10 rounded-[40px] bg-blue-600 border border-blue-400 relative overflow-hidden shadow-2xl shadow-blue-500/20 group">
-              <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:rotate-12 transition-transform">
-                <Shield size={80} />
+            {/* Paid Tiers */}
+            <div className="space-y-6">
+              {/* Monthly Plan */}
+              <div className="p-8 rounded-[40px] bg-slate-900/50 border border-white/5 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Zap size={60} />
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Monthly Backup</h3>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-4xl font-black italic">₹199</span>
+                  <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">/ Month</span>
+                </div>
+                <p className="text-xs text-slate-500 mb-6 italic">*Backup retained for 2 days after expiry</p>
+                <Link href="/register">
+                  <Button className="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[10px]">Secure My Data</Button>
+                </Link>
               </div>
-              <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-widest mb-4">Recommended</div>
-              <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Premium Backup</h3>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-black italic">₹499</span>
-                <span className="text-blue-200 font-bold uppercase text-xs tracking-widest">/ Year</span>
+
+              {/* Yearly Plan */}
+              <div className="p-8 rounded-[40px] bg-blue-600 border border-blue-400 relative overflow-hidden shadow-2xl shadow-blue-500/20 group">
+                <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:rotate-12 transition-transform">
+                  <Shield size={60} />
+                </div>
+                <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[8px] font-black uppercase tracking-widest mb-4">Best Value (2 Months Free)</div>
+                <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Yearly Backup</h3>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-4xl font-black italic">₹1,999</span>
+                  <span className="text-blue-200 font-bold uppercase text-[10px] tracking-widest">/ Year</span>
+                </div>
+                <p className="text-xs text-blue-100/60 mb-6 italic">*Premium Support Included</p>
+                <Link href="/register">
+                  <Button className="w-full h-10 rounded-xl bg-white text-blue-600 hover:bg-white/90 font-black uppercase tracking-widest text-[10px] shadow-xl">Get 2 Months Free</Button>
+                </Link>
               </div>
-              <ul className="space-y-4 mb-10 text-blue-50">
-                {[
-                  "Automatic Daily Cloud Backup",
-                  "Data Security & Restoration",
-                  "Multi-Device Sync",
-                  "Priority WhatsApp Support",
-                  "Professional Branding",
-                  "Custom Domain (Add-on)"
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 className="text-white w-5 h-5 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register">
-                <Button className="w-full h-12 rounded-2xl bg-white text-blue-600 hover:bg-white/90 font-black uppercase tracking-widest text-xs shadow-xl">Get Secure Backup</Button>
-              </Link>
             </div>
           </div>
         </div>

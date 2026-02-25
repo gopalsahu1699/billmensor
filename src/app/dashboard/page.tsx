@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Banknote, ArrowRight, MoreVertical, PlusCircle, UserPlus, Receipt, BarChart3, FileText, LayoutDashboard } from 'lucide-react'
+import { Banknote, ArrowRight, MoreVertical, PlusCircle, UserPlus, Receipt, BarChart3, FileText, LayoutDashboard, AlertCircle } from 'lucide-react'
 
 interface Customer {
     name: string;
@@ -64,6 +64,7 @@ export default function DashboardPage() {
     const [chartLabels, setChartLabels] = useState<string[]>([])
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
     const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([])
+    const [profile, setProfile] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -167,6 +168,13 @@ export default function DashboardPage() {
 
             setRecentInvoices(invData.data || [])
             setRecentPayments(payData.data || [])
+
+            // Profile Check for Subscriptions
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+                setProfile(prof)
+            }
         } catch (error) {
             console.error('Stats error:', error)
         } finally {
@@ -205,6 +213,24 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Plan Expiry / Warning Banner */}
+            {profile?.plan_expiry && new Date(profile.plan_expiry) < new Date() && (
+                <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between gap-4 animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-rose-600" />
+                        <div>
+                            <p className="text-sm font-bold uppercase tracking-widest text-[10px]">Backup Subscription Expired</p>
+                            <p className="text-xs font-medium opacity-80">Your cloud backup will be permanently deleted in 2 days. Upgrade now to secure your data.</p>
+                        </div>
+                    </div>
+                    <Link href="/dashboard/settings/billing">
+                        <button className="px-4 py-2 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/20">
+                            Upgrade Now
+                        </button>
+                    </Link>
+                </div>
+            )}
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

@@ -90,8 +90,8 @@ export default function AboutPage() {
                                 <div className="aspect-square rounded-[40px] bg-linear-to-br from-blue-600 to-indigo-900 flex items-center justify-center p-12 shadow-2xl shadow-blue-500/20 overflow-hidden group">
                                     <Zap className="w-full h-full text-white/20 absolute -right-20 -bottom-20 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
                                     <div className="relative text-center">
-                                        <div className="text-6xl font-black italic mb-2">₹0</div>
-                                        <div className="text-blue-200 font-bold uppercase tracking-widest text-sm">Monthly Subscription</div>
+                                        <div className="text-6xl font-black italic mb-2">₹199</div>
+                                        <div className="text-blue-200 font-bold uppercase tracking-widest text-sm">Per Month / ₹1,999 Yearly</div>
                                     </div>
                                 </div>
                             </motion.div>

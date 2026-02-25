@@ -48,7 +48,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   font_family TEXT DEFAULT 'Inter',
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Subscription fields
+  plan_type TEXT DEFAULT 'free', -- 'free' | 'monthly' | 'yearly'
+  plan_status TEXT DEFAULT 'active', -- 'active' | 'expired' | 'canceled'
+  plan_expiry TIMESTAMPTZ,
+  razorpay_customer_id TEXT,
+  last_payment_id TEXT
 );
 
 -- ─────────────────────────────────────────────────────────────

@@ -216,6 +216,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
                         >
                             <SubLink href="/dashboard/settings/account" label="Account Setting" onClick={closeMobileMenu} />
                             <SubLink href="/dashboard/settings/print" label="Print Setting" onClick={closeMobileMenu} />
+                            <SubLink href="/dashboard/settings/billing" label="Billing & Plan" onClick={closeMobileMenu} badge="NEW" />
                         </Dropdown>
 
                         <div className="px-3 mt-4">
