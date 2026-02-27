@@ -1,6 +1,6 @@
 -- ============================================================
 -- BillMensor – Supabase Database Schema (UPGRADED)
--- Version 2.0 - Adds E-Invoice, Orders, Team, Bank, Backup, Alerts
+-- Version 2.1 - Updated schema to match application types
 -- Matches exact table & column names used in the application
 -- Run this in Supabase SQL Editor (safe: uses IF NOT EXISTS)
 -- ============================================================
@@ -15,18 +15,12 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mfg_date DATE;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 0;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_low_stock_alert BOOLEAN DEFAULT true;
 
--- Add paper_size to profiles
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS paper_size TEXT DEFAULT 'a4';
-
--- Add purchase_id to payments table
-ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS purchase_id UUID REFERENCES public.purchases(id) ON DELETE SET NULL;
-
 -- ─────────────────────────────────────────────────────────────
 -- 0b. INVOICE ENHANCEMENTS (E-Invoice, QR Payment)
 -- ─────────────────────────────────────────────────────────────
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_irn TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_qr_code TEXT;
-ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_status TEXT; -- 'pending' | 'generated' | 'failed' | 'canceled'
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_status TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_no TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_date TIMESTAMPTZ;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS qr_payment_upi_id TEXT;
@@ -43,6 +37,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   email TEXT,
   address TEXT,
+  city TEXT,
+  state TEXT,
+  pincode TEXT,
   gstin TEXT,
   website TEXT,
   business_type TEXT,
@@ -62,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
   -- Print / display settings
   print_template TEXT DEFAULT 'modern',
+  paper_size TEXT DEFAULT 'a4',
   show_transport BOOLEAN DEFAULT true,
   show_installation BOOLEAN DEFAULT true,
   show_bank_details BOOLEAN DEFAULT true,
@@ -114,6 +112,9 @@ CREATE TABLE IF NOT EXISTS public.customers (
   supply_place TEXT,
   gstin TEXT,
   type TEXT DEFAULT 'customer',   -- 'customer' | 'supplier' | 'both'
+  category TEXT,
+  business_type TEXT,
+  industry_type TEXT,
   opening_balance DECIMAL(15,2) DEFAULT 0,
   current_balance DECIMAL(15,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -266,9 +267,10 @@ CREATE TABLE IF NOT EXISTS public.purchases (
   cgst_total DECIMAL(15,2) DEFAULT 0,
   sgst_total DECIMAL(15,2) DEFAULT 0,
   igst_total DECIMAL(15,2) DEFAULT 0,
+  discount DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
   payment_status TEXT DEFAULT 'unpaid',
-  status TEXT DEFAULT 'draft',
+  status TEXT DEFAULT 'draft', -- 'draft' | 'partial' | 'paid' | 'cancelled' | 'overdue'
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
@@ -312,9 +314,10 @@ CREATE TABLE IF NOT EXISTS public.returns (
   cgst_total DECIMAL(15,2) DEFAULT 0,
   sgst_total DECIMAL(15,2) DEFAULT 0,
   igst_total DECIMAL(15,2) DEFAULT 0,
+  discount DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
   type TEXT NOT NULL,  -- 'sales_return' | 'purchase_return'
-  status TEXT DEFAULT 'draft',
+  status TEXT DEFAULT 'draft', -- 'draft' | 'approved' | 'rejected' | 'completed' | 'partial' | 'paid'
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
@@ -392,8 +395,9 @@ CREATE TABLE IF NOT EXISTS public.delivery_challans (
   cgst_total DECIMAL(15,2) DEFAULT 0,
   sgst_total DECIMAL(15,2) DEFAULT 0,
   igst_total DECIMAL(15,2) DEFAULT 0,
+  discount DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
-  status TEXT DEFAULT 'pending',   -- 'pending' | 'delivered' | 'invoiced' | 'cancelled'
+  status TEXT DEFAULT 'draft',   -- 'draft' | 'delivered' | 'in_transit' | 'invoiced' | 'cancelled'
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
@@ -909,3 +913,24 @@ CREATE INDEX IF NOT EXISTS idx_attendance_staff_date ON public.staff_attendance(
 -- Pagination optimization
 CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON public.invoices(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_purchases_created_at ON public.purchases(created_at DESC);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 37. MIGRATION: Add new columns from v2.1 update
+-- ═══════════════════════════════════════════════════════════════
+
+-- Add purchase_id to payments if not exists (moved from top for clarity)
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS purchase_id UUID REFERENCES public.purchases(id) ON DELETE SET NULL;
+
+-- Add discount column to delivery_challans
+ALTER TABLE public.delivery_challans ADD COLUMN IF NOT EXISTS discount DECIMAL(15,2) DEFAULT 0;
+
+-- Add discount column to purchases
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS discount DECIMAL(15,2) DEFAULT 0;
+
+-- Add category to customers
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS business_type TEXT;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS industry_type TEXT;
+
+-- Update delivery_challans status values (change default from pending to draft)
+ALTER TABLE public.delivery_challans ALTER COLUMN status SET DEFAULT 'draft';
