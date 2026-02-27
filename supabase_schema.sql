@@ -141,6 +141,12 @@ CREATE TABLE IF NOT EXISTS public.products (
   stock_quantity DECIMAL(15,2) DEFAULT 0,
   opening_stock_value DECIMAL(15,2) DEFAULT 0,
   min_stock_level DECIMAL(15,2) DEFAULT 0,
+  reorder_point INTEGER DEFAULT 0,
+  is_low_stock_alert BOOLEAN DEFAULT true,
+  barcode TEXT,
+  batch_number TEXT,
+  expiry_date DATE,
+  mfg_date DATE,
   category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -221,6 +227,7 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   installation_charges DECIMAL(15,2) DEFAULT 0,
   custom_charges JSONB DEFAULT '[]',
   discount DECIMAL(15,2) DEFAULT 0,
+  round_off DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
   status TEXT DEFAULT 'pending',  -- 'pending' | 'accepted' | 'rejected' | 'invoiced'
   billing_address TEXT,
@@ -396,12 +403,35 @@ CREATE TABLE IF NOT EXISTS public.delivery_challans (
   sgst_total DECIMAL(15,2) DEFAULT 0,
   igst_total DECIMAL(15,2) DEFAULT 0,
   discount DECIMAL(15,2) DEFAULT 0,
+  round_off DECIMAL(15,2) DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
   status TEXT DEFAULT 'draft',   -- 'draft' | 'delivered' | 'in_transit' | 'invoiced' | 'cancelled'
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
   notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 15b. DELIVERY CHALLAN ITEMS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.delivery_challan_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  challan_id UUID REFERENCES public.delivery_challans ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.products ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  hsn_code TEXT,
+  quantity DECIMAL(15,2) NOT NULL,
+  unit_price DECIMAL(15,2) NOT NULL,
+  tax_rate DECIMAL(15,2) DEFAULT 0,
+  cgst DECIMAL(15,2) DEFAULT 0,
+  sgst DECIMAL(15,2) DEFAULT 0,
+  igst DECIMAL(15,2) DEFAULT 0,
+  tax_amount DECIMAL(15,2) DEFAULT 0,
+  discount DECIMAL(15,2) DEFAULT 0,
+  total DECIMAL(15,2) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -810,7 +840,8 @@ BEGIN
     'team_members', 'bank_accounts', 'einvoice_settings',
     'sales_orders', 'sales_order_items',
     'purchase_orders', 'purchase_order_items',
-    'payment_reminders', 'backups', 'low_stock_alerts',
+    'delivery_challan_items', 'payment_reminders',
+    'backups', 'low_stock_alerts',
     'cheques', 'cash_flow'
   ])
   LOOP
@@ -913,6 +944,7 @@ CREATE INDEX IF NOT EXISTS idx_attendance_staff_date ON public.staff_attendance(
 -- Pagination optimization
 CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON public.invoices(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_purchases_created_at ON public.purchases(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dc_items_challan_id ON public.delivery_challan_items(challan_id);
 
 -- ═══════════════════════════════════════════════════════════════
 -- 37. MIGRATION: Add new columns from v2.1 update
@@ -932,5 +964,12 @@ ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS category TEXT;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS business_type TEXT;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS industry_type TEXT;
 
--- Update delivery_challans status values (change default from pending to draft)
-ALTER TABLE public.delivery_challans ALTER COLUMN status SET DEFAULT 'draft';
+-- Add round_off to quotations
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS round_off DECIMAL(15,2) DEFAULT 0;
+
+-- Ensure products has all latest columns
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS batch_number TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS expiry_date DATE;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mfg_date DATE;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_low_stock_alert BOOLEAN DEFAULT true;
