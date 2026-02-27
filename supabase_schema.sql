@@ -14,6 +14,10 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS expiry_date DATE;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mfg_date DATE;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 0;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_low_stock_alert BOOLEAN DEFAULT true;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS opening_stock_value DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS wholesale_price DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mrp DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS item_type TEXT DEFAULT 'product';
 
 -- ─────────────────────────────────────────────────────────────
 -- 0b. INVOICE ENHANCEMENTS (E-Invoice, QR Payment)
@@ -964,8 +968,17 @@ ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS category TEXT;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS business_type TEXT;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS industry_type TEXT;
 
--- Add round_off to quotations
+-- Add charges and round_off to quotations
 ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS round_off DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS transport_charges DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS installation_charges DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS custom_charges JSONB DEFAULT '[]';
+
+-- Add same to invoices just in case
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS round_off DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS transport_charges DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS installation_charges DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS custom_charges JSONB DEFAULT '[]';
 
 -- Ensure products has all latest columns
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS batch_number TEXT;
@@ -973,3 +986,7 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS expiry_date DATE;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mfg_date DATE;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 0;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_low_stock_alert BOOLEAN DEFAULT true;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS opening_stock_value DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS wholesale_price DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mrp DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS item_type TEXT DEFAULT 'product';

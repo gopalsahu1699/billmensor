@@ -13,7 +13,7 @@ const itemBaseSchema = z.object({
     id: z.string().optional(),
     product_id: z.string().uuid().optional(),
     name: z.string().min(1, "Product name is required"),
-    hsn_code: z.string().optional(),
+    hsn_code: z.string().optional().nullable(),
     quantity: z.number().min(1, "Quantity must be at least 1"),
     unit_price: z.number().min(0, "Price cannot be negative"),
     tax_rate: z.number().min(0),
@@ -23,7 +23,7 @@ const itemBaseSchema = z.object({
     tax_amount: z.number().min(0),
     discount: z.number().min(0).optional(),
     total: z.number().min(0),
-    image_url: z.string().optional()
+    image_url: z.string().optional().nullable()
 })
 
 export const invoiceSchema = z.object({
@@ -110,6 +110,7 @@ export const quotationSchema = z.object({
     supply_place: z.string().optional().nullable(),
     total_amount: z.number().positive("Total amount must be greater than 0"),
     discount: z.number().min(0).optional(),
+    round_off: z.number().optional(),
     notes: z.string().optional(),
     status: z.enum(["pending", "accepted", "rejected", "invoiced", "draft"]).default("draft"),
     items: z.array(itemBaseSchema).min(1, "At least one item is required")
