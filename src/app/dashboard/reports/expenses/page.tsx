@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Calendar, ChevronLeft, Download, PieChart, ArrowDown, FileText } from 'lucide-react'
+ import { MdToday, MdChevronLeft, MdDownload, MdPieChart, MdArrowDownward, MdDescription } from 'react-icons/md'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -74,10 +74,10 @@ export default function ExpenseSummaryReport() {
                 <p className="text-slate-500">Period: {dateRange.start} onwards</p>
             </div>
 
-            <div className="flex items-center gap-4 no-print">
+                <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
-                        <ChevronLeft size={18} />
+                        <MdChevronLeft size={18} />
                     </Button>
                 </Link>
                 <div>
@@ -91,7 +91,7 @@ export default function ExpenseSummaryReport() {
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="space-y-1.5 min-w-75">
                             <label className="text-xs font-bold text-red-500 uppercase flex items-center gap-1">
-                                <Calendar size={12} /> Date Range
+                                <MdToday size={12} /> Date Range
                             </label>
                             <div className="flex items-center gap-2">
                                 <input
@@ -114,10 +114,10 @@ export default function ExpenseSummaryReport() {
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
                             <Button variant="outline" onClick={handlePrint} disabled={expenses.length === 0}>
-                                <FileText size={18} className="mr-2" /> PDF
+                                <MdDescription size={18} className="mr-2" /> PDF
                             </Button>
                             <Button variant="outline" onClick={exportToXLS} disabled={expenses.length === 0}>
-                                <Download size={18} className="mr-2" /> XLS
+                                <MdDownload size={18} className="mr-2" /> XLS
                             </Button>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ export default function ExpenseSummaryReport() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-red-100 flex items-center gap-1">
-                                <ArrowDown size={12} /> Cash out for this period
+                                <MdArrowDownward size={12} /> Cash out for this period
                             </p>
                         </CardContent>
                     </Card>
@@ -141,7 +141,7 @@ export default function ExpenseSummaryReport() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <PieChart size={18} className="text-slate-400" /> Category Breakdown
+                                <MdPieChart size={18} className="text-slate-400" /> Category Breakdown
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">

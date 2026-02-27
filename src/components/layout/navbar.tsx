@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, MessageSquare, Menu, User } from 'lucide-react'
+import { MdSearch, MdNotifications, MdMessage, MdMenu, MdPerson } from 'react-icons/md'
 import { ThemeToggle } from './theme-toggle'
 import { cn } from "../../lib/utils"
 
@@ -31,11 +31,11 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                     onClick={onMenuClick}
                     className="lg:hidden p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl transition-all active:scale-95"
                 >
-                    <Menu size={22} strokeWidth={2.5} />
+                    <MdMenu size={22} strokeWidth={2.5} />
                 </button>
 
                 <div className="hidden sm:block relative group w-full max-w-md">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                    <MdSearch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
                         placeholder="Search records, invoices, parties..."
@@ -48,12 +48,12 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <ThemeToggle variant="icon" />
 
                 <button className="hidden md:flex p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl relative transition-all group active:scale-95">
-                    <Bell size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
+                    <MdNotifications size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
                     <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
                 </button>
 
                 <button className="hidden md:flex p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl transition-all group active:scale-95">
-                    <MessageSquare size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
+                    <MdMessage size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
                 </button>
 
                 <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden sm:block"></div>

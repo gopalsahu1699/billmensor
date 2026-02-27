@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { MdLightMode, MdDarkMode } from 'react-icons/md'
 
 export function ThemeToggle({ variant = 'default' }: { variant?: 'default' | 'icon' }) {
     const [darkMode, setDarkMode] = useState(false)
@@ -34,9 +34,9 @@ export function ThemeToggle({ variant = 'default' }: { variant?: 'default' | 'ic
                 className="p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl transition-all active:scale-95 group"
                 aria-label="Toggle theme"
             >
-                {darkMode ?
-                    <Sun size={22} strokeWidth={2} className="group-hover:text-yellow-500 transition-colors" /> :
-                    <Moon size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
+{darkMode ?
+                    <MdLightMode size={22} strokeWidth={2} className="group-hover:text-yellow-500 transition-colors" /> :
+                    <MdDarkMode size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
                 }
             </button>
         )
@@ -49,7 +49,7 @@ export function ThemeToggle({ variant = 'default' }: { variant?: 'default' | 'ic
         >
             <div className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 flex items-center justify-center">
-                    {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    {darkMode ? <MdLightMode size={18} /> : <MdDarkMode size={18} />}
                 </div>
                 <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </div>

@@ -7,25 +7,24 @@ import { toast } from 'sonner'
 import { Profile, BankDetails } from '@/types'
 import { INDIAN_STATES } from '@/lib/constants'
 import {
-    Building2,
-    Phone,
-    Mail,
-    MapPin,
-    FileText,
-    CreditCard,
-    Landmark,
-    Upload,
-    Shield,
-    Save,
-    Loader2,
-    BadgeCheck,
-    Hash,
-    Smartphone,
-    BookOpen,
-    Layout,
-    Palette,
-    Type
-} from 'lucide-react'
+    IoBusiness,
+    IoCall,
+    IoMail,
+    IoLocation,
+    IoDocument,
+    IoCard,
+    IoCloudUpload,
+    IoShield,
+    IoSync,
+    IoCheckmarkCircle,
+    IoPhonePortrait,
+    IoBook,
+    IoGrid,
+    IoColorPalette,
+    IoText
+} from 'react-icons/io5'
+import { FaHashtag } from 'react-icons/fa'
+import { FaSave } from 'react-icons/fa'
 
 export default function AccountSettingsPage() {
     const [loading, setLoading] = useState(true)
@@ -252,7 +251,7 @@ export default function AccountSettingsPage() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
-                            <Building2 size={24} />
+                            <IoBusiness size={24} />
                         </div>
                         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Account Settings</h1>
                     </div>
@@ -263,7 +262,7 @@ export default function AccountSettingsPage() {
                     disabled={saving}
                     className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
                 >
-                    {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} strokeWidth={3} />}
+                    {saving ? <IoSync size={20} className="animate-spin" /> : <FaSave size={20} strokeWidth={3} />}
                     {saving ? 'SAVING...' : 'SAVE ALL'}
                 </button>
             </div>
@@ -275,7 +274,7 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Building2 size={16} className="text-blue-500" />
+                                <IoBusiness size={16} className="text-blue-500" />
                                 Company Information
                             </h2>
                         </div>
@@ -294,7 +293,7 @@ export default function AccountSettingsPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />
+                                            <IoCloudUpload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logo</span>
                                         </>
                                     )}
@@ -312,7 +311,7 @@ export default function AccountSettingsPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />
+                                            <IoCloudUpload size={20} className="text-slate-400 group-hover:text-blue-500 mb-1 transition-colors" />
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Signature</span>
                                         </>
                                     )}
@@ -322,7 +321,7 @@ export default function AccountSettingsPage() {
 
                             {/* Field Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<Building2 size={16} />} label="Company Name">
+                                <SettingsField icon={<IoBusiness size={16} />} label="Company Name">
                                     <input
                                         className="settings-input"
                                         value={profile.company_name}
@@ -331,7 +330,7 @@ export default function AccountSettingsPage() {
                                     />
                                 </SettingsField>
 
-                                <SettingsField icon={<BadgeCheck size={16} />} label="Owner / Contact Name">
+                                <SettingsField icon={<IoCheckmarkCircle size={16} />} label="Owner / Contact Name">
                                     <input
                                         className="settings-input"
                                         value={profile.full_name}
@@ -340,7 +339,7 @@ export default function AccountSettingsPage() {
                                     />
                                 </SettingsField>
 
-                                <SettingsField icon={<Phone size={16} />} label="Phone Number">
+                                <SettingsField icon={<IoCall size={16} />} label="Phone Number">
                                     <input
                                         className="settings-input"
                                         value={profile.phone}
@@ -349,7 +348,7 @@ export default function AccountSettingsPage() {
                                     />
                                 </SettingsField>
 
-                                <SettingsField icon={<Mail size={16} />} label="Email Address">
+                                <SettingsField icon={<IoMail size={16} />} label="Email Address">
                                     <input
                                         className="settings-input"
                                         type="email"
@@ -360,7 +359,7 @@ export default function AccountSettingsPage() {
                                 </SettingsField>
                             </div>
 
-                            <SettingsField icon={<MapPin size={16} />} label="Registered Address">
+                            <SettingsField icon={<IoLocation size={16} />} label="Registered Address">
                                 <textarea
                                     className="settings-input min-h-[100px] py-3"
                                     value={profile.address}
@@ -375,7 +374,7 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Layout size={16} className="text-blue-500" />
+                                <IoGrid size={16} className="text-blue-500" />
                                 Custom Print Fields
                             </h2>
                         </div>
@@ -384,7 +383,7 @@ export default function AccountSettingsPage() {
 
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<Hash size={14} />} label="Field 1 Label">
+                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 1 Label">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_1_label}
@@ -392,7 +391,7 @@ export default function AccountSettingsPage() {
                                             placeholder="e.g. Vehicle No."
                                         />
                                     </SettingsField>
-                                    <SettingsField icon={<Layout size={14} />} label="Field 1 Value">
+                                    <SettingsField icon={<IoGrid size={14} />} label="Field 1 Value">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_1_value}
@@ -403,7 +402,7 @@ export default function AccountSettingsPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<Hash size={14} />} label="Field 2 Label">
+                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 2 Label">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_2_label}
@@ -411,7 +410,7 @@ export default function AccountSettingsPage() {
                                             placeholder="e.g. PAN No."
                                         />
                                     </SettingsField>
-                                    <SettingsField icon={<Layout size={14} />} label="Field 2 Value">
+                                    <SettingsField icon={<IoGrid size={14} />} label="Field 2 Value">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_2_value}
@@ -422,7 +421,7 @@ export default function AccountSettingsPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<Hash size={14} />} label="Field 3 Label">
+                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 3 Label">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_3_label}
@@ -430,7 +429,7 @@ export default function AccountSettingsPage() {
                                             placeholder="e.g. DL No."
                                         />
                                     </SettingsField>
-                                    <SettingsField icon={<Layout size={14} />} label="Field 3 Value">
+                                    <SettingsField icon={<IoGrid size={14} />} label="Field 3 Value">
                                         <input
                                             className="settings-input"
                                             value={profile.custom_field_3_value}
@@ -450,7 +449,7 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Landmark size={16} className="text-green-500" />
+                                <IoBusiness size={16} className="text-green-500" />
                                 Bank Details
                             </h2>
                             <button
@@ -458,12 +457,12 @@ export default function AccountSettingsPage() {
                                 disabled={bankSaving}
                                 className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {bankSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                {bankSaving ? <IoSync size={14} className="animate-spin" /> : <FaSave size={14} />}
                                 {bankSaving ? 'SAVING...' : 'SAVE BANK'}
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <SettingsField icon={<CreditCard size={16} />} label="Account Number">
+                            <SettingsField icon={<IoCard size={16} />} label="Account Number">
                                 <input
                                     className="settings-input tracking-widest"
                                     value={bank.account_number}
@@ -473,7 +472,7 @@ export default function AccountSettingsPage() {
                             </SettingsField>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<BadgeCheck size={16} />} label="Account Holder Name">
+                                <SettingsField icon={<IoCheckmarkCircle size={16} />} label="Account Holder Name">
                                     <input
                                         className="settings-input"
                                         value={bank.account_holder_name}
@@ -482,7 +481,7 @@ export default function AccountSettingsPage() {
                                     />
                                 </SettingsField>
 
-                                <SettingsField icon={<Hash size={16} />} label="IFSC Code">
+                                <SettingsField icon={<FaHashtag size={16} />} label="IFSC Code">
                                     <input
                                         className="settings-input uppercase tracking-widest font-black"
                                         value={bank.ifsc_code}
@@ -492,7 +491,7 @@ export default function AccountSettingsPage() {
                                 </SettingsField>
                             </div>
 
-                            <SettingsField icon={<Landmark size={16} />} label="Bank & Branch Name">
+                            <SettingsField icon={<IoBusiness size={16} />} label="Bank & Branch Name">
                                 <input
                                     className="settings-input"
                                     value={bank.bank_branch_name}
@@ -501,7 +500,7 @@ export default function AccountSettingsPage() {
                                 />
                             </SettingsField>
 
-                            <SettingsField icon={<Smartphone size={16} />} label="UPI ID">
+                            <SettingsField icon={<IoPhonePortrait size={16} />} label="UPI ID">
                                 <input
                                     className="settings-input"
                                     value={bank.upi_id}
@@ -516,13 +515,13 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Hash size={16} className="text-amber-500" />
+                                <FaHashtag size={16} className="text-amber-500" />
                                 Tax & Compliance
                             </h2>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<FileText size={16} />} label="GSTIN Number">
+                                <SettingsField icon={<IoDocument size={16} />} label="GSTIN Number">
                                     <input
                                         className="settings-input uppercase tracking-widest font-black"
                                         value={profile.gstin}
@@ -531,7 +530,7 @@ export default function AccountSettingsPage() {
                                     />
                                 </SettingsField>
 
-                                <SettingsField icon={<MapPin size={16} />} label="Place of Supply">
+                                <SettingsField icon={<IoLocation size={16} />} label="Place of Supply">
                                     <select
                                         className="settings-input"
                                         value={profile.place_of_supply}
@@ -551,7 +550,7 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <BookOpen size={16} className="text-orange-500" />
+                                <IoBook size={16} className="text-orange-500" />
                                 Terms & Conditions
                             </h2>
                         </div>
@@ -570,13 +569,13 @@ export default function AccountSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-white/5">
                             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Palette size={16} className="text-pink-500" />
+                                <IoColorPalette size={16} className="text-pink-500" />
                                 Branding & Appearance
                             </h2>
                         </div>
                         <div className="p-6 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <SettingsField icon={<Palette size={16} />} label="Brand Color">
+                                <SettingsField icon={<IoColorPalette size={16} />} label="Brand Color">
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="color"
@@ -593,7 +592,7 @@ export default function AccountSettingsPage() {
                                     </div>
                                 </SettingsField>
 
-                                <SettingsField icon={<Palette size={16} />} label="Accent Color">
+                                <SettingsField icon={<IoColorPalette size={16} />} label="Accent Color">
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="color"
@@ -611,7 +610,7 @@ export default function AccountSettingsPage() {
                                 </SettingsField>
                             </div>
 
-                            <SettingsField icon={<Type size={16} />} label="Font Family">
+                            <SettingsField icon={<IoText size={16} />} label="Font Family">
                                 <select
                                     className="settings-input"
                                     value={profile.font_family}
@@ -650,7 +649,7 @@ export default function AccountSettingsPage() {
             {/* Security Footer */}
             <div className="bg-slate-900 dark:bg-slate-950 rounded-3xl p-8 border border-slate-800 dark:border-white/5 text-white flex items-center gap-6 shadow-2xl">
                 <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-yellow-500 shrink-0">
-                    <Shield size={28} />
+                    <IoShield size={28} />
                 </div>
                 <div>
                     <h4 className="text-sm font-black uppercase tracking-widest">Encrypted Data Management</h4>

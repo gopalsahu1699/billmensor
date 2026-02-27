@@ -1,0 +1,18 @@
+{
+    "name": "Billmensor - Smart Billing",
+    "short_name": "Billmensor",
+    "description": "Free GST Billing & Inventory Software for Indian Businesses",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#020617",
+    "theme_color": "#2563eb",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "192x192 512x512 any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

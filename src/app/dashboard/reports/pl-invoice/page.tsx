@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Calendar, ChevronLeft, Download, FileText } from 'lucide-react'
+import { IoTrendingUp, IoTrendingDown, IoCalendar, IoChevronBack, IoDownload, IoDocument } from 'react-icons/io5'
+import { FaArrowUp, FaArrowDown } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -136,7 +137,7 @@ export default function ProfitLossInvoiceReport() {
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
-                        <ChevronLeft size={18} />
+                        <IoChevronBack size={18} />
                     </Button>
                 </Link>
                 <div>
@@ -150,7 +151,7 @@ export default function ProfitLossInvoiceReport() {
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-                                <Calendar size={12} /> Period
+                                <IoCalendar size={12} /> Period
                             </label>
                             <div className="flex items-center gap-2">
                                 <input
@@ -173,10 +174,10 @@ export default function ProfitLossInvoiceReport() {
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
                             <Button variant="outline" onClick={handlePrint} disabled={invoices.length === 0}>
-                                <FileText size={18} className="mr-2" /> PDF
+                                <IoDocument size={18} className="mr-2" /> PDF
                             </Button>
                             <Button variant="outline" onClick={exportToXLS} disabled={invoices.length === 0}>
-                                <Download size={18} className="mr-2" /> XLS
+                                <IoDownload size={18} className="mr-2" /> XLS
                             </Button>
                         </div>
                     </div>
@@ -243,7 +244,7 @@ export default function ProfitLossInvoiceReport() {
                                         </td>
                                         <td className={cn("py-4 px-2 text-right font-bold", inv.profit >= 0 ? "text-green-600" : "text-red-500")}>
                                             <div className="flex items-center justify-end gap-1">
-                                                {inv.profit >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                                {inv.profit >= 0 ? <FaArrowUp size={14} /> : <FaArrowDown size={14} />}
                                                 {inv.profit.toLocaleString('en-IN')}
                                             </div>
                                         </td>

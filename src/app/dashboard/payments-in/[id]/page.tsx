@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowLeft, Loader2, Trash2, Edit, Wallet, Calendar, Hash, Banknote, CreditCard, Send, Share2, Mail, FileText, ChevronDown, Download } from 'lucide-react'
+import { IoArrowBack, IoSync, IoTrash, IoCreate, IoWallet, IoCalendar, IoCash, IoCard, IoSend, IoShare, IoMail, IoDocument, IoChevronDown, IoDownload } from 'react-icons/io5'
+import { FaHashtag } from 'react-icons/fa'
 import type { Payment, Profile } from '@/types'
 
 export default function PaymentInDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -120,7 +121,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-green-600 w-10 h-10" />
+            <IoSync className="animate-spin text-green-600 w-10 h-10" />
             <p className="text-slate-500 font-medium">Retrieving transaction details...</p>
         </div>
     )
@@ -129,10 +130,10 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
 
     const getModeIcon = (mode: string) => {
         switch (mode?.toLowerCase()) {
-            case 'bank': return <Banknote className="text-blue-500" />
-            case 'upi': return <Send className="text-purple-500" />
-            case 'cheque': return <CreditCard className="text-amber-500" />
-            default: return <Wallet className="text-green-500" />
+            case 'bank': return <IoCash className="text-blue-500" />
+            case 'upi': return <IoSend className="text-purple-500" />
+            case 'cheque': return <IoCard className="text-amber-500" />
+            default: return <IoWallet className="text-green-500" />
         }
     }
 
@@ -142,7 +143,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 transition-all">
-                        <ArrowLeft size={20} />
+                        <IoArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
@@ -160,9 +161,9 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                             onClick={() => setIsShareOpen(!isShareOpen)}
                             className="rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                         >
-                            {sharing ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
+                            {sharing ? <IoSync className="animate-spin" size={18} /> : <IoShare size={18} />}
                             Share
-                            <ChevronDown size={14} className={`ml-1 transition-transform ${isShareOpen ? 'rotate-180' : ''}`} />
+                            <IoChevronDown size={14} className={`ml-1 transition-transform ${isShareOpen ? 'rotate-180' : ''}`} />
                         </Button>
 
                         {isShareOpen && (
@@ -174,7 +175,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 transition-all group"
                                     >
                                         <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            <Mail size={16} />
+                                            <IoMail size={16} />
                                         </div>
                                         <div className="text-left">
                                             <p className="text-xs font-black uppercase tracking-widest">Email Link</p>
@@ -187,7 +188,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 transition-all group"
                                     >
                                         <div className="w-8 h-8 rounded-xl bg-green-50 dark:bg-green-500/10 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            <FileText size={16} />
+                                            <IoDocument size={16} />
                                         </div>
                                         <div className="text-left">
                                             <p className="text-xs font-black uppercase tracking-widest">Share PDF</p>
@@ -200,7 +201,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 transition-all group"
                                     >
                                         <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            <Download size={16} />
+                                            <IoDownload size={16} />
                                         </div>
                                         <div className="text-left">
                                             <p className="text-xs font-black uppercase tracking-widest">Download PDF</p>
@@ -216,14 +217,14 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                         onClick={() => router.push(`/dashboard/payments-in/create?edit=${resolvedParams.id}`)}
                         className="rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-sm"
                     >
-                        <Edit size={18} /> Edit
+                        <IoCreate size={18} /> Edit
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleDelete}
                         className="rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
+                        <IoTrash size={18} /> Delete
                     </Button>
                 </div>
             </div>
@@ -233,18 +234,18 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                     {/* Amount Card */}
                     <Card className="bg-slate-900 text-white p-10 lg:p-12 rounded-[40px] shadow-2xl overflow-hidden relative group">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700">
-                            <Wallet size={120} />
+                            <IoWallet size={120} />
                         </div>
                         <p className="text-green-400 text-[10px] font-black uppercase tracking-widest mb-4">Total Amount Received</p>
                         <h2 className="text-6xl font-black tracking-tighter italic">₹ {payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
                         <div className="mt-10 flex flex-wrap gap-6 pt-10 border-t border-white/10 uppercase font-black text-[10px] tracking-widest">
                             <div className="flex items-center gap-2">
-                                <Calendar size={14} className="text-slate-400" />
+                                <IoCalendar size={14} className="text-slate-400" />
                                 <span className="text-slate-400">Date:</span>
                                 <span>{new Date(payment.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Hash size={14} className="text-slate-400" />
+                                <FaHashtag size={14} className="text-slate-400" />
                                 <span className="text-slate-400">Mode:</span>
                                 <span className="text-green-400">{payment.payment_mode}</span>
                             </div>
@@ -308,7 +309,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                             <div className="flex justify-between items-center group cursor-pointer">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                                        <Hash size={18} className="text-slate-400" />
+                                        <FaHashtag size={18} className="text-slate-400" />
                                     </div>
                                     <div>
                                         <p className="text-[9px] font-black text-slate-400 uppercase">Receipt No</p>
@@ -333,7 +334,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                 <div className="flex justify-between items-center group cursor-pointer">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                                            <Send size={18} className="text-slate-400" />
+                                            <IoSend size={18} className="text-slate-400" />
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase">Ref / Txn ID</p>
@@ -347,7 +348,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                 <div className="flex justify-between items-center group cursor-pointer pt-4 border-t border-slate-100/50 mt-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shadow-sm">
-                                            <FileText size={18} className="text-blue-500" />
+                                            <IoDocument size={18} className="text-blue-500" />
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase">Linked Invoice</p>

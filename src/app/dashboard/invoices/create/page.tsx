@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, Package, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { MdAdd, MdDelete, MdInventory, MdExpandMore, MdCheckCircle, MdRefresh } from 'react-icons/md'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
@@ -398,7 +398,7 @@ function CreateInvoiceForm() {
                         disabled={loading}
                         className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
                     >
-                        {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                        {loading ? <MdRefresh size={20} className="animate-spin" /> : <MdCheckCircle size={20} />}
                         {loading ? 'SAVING...' : 'SAVE INVOICE'}
                     </button>
                 </div>
@@ -425,7 +425,7 @@ function CreateInvoiceForm() {
                                             : "Choose a customer..."
                                         }
                                     </span>
-                                    <ChevronDown size={16} className="text-slate-400" />
+                                    <MdExpandMore size={16} className="text-slate-400" />
                                 </button>
                                 <SelectorModal
                                     isOpen={isCustomerModalOpen}
@@ -467,7 +467,7 @@ function CreateInvoiceForm() {
                                 }}
                                 className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                             >
-                                <Plus size={16} />
+                                    <MdAdd size={16} />
                                 Add Item
                             </button>
                         </CardHeader>
@@ -532,7 +532,7 @@ function CreateInvoiceForm() {
                                                 </td>
                                                 <td className="py-4 text-right pl-4">
                                                     <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                        <Trash2 size={18} />
+                                    <MdDelete size={18} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -541,7 +541,7 @@ function CreateInvoiceForm() {
                                             <tr>
                                                 <td colSpan={6} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-3 text-slate-400">
-                                                        <Package size={40} strokeWidth={1} className="opacity-20" />
+                                                        <MdInventory size={40} strokeWidth={1} className="opacity-20" />
                                                         <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin selection.</p>
                                                     </div>
                                                 </td>
@@ -601,7 +601,7 @@ function CreateInvoiceForm() {
                                                 onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}
                                                 className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-500 transition-all"
                                             >
-                                                <Trash2 size={14} />
+                                                <MdDelete size={14} />
                                             </button>
                                             <input
                                                 placeholder="Charge name..."
@@ -634,7 +634,7 @@ function CreateInvoiceForm() {
                                     onClick={() => setCustomCharges([...customCharges, { name: '', amount: 0 }])}
                                     className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors font-bold uppercase tracking-widest mt-2"
                                 >
-                                    <Plus size={14} /> Add Custom Charge
+                                    <MdAdd size={14} /> Add Custom Charge
                                 </button>
 
                                 <div className="flex items-center justify-between">

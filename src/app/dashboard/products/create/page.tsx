@@ -29,6 +29,13 @@ export default function CreateProductPage() {
         tax_rate: '0',
         unit: 'pcs',
         image_url: '',
+        // New fields for upgrade
+        barcode: '',
+        batch_number: '',
+        expiry_date: '',
+        mfg_date: '',
+        reorder_point: '',
+        is_low_stock_alert: true,
     })
 
     useEffect(() => {
@@ -59,6 +66,12 @@ export default function CreateProductPage() {
                 tax_rate: String(data.tax_rate || '0'),
                 unit: data.unit || 'pcs',
                 image_url: data.image_url || '',
+                barcode: data.barcode || '',
+                batch_number: data.batch_number || '',
+                expiry_date: data.expiry_date || '',
+                mfg_date: data.mfg_date || '',
+                reorder_point: String(data.reorder_point || ''),
+                is_low_stock_alert: data.is_low_stock_alert !== false,
             })
         } catch (error: any) {
             toast.error(error.message)
@@ -122,6 +135,13 @@ export default function CreateProductPage() {
                 unit: form.unit,
                 image_url: form.image_url,
                 user_id: userData.user.id,
+                // New fields
+                barcode: form.barcode || null,
+                batch_number: form.batch_number || null,
+                expiry_date: form.expiry_date || null,
+                mfg_date: form.mfg_date || null,
+                reorder_point: parseInt(form.reorder_point) || 0,
+                is_low_stock_alert: form.is_low_stock_alert,
             }
 
             if (editId) {
@@ -444,6 +464,99 @@ export default function CreateProductPage() {
                                             {u}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+                            {/* Reorder Point */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Reorder Point</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">notification_important</span>
+                                    <input
+                                        type="number"
+                                        value={form.reorder_point}
+                                        onChange={(e) => setForm({ ...form, reorder_point: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                        placeholder="10"
+                                    />
+                                </div>
+                            </div>
+                            {/* Low Stock Alert Toggle */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Low Stock Alert</label>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm({ ...form, is_low_stock_alert: !form.is_low_stock_alert })}
+                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${form.is_low_stock_alert ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                    >
+                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${form.is_low_stock_alert ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                                        {form.is_low_stock_alert ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Barcode, Batch & Expiry */}
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
+                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-5 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary text-[18px]">qr_code</span>
+                            Barcode, Batch & Expiry Tracking
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {/* Barcode */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Barcode</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">qr_code</span>
+                                    <input
+                                        value={form.barcode}
+                                        onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 font-mono"
+                                        placeholder="1234567890123"
+                                    />
+                                </div>
+                            </div>
+                            {/* Batch Number */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Batch Number</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">inventory_2</span>
+                                    <input
+                                        value={form.batch_number}
+                                        onChange={(e) => setForm({ ...form, batch_number: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                        placeholder="BATCH-001"
+                                    />
+                                </div>
+                            </div>
+                            {/* Manufacturing Date */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Manufacturing Date</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">calendar_month</span>
+                                    <input
+                                        type="date"
+                                        value={form.mfg_date}
+                                        onChange={(e) => setForm({ ...form, mfg_date: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100"
+                                    />
+                                </div>
+                            </div>
+                            {/* Expiry Date */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">event_busy</span>
+                                    <input
+                                        type="date"
+                                        value={form.expiry_date}
+                                        onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100"
+                                    />
                                 </div>
                             </div>
                         </div>

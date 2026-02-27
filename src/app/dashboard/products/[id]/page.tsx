@@ -6,22 +6,9 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import {
-    ArrowLeft,
-    Package,
-    History,
-    TrendingUp,
-    TrendingDown,
-    Scale,
-    Loader2,
-    Edit,
-    Trash2,
-    Calendar,
-    Tag,
-    IndianRupee,
-    AlertTriangle,
-    CheckCircle2
-} from 'lucide-react'
+import { IoArrowBack, IoCube, IoTime, IoSync, IoCreate, IoTrash, IoCalendar, IoPricetag, IoCash, IoWarning, IoCheckmarkCircle } from 'react-icons/io5'
+import { MdScale, MdRefresh, MdArrowBack, MdEdit } from 'react-icons/md'
+import { FaArrowUp, FaArrowDown } from 'react-icons/fa'
 
 interface LedgerEntry {
     id: string
@@ -174,7 +161,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+            <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
             <p className="text-slate-500 font-medium tracking-tight">Recalculating stock ledger...</p>
         </div>
     )
@@ -186,11 +173,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
     const getEntryIcon = (type: string) => {
         switch (type) {
-            case 'sale': return <TrendingDown className="text-red-500" size={16} />
-            case 'purchase': return <TrendingUp className="text-green-500" size={16} />
-            case 'return_in': return <TrendingUp className="text-blue-500" size={16} />
-            case 'return_out': return <TrendingDown className="text-orange-500" size={16} />
-            default: return <Scale className="text-slate-400" size={16} />
+            case 'sale': return <FaArrowDown className="text-red-500" size={16} />
+            case 'purchase': return <FaArrowUp className="text-green-500" size={16} />
+            case 'return_in': return <FaArrowUp className="text-blue-500" size={16} />
+            case 'return_out': return <FaArrowDown className="text-orange-500" size={16} />
+            default: return <MdScale className="text-slate-400" size={16} />
         }
     }
 
@@ -200,7 +187,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100 transition-all">
-                        <ArrowLeft size={20} />
+                        <MdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
@@ -217,7 +204,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                         onClick={() => router.push(`/dashboard/products/create?edit=${id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit Product
+                        <MdEdit size={18} /> Edit Product
                     </Button>
                 </div>
             </div>
@@ -259,7 +246,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                         {product.stock_quantity < (product.min_stock_level || 5) && (
                             <div className="bg-red-600 px-6 py-3 flex items-center gap-2 animate-pulse">
-                                <AlertTriangle size={14} />
+                                <IoWarning size={14} />
                                 <span className="text-[10px] font-black uppercase tracking-widest">Low Stock Alert</span>
                             </div>
                         )}
@@ -288,7 +275,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     <Card className="border-none shadow-sm">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 px-8 py-6">
                             <CardTitle className="text-xl font-black text-slate-900 tracking-tight italic uppercase flex items-center gap-2">
-                                <History className="text-primary" size={24} /> Stock Ledger
+                                <IoTime className="text-primary" size={24} /> Stock Ledger
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">

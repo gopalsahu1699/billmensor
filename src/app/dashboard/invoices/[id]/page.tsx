@@ -4,7 +4,8 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Loader2, Layout, Mail, CheckCircle2, Share2, Trash2, Edit } from 'lucide-react'
+import { MdArrowBack, MdDownload, MdRefresh, MdDashboard, MdMail, MdCheckCircle, MdShare, MdDelete, MdEdit, MdDescription } from 'react-icons/md'
+import { FaWhatsapp } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
@@ -176,6 +177,29 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
         window.location.href = `mailto:${invoice.customers?.email || ''}?subject=${subject}&body=${body}`
     }
 
+    const handleWhatsAppShare = () => {
+        if (!invoice) return
+
+        const companyName = profile?.company_name || 'Billmensor'
+        const customerName = invoice.customers?.name || 'Customer'
+        const printUrl = `${window.location.origin}/print/invoices/${invoice.id}`
+
+        let message = `Hello ${customerName},\n\nPlease find your invoice *${invoice.invoice_number}* from *${companyName}* for the amount of *₹${invoice.total_amount.toLocaleString('en-IN')}*.\n\nYou can view and download your professional invoice here:\n${printUrl}\n\nThank you for your business!`
+
+        const encodedMessage = encodeURIComponent(message)
+        const phone = invoice.customers?.phone?.replace(/\D/g, '')
+
+        let whatsappUrl = ''
+        if (phone && phone.length >= 10) {
+            const formattedPhone = phone.length === 10 ? `91${phone}` : phone
+            whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`
+        } else {
+            whatsappUrl = `https://wa.me/?text=${encodedMessage}`
+        }
+
+        window.open(whatsappUrl, '_blank')
+    }
+
 
     async function handleDownload() {
         if (!invoice) return
@@ -215,7 +239,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
     if (loading) {
         return (
             <div className="py-40 flex flex-col items-center justify-center gap-4">
-                <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+                <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
                 <p className="text-slate-500 font-medium">Loading professional workspace...</p>
             </div>
         )
@@ -230,7 +254,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 no-print">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100">
-                        <ArrowLeft size={20} />
+                        <MdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
@@ -253,7 +277,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                             onClick={handleMarkAsPaid}
                             className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-green-200 text-green-600 hover:bg-green-50 transition-all shadow-sm"
                         >
-                            <CheckCircle2 size={18} /> Mark as Paid
+                            <MdCheckCircle size={18} /> Mark as Paid
                         </Button>
                     )}
                     <div className="relative">
@@ -262,7 +286,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                             onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
                             className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                         >
-                            <Layout size={18} /> {printSettings.print_template} Template
+                            <MdDashboard size={18} /> {printSettings.print_template} Template
                         </Button>
 
                         {isTemplateMenuOpen && (
@@ -305,35 +329,42 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         disabled={sharing}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        {sharing ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
+                        {sharing ? <MdRefresh size={18} className="animate-spin" /> : <MdShare size={18} />}
                         {sharing ? 'Sharing...' : 'Share'}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleWhatsAppShare}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest border-green-200 text-green-600 hover:bg-green-50 transition-all shadow-sm"
+                    >
+                        <FaWhatsapp size={18} /> WhatsApp
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleEmail}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Mail size={18} /> Email
+                        <MdMail size={18} /> Email
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => router.push(`/dashboard/invoices/create?edit=${id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit
+                        <MdEdit size={18} /> Edit
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
+                        <MdDelete size={18} /> Delete
                     </Button>
                     <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                        <Download size={18} /> Download
+                        <MdDownload size={18} /> Download
                     </Button>
                 </div>
             </div>

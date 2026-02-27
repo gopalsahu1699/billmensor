@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Loader2, Trash2, Edit, Truck, RotateCcw } from 'lucide-react'
+import { MdArrowBack, MdDownload, MdSync, MdDelete, MdEdit, MdLocalShipping, MdRefresh } from 'react-icons/md'
 import Image from 'next/image'
 
 interface ChallanItem {
@@ -198,7 +198,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+            <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
             <p className="text-slate-500 font-medium">Loading challan details...</p>
         </div>
     )
@@ -220,7 +220,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12">
-                        <ArrowLeft size={20} />
+                        <MdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
@@ -238,7 +238,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                             disabled={converting}
                             className="flex items-center gap-2 bg-slate-900 text-white px-6 h-12 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-95 disabled:opacity-50"
                         >
-                            {converting ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                            {converting ? <MdRefresh size={18} className="animate-spin" /> : <MdSync size={18} />}
                             {converting ? 'CONVERTING...' : 'TO INVOICE'}
                         </Button>
                     )}
@@ -247,20 +247,20 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                         onClick={() => router.push(`/dashboard/delivery-challans/create?edit=${resolvedParams.id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit
+                        <MdEdit size={18} /> Edit
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
+                        <MdDelete size={18} /> Delete
                     </Button>
                     <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                        <Download size={18} /> Download
+                        <MdDownload size={18} /> Download
                     </Button>
                 </div>
             </div>
@@ -277,7 +277,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                                     </div>
                                 ) : (
                                     <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white">
-                                        <Truck size={32} />
+                                        <MdLocalShipping size={32} />
                                     </div>
                                 )}
                                 <div>

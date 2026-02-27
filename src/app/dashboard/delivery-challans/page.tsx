@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { toast } from 'sonner'
-import { Plus, Search, Edit, Truck, Eye } from 'lucide-react'
+import { IoAdd, IoSearch, IoCreate, IoEye } from 'react-icons/io5'
+import { FaTruck } from 'react-icons/fa'
 
 interface Challan {
     id: string;
@@ -78,7 +79,7 @@ export default function DeliveryChallansPage() {
                 </div>
                 <Link href="/dashboard/delivery-challans/create">
                     <button className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95">
-                        <Plus size={20} strokeWidth={3} />
+                        <IoAdd size={20} strokeWidth={3} />
                         New Challan
                     </button>
                 </Link>
@@ -88,7 +89,7 @@ export default function DeliveryChallansPage() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden min-h-100">
                 <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div className="relative group w-full max-w-md">
-                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                        <IoSearch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Find by # or customer name..."
@@ -141,14 +142,14 @@ export default function DeliveryChallansPage() {
                                             className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
                                             title="View"
                                         >
-                                            <Eye size={18} />
+                                            <IoEye size={18} />
                                         </button>
                                         <button
                                             onClick={() => router.push(`/dashboard/delivery-challans/create?edit=${ch.id}`)}
                                             className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-white/5 rounded-xl transition-all"
                                             title="Edit"
                                         >
-                                            <Edit size={18} />
+                                            <IoCreate size={18} />
                                         </button>
                                     </td>
                                 </tr>
@@ -157,7 +158,7 @@ export default function DeliveryChallansPage() {
                                 <tr>
                                     <td colSpan={4} className="px-8 py-32 text-center text-slate-400 italic">
                                         <div className="flex flex-col items-center gap-4">
-                                            <Truck size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
+                                            <FaTruck size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
                                             <p className="text-sm font-medium">No challan records found. Start by generating your first delivery tracking document.</p>
                                         </div>
                                     </td>

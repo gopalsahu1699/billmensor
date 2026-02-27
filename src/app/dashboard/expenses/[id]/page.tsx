@@ -7,17 +7,17 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
-    ArrowLeft,
-    Wallet,
-    Calendar,
-    Tag,
-    FileText,
-    Trash2,
-    Edit,
-    Loader2,
-    IndianRupee,
-    Hash
-} from 'lucide-react'
+    IoArrowBack,
+    IoWallet,
+    IoCalendar,
+    IoPricetag,
+    IoDocument,
+    IoTrash,
+    IoCreate,
+    IoSync,
+    IoCash
+} from 'react-icons/io5'
+import { FaHashtag } from 'react-icons/fa'
 
 export default function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -69,7 +69,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-red-600 w-10 h-10" />
+            <IoSync className="animate-spin text-red-600 w-10 h-10" />
             <p className="text-slate-500 font-medium tracking-tight">Loading expense record...</p>
         </div>
     )
@@ -82,7 +82,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100 transition-all">
-                        <ArrowLeft size={20} />
+                        <IoArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
@@ -99,14 +99,14 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                         onClick={() => router.push(`/dashboard/expenses/create?edit=${id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit
+                        <IoCreate size={18} /> Edit
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-50 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
+                        <IoTrash size={18} /> Delete
                     </Button>
                 </div>
             </div>
@@ -116,7 +116,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                 <Card className="md:col-span-2 border-none shadow-2xl rounded-[40px] overflow-hidden">
                     <div className="bg-slate-900 p-12 text-white flex flex-col items-center justify-center text-center space-y-4">
                         <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-red-600/30">
-                            <Wallet size={40} />
+                            <IoWallet size={40} />
                         </div>
                         <div>
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Transaction Value</p>
@@ -128,14 +128,14 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Expense Date</p>
                                 <div className="flex items-center gap-2 text-slate-900 font-black italic">
-                                    <Calendar size={16} className="text-red-500" />
+                                    <IoCalendar size={16} className="text-red-500" />
                                     {new Date(expense.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
                                 </div>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category Tag</p>
                                 <div className="flex items-center gap-2 text-slate-900 font-black italic">
-                                    <Tag size={16} className="text-red-500" />
+                                    <IoPricetag size={16} className="text-red-500" />
                                     <span className="uppercase">{expense.category || 'General Spending'}</span>
                                 </div>
                             </div>
@@ -143,7 +143,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
 
                         <div className="pt-10 border-t border-slate-50 space-y-4">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                <FileText size={14} className="text-red-500" /> Description & Notes
+                                <IoDocument size={14} className="text-red-500" /> Description & Notes
                             </p>
                             <p className="text-slate-600 leading-relaxed italic text-lg font-medium">
                                 {expense.description || 'No additional description provided for this expense.'}

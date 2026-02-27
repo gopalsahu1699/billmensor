@@ -1,9 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { PenTool } from 'lucide-react'
+import { MdEdit } from 'react-icons/md'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
+import QRCode from 'react-qr-code'
 
 export function ProfessionalTemplate({
     data,
@@ -21,7 +22,8 @@ export function ProfessionalTemplate({
 
     const paymentStatus = data.payment_status || 'UNPAID'
 
-
+    const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
+    const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
     return (
         <div
@@ -186,6 +188,16 @@ export function ProfessionalTemplate({
                             </div>
                         </div>
                     )}
+
+                    {showUPIQR && upiURL && (
+                        <div className="pt-4 mt-4 border-t border-gray-200">
+                            <p className="font-bold text-[14px] mb-2">Scan to Pay:</p>
+                            <div className="p-2 border border-gray-300 inline-block bg-white">
+                                <QRCode value={upiURL} size={84} />
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* RIGHT TOTALS */}
@@ -221,7 +233,7 @@ export function ProfessionalTemplate({
                         <div className="mt-10 text-right">
                             <p className="mb-8">For {profile?.company_name}</p>
                             <div className="h-12 flex justify-end items-end">
-                                <PenTool size={22} />
+                                <MdEdit size={22} />
                             </div>
                             <p className="border-t w-48 ml-auto text-center pt-1">
                                 Authorized Signatory

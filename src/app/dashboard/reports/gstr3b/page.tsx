@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { FileText, TrendingUp, TrendingDown, ChevronLeft, Download, FileCheck } from 'lucide-react'
+import { IoDocument, IoChevronBack, IoDownload } from 'react-icons/io5'
+import { FaArrowUp, FaArrowDown, FaFileAlt } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -168,7 +169,7 @@ export default function GSTR3BReport() {
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
-                        <ChevronLeft size={18} />
+                        <IoChevronBack size={18} />
                     </Button>
                 </Link>
                 <h1 className="text-2xl font-bold text-slate-900">GSTR-3B Summary</h1>
@@ -203,10 +204,10 @@ export default function GSTR3BReport() {
                         </Button>
                         <div className="flex gap-2">
                             <Button variant="outline" onClick={handlePrint} className="h-11">
-                                <FileText size={18} />
+                                <IoDocument size={18} />
                             </Button>
                             <Button variant="outline" onClick={exportToXLS} className="h-11">
-                                <Download size={18} />
+                                <IoDownload size={18} />
                             </Button>
                         </div>
                     </div>
@@ -219,7 +220,7 @@ export default function GSTR3BReport() {
                     <div className="bg-blue-600 h-1"></div>
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <TrendingUp className="text-blue-600" size={20} />
+                            <FaArrowUp className="text-blue-600" size={20} />
                             3.1 Outward Taxable Supplies
                         </CardTitle>
                         <CardDescription>All sales and liabilities for the period</CardDescription>
@@ -255,7 +256,7 @@ export default function GSTR3BReport() {
                     <div className="bg-green-600 h-1"></div>
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <TrendingDown className="text-green-600" size={20} />
+                            <FaArrowDown className="text-green-600" size={20} />
                             4.0 Eligible ITC
                         </CardTitle>
                         <CardDescription>Input tax credit on purchases</CardDescription>
@@ -270,7 +271,7 @@ export default function GSTR3BReport() {
                                 <p className="text-xs font-bold text-green-700 uppercase">Input Tax Credit Available</p>
                                 <p className="text-2xl font-black text-green-800">₹{reportData.inward.tax.toLocaleString('en-IN')}</p>
                             </div>
-                            <FileCheck className="text-green-600 opacity-20" size={48} />
+                            <FaFileAlt className="text-green-600 opacity-20" size={48} />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="p-2 border border-green-100/50 rounded-lg text-center bg-white">

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Zap, Shield, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { IoShield, IoCheckmarkCircle, IoAlertCircle, IoTime } from "react-icons/io5";
+import { MdBolt } from "react-icons/md";
 import { format } from "date-fns";
 
 interface RazorpayInstance {
@@ -178,15 +179,15 @@ export default function BillingPage() {
                     <CardContent className="space-y-6">
                         <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200">
                             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <Shield className="text-blue-600 w-6 h-6" />
+                                <IoShield className="text-blue-600 w-6 h-6" />
                             </div>
                             <div>
                                 <div className="font-bold flex items-center gap-2">
                                     Cloud Backup Status:
                                     {profile?.plan_type !== 'free' && !isExpired ? (
-                                        <span className="text-emerald-600 flex items-center gap-1 text-sm"><CheckCircle2 size={14} /> Protected</span>
+                                        <span className="text-emerald-600 flex items-center gap-1 text-sm"><IoCheckmarkCircle size={14} /> Protected</span>
                                     ) : (
-                                        <span className="text-rose-600 flex items-center gap-1 text-sm"><AlertCircle size={14} /> Not Protected</span>
+                                        <span className="text-rose-600 flex items-center gap-1 text-sm"><IoAlertCircle size={14} /> Not Protected</span>
                                     )}
                                 </div>
                                 <div className="text-sm text-slate-500">
@@ -200,7 +201,7 @@ export default function BillingPage() {
 
                         {isExpired && (
                             <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                <IoAlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                                 <div className="text-sm">
                                     <span className="font-bold uppercase tracking-widest text-xs block mb-1">Backup Expired!</span>
                                     Your cloud backup will be permanently deleted in 2 days if not renewed. Upgrade now to keep your data safe.
@@ -210,7 +211,7 @@ export default function BillingPage() {
 
                         {!isExpired && daysLeft > 0 && daysLeft <= 7 && (
                             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-start gap-3">
-                                <Clock className="w-5 h-5 shrink-0 mt-0.5" />
+                                <IoTime className="w-5 h-5 shrink-0 mt-0.5" />
                                 <div className="text-sm font-medium">
                                     Your plan expires in {daysLeft} days. Renew now to avoid data deletion risks.
                                 </div>
@@ -234,7 +235,7 @@ export default function BillingPage() {
                                 "Remove 'BillMensor' Branding"
                             ].map((item, i) => (
                                 <li key={i} className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                                    <CheckCircle2 className="text-blue-500 w-4 h-4 shrink-0" />
+                                    <IoCheckmarkCircle className="text-blue-500 w-4 h-4 shrink-0" />
                                     {item}
                                 </li>
                             ))}
@@ -247,7 +248,7 @@ export default function BillingPage() {
                 {/* Monthly Plan */}
                 <div className="p-10 rounded-[40px] bg-white border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                        <Zap size={100} />
+                        <MdBolt size={100} />
                     </div>
                     <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Monthly</h3>
                     <div className="flex items-baseline gap-2 mb-6">
@@ -269,7 +270,7 @@ export default function BillingPage() {
                 {/* Yearly Plan */}
                 <div className="p-10 rounded-[40px] bg-blue-600 text-white relative overflow-hidden shadow-2xl shadow-blue-500/20 group">
                     <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:rotate-12 transition-transform duration-700">
-                        <Shield size={100} />
+                        <IoShield size={100} />
                     </div>
                     <div className="inline-block px-4 py-1.5 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-widest mb-4">RECOMMENDED (2 MONTHS FREE)</div>
                     <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Yearly Plan</h3>

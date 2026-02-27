@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Loader2, Calculator, Receipt, TrendingUp, FileText } from 'lucide-react'
+import { IoMdArrowBack, IoMdDownload, IoMdRefresh, IoMdCalculator, IoMdTrendingUp, IoMdDocument } from 'react-icons/io'
+import { IoReceipt, IoDocumentText } from 'react-icons/io5'
 import { toast } from 'sonner'
 //
 
@@ -159,7 +160,7 @@ export default function CAAuditReportPage() {
 
     if (loading && !profile) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-primary w-10 h-10" />
+            <IoMdRefresh className="animate-spin text-primary w-10 h-10" />
             <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Assembling Audit Intelligence...</p>
         </div>
     )
@@ -170,7 +171,7 @@ export default function CAAuditReportPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100 transition-all">
-                        <ArrowLeft size={20} />
+                        <IoMdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 mb-1">
@@ -207,7 +208,7 @@ export default function CAAuditReportPage() {
                         onClick={handleShare}
                         className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
                     >
-                        <Download size={18} /> Export PDF for CA
+                        <IoMdDownload size={18} /> Export PDF for CA
                     </Button>
                 </div>
             </div>
@@ -219,7 +220,7 @@ export default function CAAuditReportPage() {
                     <div className="flex justify-between items-start border-b-2 border-slate-900 pb-12">
                         <div className="space-y-6">
                             <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-xl shadow-primary/30">
-                                <Calculator size={32} />
+                                <IoMdCalculator size={32} />
                             </div>
                             <div>
                                 <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">Consolidated <br />Audit Report</h2>
@@ -279,7 +280,7 @@ export default function CAAuditReportPage() {
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-900">
-                                <TrendingUp size={16} />
+                                <IoMdTrendingUp size={16} />
                             </div>
                             <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Taxation Breakdown (Liability)</h3>
                         </div>
@@ -325,7 +326,7 @@ export default function CAAuditReportPage() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-900">
-                                    <Receipt size={16} />
+                                    <IoReceipt size={16} />
                                 </div>
                                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Expense Portfolio</h3>
                             </div>
@@ -379,7 +380,7 @@ export default function CAAuditReportPage() {
                     <div className="space-y-16 pt-16 border-t-2 border-slate-900">
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white">
-                                <FileText size={20} />
+                                <IoDocumentText size={20} />
                             </div>
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Annexure: Detailed Transaction Logs</h3>

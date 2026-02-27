@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Banknote, ArrowRight, MoreVertical, PlusCircle, UserPlus, Receipt, BarChart3, FileText, LayoutDashboard, AlertCircle } from 'lucide-react'
+import { MdAccountBalance, MdArrowForward, MdMoreVert, MdAddCircle, MdPersonAdd, MdReceipt, MdBarChart, MdDescription, MdDashboard, MdError } from 'react-icons/md'
 
 interface Customer {
     name: string;
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
-                            <LayoutDashboard size={24} />
+                            <MdDashboard size={24} />
                         </div>
                         Financial Dashboard
                     </h2>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
             {profile?.plan_expiry && new Date(profile.plan_expiry) < new Date() && (
                 <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between gap-4 animate-in slide-in-from-top duration-500">
                     <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-rose-600" />
+                        <MdError className="w-5 h-5 text-rose-600" />
                         <div>
                             <p className="text-sm font-bold uppercase tracking-widest text-[10px]">Backup Subscription Expired</p>
                             <p className="text-xs font-medium opacity-80">Your cloud backup will be permanently deleted in 2 days. Upgrade now to secure your data.</p>
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                         <div>
                             <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest text-[10px] flex items-center gap-2">
-                                <BarChart3 size={16} className="text-blue-500" />
+                                <MdBarChart size={16} className="text-blue-500" />
                                 Revenue Overview
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Sales performance over last 30 days</p>
@@ -390,14 +390,14 @@ export default function DashboardPage() {
 
                     <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
                         <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
-                            <PlusCircle size={14} className="text-blue-500" />
+                            <MdAddCircle size={14} className="text-blue-500" />
                             Quick Actions
                         </h3>
                         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                            <QuickAction icon={<PlusCircle size={20} />} label="Invoice" href="/dashboard/invoices/create" />
-                            <QuickAction icon={<UserPlus size={20} />} label="Client" href="/dashboard/customers" />
-                            <QuickAction icon={<Receipt size={20} />} label="Expenses" href="/dashboard/expenses" />
-                            <QuickAction icon={<BarChart3 size={20} />} label="Reports" href="/dashboard/reports" />
+<QuickAction icon={<MdAddCircle size={20} />} label="Invoice" href="/dashboard/invoices/create" />
+                            <QuickAction icon={<MdPersonAdd size={20} />} label="Client" href="/dashboard/customers" />
+                            <QuickAction icon={<MdReceipt size={20} />} label="Expenses" href="/dashboard/expenses" />
+                            <QuickAction icon={<MdBarChart size={20} />} label="Reports" href="/dashboard/reports" />
                         </div>
                     </div>
                     <div className="bg-linear-to-br from-primary to-blue-700 p-6 sm:p-8 rounded-2xl text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">
@@ -418,14 +418,14 @@ export default function DashboardPage() {
                 <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
-                            <FileText size={20} />
+                            <MdDescription size={20} />
                         </div>
                         <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight uppercase italic">Recent Invoices</h3>
                     </div>
                     <Link href="/dashboard/invoices">
                         <button className="text-primary text-sm font-bold hover:underline transition-all underline-offset-4 flex items-center gap-1 group">
-                            View All Invoices
-                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+View All Invoices
+                            <MdArrowForward size={14} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </Link>
                 </div>
@@ -468,7 +468,7 @@ export default function DashboardPage() {
                                     <td className="px-8 py-5 text-right">
                                         <Link href={`/dashboard/invoices/${inv.id}`}>
                                             <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary transition-all rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                                                <MoreVertical size={20} />
+                                                <MdMoreVert size={20} />
                                             </button>
                                         </Link>
                                     </td>
@@ -489,14 +489,14 @@ export default function DashboardPage() {
                 <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center">
-                            <Banknote size={20} />
+                            <MdAccountBalance size={20} />
                         </div>
                         <h3 className="text-lg font-bold tracking-tight uppercase italic text-green-600">Recent Payments Received</h3>
                     </div>
                     <Link href="/dashboard/payments-in">
                         <button className="text-primary text-sm font-bold hover:underline transition-all underline-offset-4 flex items-center gap-1 group">
-                            View All Payments
-                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+View All Payments
+                            <MdArrowForward size={14} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </Link>
                 </div>
@@ -534,7 +534,7 @@ export default function DashboardPage() {
                                     <td className="px-8 py-5 text-right">
                                         <Link href={`/dashboard/payments-in/${pay.id}`}>
                                             <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary transition-all rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                                                <MoreVertical size={20} />
+                                                <MdMoreVert size={20} />
                                             </button>
                                         </Link>
                                     </td>

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
+import QRCode from 'react-qr-code'
 
 export function CompactTemplate({
     data,
@@ -17,6 +18,9 @@ export function CompactTemplate({
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
+
+    const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
+    const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
     return (
         <div
@@ -198,6 +202,16 @@ export function CompactTemplate({
                                 )}
                             </div>
                         </>
+                    )}
+
+                    {showUPIQR && upiURL && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h4 className="font-bold mb-2">Scan to Pay</h4>
+                            <div className="p-2 border border-gray-300 rounded inline-block bg-white">
+                                <QRCode value={upiURL} size={72} />
+                            </div>
+                            <p className="text-[10px] text-gray-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
+                        </div>
                     )}
                 </div>
 

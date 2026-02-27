@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Toaster } from "sonner";
+import { I18nProvider } from "@/components/providers/i18n-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +27,11 @@ export const metadata: Metadata = {
     locale: "en_IN",
     siteName: "Billmensor",
   },
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -43,8 +49,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        {children}
-        <Toaster position="top-right" richColors />
+        <I18nProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </I18nProvider>
       </body>
     </html>
   );

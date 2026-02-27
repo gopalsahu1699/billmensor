@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { MdAdd, MdDelete, MdChevronLeft, MdCheckCircle, MdRefresh, MdExpandMore } from 'react-icons/md'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
@@ -378,8 +378,8 @@ function CreatePurchaseForm() {
                         onClick={handleSavePurchase}
                         disabled={loading}
                         className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
-                    >
-                        {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                        >
+                                    {loading ? <MdRefresh size={20} className="animate-spin" /> : <MdCheckCircle size={20} />}
                         {loading ? 'RECORDING...' : 'SAVE PURCHASE'}
                     </button>
                 </div>
@@ -406,7 +406,7 @@ function CreatePurchaseForm() {
                                             : "Search for a supplier..."
                                         }
                                     </span>
-                                    <ChevronDown size={14} className="text-slate-400" />
+                                <MdExpandMore size={14} className="text-slate-400" />
                                 </button>
                                 <SelectorModal
                                     isOpen={isCustomerModalOpen}
@@ -448,7 +448,7 @@ function CreatePurchaseForm() {
                                 }}
                                 className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                             >
-                                <Plus size={16} />
+                                    <MdAdd size={16} />
                                 Add Item
                             </button>
                         </CardHeader>
@@ -512,7 +512,7 @@ function CreatePurchaseForm() {
                                                 </td>
                                                 <td className="py-4 text-right pl-4">
                                                     <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                        <Trash2 size={18} />
+                                                        <MdDelete size={18} />
                                                     </button>
                                                 </td>
                                             </tr>

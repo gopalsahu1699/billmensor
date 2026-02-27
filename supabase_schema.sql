@@ -1,8 +1,36 @@
 -- ============================================================
--- BillMensor – Supabase Database Schema
+-- BillMensor – Supabase Database Schema (UPGRADED)
+-- Version 2.0 - Adds E-Invoice, Orders, Team, Bank, Backup, Alerts
 -- Matches exact table & column names used in the application
 -- Run this in Supabase SQL Editor (safe: uses IF NOT EXISTS)
 -- ============================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- 0. MIGRATION: Add new columns to existing products table
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS barcode TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS batch_number TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS expiry_date DATE;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS mfg_date DATE;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_low_stock_alert BOOLEAN DEFAULT true;
+
+-- Add paper_size to profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS paper_size TEXT DEFAULT 'a4';
+
+-- Add purchase_id to payments table
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS purchase_id UUID REFERENCES public.purchases(id) ON DELETE SET NULL;
+
+-- ─────────────────────────────────────────────────────────────
+-- 0b. INVOICE ENHANCEMENTS (E-Invoice, QR Payment)
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_irn TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_qr_code TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_status TEXT; -- 'pending' | 'generated' | 'failed' | 'canceled'
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_no TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_date TIMESTAMPTZ;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS qr_payment_upi_id TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS qr_payment_amount DECIMAL(15,2);
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. PROFILES  (extends auth.users 1-to-1)
@@ -546,3 +574,338 @@ WITH CHECK (
   bucket_id = 'business-assets' AND
   (auth.uid()::text = (storage.foldername(name))[1])
 );
+
+-- ═══════════════════════════════════════════════════════════════
+-- NEW TABLES FOR UPGRADE V2
+-- ═══════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────
+-- 23. TEAM MEMBERS (Multi-User Access)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.team_members (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  owner_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  email TEXT NOT NULL,
+  name TEXT,
+  role TEXT DEFAULT 'staff', -- 'admin' | 'staff' | 'viewer'
+  permissions JSONB DEFAULT '{"invoices":true,"quotations":true,"purchases":true,"products":true,"customers":true,"reports":true,"settings":false}',
+  status TEXT DEFAULT 'active', -- 'active' | 'invited' | 'disabled'
+  invited_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 24. BANK ACCOUNTS (Multiple Bank Accounts)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.bank_accounts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  bank_name TEXT,
+  account_number TEXT,
+  ifsc_code TEXT,
+  account_holder_name TEXT,
+  upi_id TEXT,
+  is_primary BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 25. E-INVOICE SETTINGS (GSTN Credentials)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.einvoice_settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  gstin TEXT,
+  username TEXT,
+  password_encrypted TEXT,
+  client_id TEXT,
+  client_secret_encrypted TEXT,
+  environment TEXT DEFAULT 'production', -- 'sandbox' | 'production'
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 26. SALES ORDERS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.sales_orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES public.customers ON DELETE SET NULL,
+  order_number TEXT NOT NULL,
+  order_date DATE DEFAULT CURRENT_DATE,
+  expected_date DATE,
+  subtotal DECIMAL(15,2) DEFAULT 0,
+  tax_total DECIMAL(15,2) DEFAULT 0,
+  cgst_total DECIMAL(15,2) DEFAULT 0,
+  sgst_total DECIMAL(15,2) DEFAULT 0,
+  igst_total DECIMAL(15,2) DEFAULT 0,
+  total_amount DECIMAL(15,2) DEFAULT 0,
+  status TEXT DEFAULT 'pending', -- 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  notes TEXT,
+  billing_address TEXT,
+  shipping_address TEXT,
+  supply_place TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 27. SALES ORDER ITEMS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.sales_order_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  order_id UUID REFERENCES public.sales_orders ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.products ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  hsn_code TEXT,
+  quantity DECIMAL(15,2) NOT NULL,
+  unit_price DECIMAL(15,2) NOT NULL,
+  tax_rate DECIMAL(15,2) DEFAULT 0,
+  cgst DECIMAL(15,2) DEFAULT 0,
+  sgst DECIMAL(15,2) DEFAULT 0,
+  igst DECIMAL(15,2) DEFAULT 0,
+  tax_amount DECIMAL(15,2) DEFAULT 0,
+  total DECIMAL(15,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 28. PURCHASE ORDERS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.purchase_orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  supplier_id UUID REFERENCES public.customers ON DELETE SET NULL,
+  order_number TEXT NOT NULL,
+  order_date DATE DEFAULT CURRENT_DATE,
+  expected_date DATE,
+  subtotal DECIMAL(15,2) DEFAULT 0,
+  tax_total DECIMAL(15,2) DEFAULT 0,
+  cgst_total DECIMAL(15,2) DEFAULT 0,
+  sgst_total DECIMAL(15,2) DEFAULT 0,
+  igst_total DECIMAL(15,2) DEFAULT 0,
+  total_amount DECIMAL(15,2) DEFAULT 0,
+  status TEXT DEFAULT 'pending', -- 'pending' | 'confirmed' | 'received' | 'partial' | 'cancelled'
+  notes TEXT,
+  billing_address TEXT,
+  shipping_address TEXT,
+  supply_place TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 29. PURCHASE ORDER ITEMS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.purchase_order_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  order_id UUID REFERENCES public.purchase_orders ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.products ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  hsn_code TEXT,
+  quantity DECIMAL(15,2) NOT NULL,
+  received_quantity DECIMAL(15,2) DEFAULT 0,
+  unit_price DECIMAL(15,2) NOT NULL,
+  tax_rate DECIMAL(15,2) DEFAULT 0,
+  cgst DECIMAL(15,2) DEFAULT 0,
+  sgst DECIMAL(15,2) DEFAULT 0,
+  igst DECIMAL(15,2) DEFAULT 0,
+  tax_amount DECIMAL(15,2) DEFAULT 0,
+  total DECIMAL(15,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 30. PAYMENT REMINDERS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.payment_reminders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  invoice_id UUID REFERENCES public.invoices ON DELETE CASCADE NOT NULL,
+  reminder_date DATE,
+  sent_date TIMESTAMPTZ,
+  sent_via TEXT, -- 'whatsapp' | 'sms' | 'email'
+  status TEXT DEFAULT 'pending', -- 'pending' | 'sent' | 'failed'
+  message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 31. BACKUPS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.backups (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  backup_type TEXT, -- 'auto' | 'manual'
+  file_name TEXT,
+  file_url TEXT,
+  file_size BIGINT,
+  status TEXT DEFAULT 'completed', -- 'pending' | 'completed' | 'failed'
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 32. LOW STOCK ALERTS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.low_stock_alerts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.products ON DELETE CASCADE NOT NULL,
+  current_stock DECIMAL(15,2),
+  min_stock_level DECIMAL(15,2),
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 33. CHEQUES (Cheque Management)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.cheques (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES public.customers ON DELETE SET NULL,
+  cheque_number TEXT NOT NULL,
+  bank_name TEXT,
+  amount DECIMAL(15,2) NOT NULL,
+  cheque_date DATE,
+  deposit_date DATE,
+  type TEXT DEFAULT 'receive', -- 'receive' | 'issue'
+  status TEXT DEFAULT 'pending', -- 'pending' | 'deposited' | 'cleared' | 'bounced' | 'cancelled'
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- 34. CASH FLOW TRANSACTIONS
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.cash_flow (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL, -- 'income' | 'expense' | 'transfer'
+  category TEXT,
+  amount DECIMAL(15,2) NOT NULL,
+  date DATE DEFAULT CURRENT_DATE,
+  reference_type TEXT, -- 'invoice' | 'payment' | 'expense' | 'purchase'
+  reference_id UUID,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════════════════════════
+-- RLS POLICIES FOR NEW TABLES
+-- ═══════════════════════════════════════════════════════════════
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOR t IN SELECT unnest(ARRAY[
+    'team_members', 'bank_accounts', 'einvoice_settings',
+    'sales_orders', 'sales_order_items',
+    'purchase_orders', 'purchase_order_items',
+    'payment_reminders', 'backups', 'low_stock_alerts',
+    'cheques', 'cash_flow'
+  ])
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS "%s_own" ON public.%I', t, t);
+    EXECUTE format(
+      'CREATE POLICY "%s_own" ON public.%I FOR ALL USING (auth.uid() = user_id)',
+      t, t
+    );
+  END LOOP;
+END $$;
+
+-- Team members also need owner-level access
+DROP POLICY IF EXISTS "team_members_owner" ON public.team_members;
+CREATE POLICY "team_members_owner" ON public.team_members 
+FOR ALL USING (auth.uid() = owner_id);
+
+-- ═══════════════════════════════════════════════════════════════
+-- STORAGE BUCKET FOR BACKUPS
+-- ═══════════════════════════════════════════════════════════════
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('backups', 'backups', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Users can manage backups" ON storage.objects;
+CREATE POLICY "Users can manage backups"
+ON storage.objects FOR ALL
+TO authenticated
+WITH CHECK (
+  bucket_id = 'backups' AND
+  (auth.uid()::text = (storage.foldername(name))[1])
+);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 35. STAFF & PAYROLL MANAGEMENT
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.staff_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    phone TEXT,
+    role TEXT,
+    salary NUMERIC DEFAULT 0,
+    joining_date DATE DEFAULT CURRENT_DATE,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.staff_attendance (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    staff_id UUID NOT NULL REFERENCES public.staff_members(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('present', 'absent', 'half_day', 'leave')),
+    check_in TIME,
+    check_out TIME,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(staff_id, date)
+);
+
+ALTER TABLE public.staff_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.staff_attendance ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "staff_members_own" ON public.staff_members;
+CREATE POLICY "staff_members_own" ON public.staff_members FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "staff_attendance_own" ON public.staff_attendance;
+CREATE POLICY "staff_attendance_own" ON public.staff_attendance FOR ALL USING (auth.uid() = user_id);
+
+
+-- ═══════════════════════════════════════════════════════════════
+-- 36. HIGH-PERFORMANCE INDEXES (CRITICAL FOR 100K CONCURRENT USERS)
+-- ═══════════════════════════════════════════════════════════════
+-- RLS heavily relies on checking auth.uid() against user_id, 
+-- so indexing user_id on ALL tables is mission-critical for scaling.
+CREATE INDEX IF NOT EXISTS idx_customers_user_id ON public.customers(user_id);
+CREATE INDEX IF NOT EXISTS idx_products_user_id ON public.products(user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON public.invoices(user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON public.invoices(customer_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_date ON public.invoices(invoice_date DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON public.invoices(status, payment_status);
+
+CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON public.purchases(user_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON public.purchases(supplier_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user_id_invoice ON public.payments(user_id, invoice_id);
+CREATE INDEX IF NOT EXISTS idx_returns_user_id ON public.returns(user_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id_date ON public.expenses(user_id, expense_date DESC);
+
+-- Inventory speed
+CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(user_id, category);
+CREATE INDEX IF NOT EXISTS idx_products_stock ON public.products(user_id, stock_quantity);
+
+-- Staff indexing
+CREATE INDEX IF NOT EXISTS idx_staff_user_id ON public.staff_members(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_attendance_staff_date ON public.staff_attendance(staff_id, date);
+
+-- Pagination optimization
+CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON public.invoices(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_purchases_created_at ON public.purchases(created_at DESC);

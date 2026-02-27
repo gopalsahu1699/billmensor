@@ -46,3 +46,7 @@ next-env.d.ts
 # Build and dev logs
 build_output*
 eslint_report.json
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/schemas/

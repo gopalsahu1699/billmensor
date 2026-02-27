@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { ChevronDown, Plus, Trash2, Package } from 'lucide-react'
+import { MdChevronRight, MdAdd, MdDelete, MdExpandMore, MdInventory } from 'react-icons/md'
 import { quotationService } from '@/services/quotation.service'
 import { quotationSchema } from '@/lib/validators'
 
@@ -394,7 +394,7 @@ function CreateQuotationForm() {
                                             : "Search for a client..."
                                         }
                                     </span>
-                                    <ChevronDown size={16} className="text-slate-400" />
+                                    <MdExpandMore size={16} className="text-slate-400" />
                                 </button>
                                 <SelectorModal
                                     isOpen={isCustomerModalOpen}
@@ -459,7 +459,7 @@ function CreateQuotationForm() {
                                 }}
                                 className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
                             >
-                                <Plus size={16} className="text-white" />
+                                <MdAdd size={16} className="text-white" />
                                 Add Item
                             </button>
                         </div>
@@ -531,9 +531,9 @@ function CreateQuotationForm() {
                                                 </div>
                                             </td>
                                             <td className="py-6 text-right pl-4">
-                                                <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                    <Trash2 size={18} />
-                                                </button>
+                                        <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                                    <MdDelete size={18} />
+                                        </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -541,7 +541,7 @@ function CreateQuotationForm() {
                                         <tr>
                                             <td colSpan={6} className="py-16 text-center">
                                                 <div className="flex flex-col items-center gap-4 text-slate-400 dark:text-slate-600">
-                                                    <Package size={48} strokeWidth={1} className="opacity-20" />
+                                                    <MdInventory size={48} strokeWidth={1} className="opacity-20" />
                                                     <p className="italic text-sm font-medium">No items added to this quotation yet.<br />Click &quot;Add Item&quot; to pick your first product.</p>
                                                 </div>
                                             </td>

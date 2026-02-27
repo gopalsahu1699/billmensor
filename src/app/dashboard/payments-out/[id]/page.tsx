@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowLeft, Loader2, Trash2, Edit, Wallet, Calendar, Hash, Banknote, CreditCard, Send, Share2, Mail, FileText, ChevronDown, Download } from 'lucide-react'
+import { MdArrowBack as ArrowLeft, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdWallet as Wallet, MdCalendarToday as Calendar, MdTag as Hash, MdAccountBalance as Banknote, MdCreditCard as CreditCard, MdSend as Send, MdShare as Share2, MdEmail as Mail, MdDescription as FileText, MdExpandMore as ChevronDown, MdDownload as Download } from 'react-icons/md'
 import type { Payment, Profile } from '@/types'
 
 export default function PaymentOutDetailPage({ params }: { params: Promise<{ id: string }> }) {

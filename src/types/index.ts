@@ -34,6 +34,13 @@ export interface Product {
     image_url?: string
     opening_stock_value?: number
     created_at: string
+    // New fields for upgrade
+    barcode?: string
+    batch_number?: string
+    expiry_date?: string
+    mfg_date?: string
+    reorder_point?: number
+    is_low_stock_alert?: boolean
 }
 
 export interface InvoiceItem {
@@ -84,6 +91,14 @@ export interface Invoice {
     payment_status?: string
     status: "draft" | "sent" | "partial" | "paid" | "overdue" | "cancelled" | "void"
     created_at: string
+    // New fields for upgrade
+    einvoice_irn?: string
+    einvoice_qr_code?: string
+    einvoice_status?: "pending" | "generated" | "failed" | "canceled"
+    einvoice_ack_no?: string
+    einvoice_ack_date?: string
+    qr_payment_upi_id?: string
+    qr_payment_amount?: number
 }
 
 export interface QuotationItem {
@@ -327,4 +342,198 @@ export interface BankDetails {
     bank_branch_name?: string;
     upi_id?: string;
     created_at?: string;
+}
+
+// ============================================================
+// NEW TYPES FOR UPGRADE V2
+// ============================================================
+
+export interface TeamMember {
+    id: string
+    user_id: string
+    owner_id: string
+    email: string
+    name?: string
+    role: "admin" | "staff" | "viewer"
+    permissions: {
+        invoices?: boolean
+        quotations?: boolean
+        purchases?: boolean
+        products?: boolean
+        customers?: boolean
+        reports?: boolean
+        settings?: boolean
+    }
+    status: "active" | "invited" | "disabled"
+    invited_at?: string
+    created_at: string
+}
+
+export interface BankAccount {
+    id: string
+    user_id: string
+    bank_name?: string
+    account_number?: string
+    ifsc_code?: string
+    account_holder_name?: string
+    upi_id?: string
+    is_primary: boolean
+    is_active: boolean
+    created_at: string
+}
+
+export interface EinvoiceSettings {
+    id: string
+    user_id: string
+    gstin?: string
+    username?: string
+    password_encrypted?: string
+    client_id?: string
+    client_secret_encrypted?: string
+    environment: "sandbox" | "production"
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export interface SalesOrderItem {
+    id: string
+    product_id?: string
+    name: string
+    hsn_code?: string
+    quantity: number
+    unit_price: number
+    tax_rate: number
+    cgst: number
+    sgst: number
+    igst: number
+    tax_amount: number
+    total: number
+}
+
+export interface SalesOrder {
+    id: string
+    user_id?: string
+    customer_id?: string
+    customers?: Customer
+    order_number: string
+    order_date: string
+    expected_date?: string
+    items: SalesOrderItem[]
+    subtotal: number
+    cgst_total: number
+    sgst_total: number
+    igst_total: number
+    tax_total: number
+    total_amount: number
+    status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
+    notes?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+    created_at: string
+}
+
+export interface PurchaseOrderItem {
+    id: string
+    product_id?: string
+    name: string
+    hsn_code?: string
+    quantity: number
+    received_quantity?: number
+    unit_price: number
+    tax_rate: number
+    cgst: number
+    sgst: number
+    igst: number
+    tax_amount: number
+    total: number
+}
+
+export interface PurchaseOrder {
+    id: string
+    user_id?: string
+    supplier_id?: string
+    suppliers?: Customer
+    order_number: string
+    order_date: string
+    expected_date?: string
+    items: PurchaseOrderItem[]
+    subtotal: number
+    cgst_total: number
+    sgst_total: number
+    igst_total: number
+    tax_total: number
+    total_amount: number
+    status: "pending" | "confirmed" | "received" | "partial" | "cancelled"
+    notes?: string
+    billing_address?: string
+    shipping_address?: string
+    supply_place?: string
+    created_at: string
+}
+
+export interface PaymentReminder {
+    id: string
+    user_id: string
+    invoice_id: string
+    invoices?: Invoice
+    reminder_date?: string
+    sent_date?: string
+    sent_via?: "whatsapp" | "sms" | "email"
+    status: "pending" | "sent" | "failed"
+    message?: string
+    created_at: string
+}
+
+export interface Backup {
+    id: string
+    user_id: string
+    backup_type?: "auto" | "manual"
+    file_name?: string
+    file_url?: string
+    file_size?: number
+    status: "pending" | "completed" | "failed"
+    notes?: string
+    created_at: string
+}
+
+export interface LowStockAlert {
+    id: string
+    user_id: string
+    product_id: string
+    products?: Product
+    current_stock?: number
+    min_stock_level?: number
+    is_read: boolean
+    created_at: string
+}
+
+export interface Cheque {
+    id: string
+    user_id: string
+    customer_id?: string
+    customers?: Customer
+    cheque_number: string
+    bank_name?: string
+    amount: number
+    cheque_date?: string
+    deposit_date?: string
+    type: "receive" | "issue"
+    status: "pending" | "deposited" | "cleared" | "bounced" | "cancelled"
+    notes?: string
+    created_at: string
+}
+
+export interface CashFlow {
+    id: string
+    user_id: string
+    type: "income" | "expense" | "transfer"
+    category?: string
+    amount: number
+    date: string
+    reference_type?: "invoice" | "payment" | "expense" | "purchase"
+    reference_id?: string
+    notes?: string
+    created_at: string
 }

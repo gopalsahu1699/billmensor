@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Plus, Trash2, ChevronDown, Package, CheckCircle2, Loader2 } from 'lucide-react'
+import { IoMdAdd, IoMdTrash, IoMdArrowDropdown, IoMdCube, IoMdCheckmarkCircle, IoMdRefresh } from 'react-icons/io'
+import { IoChevronDown } from 'react-icons/io5'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
@@ -372,7 +373,7 @@ function CreateReturnForm() {
                         disabled={loading}
                         className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
                     >
-                        {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                        {loading ? <IoMdRefresh size={20} className="animate-spin" /> : <IoMdCheckmarkCircle size={20} />}
                         {loading ? 'SAVING...' : 'SAVE RETURN'}
                     </button>
                 </div>
@@ -396,7 +397,7 @@ function CreateReturnForm() {
                                             : "Search for a party..."
                                         }
                                     </span>
-                                    <ChevronDown size={14} className="text-slate-400" />
+                                    <IoChevronDown size={14} className="text-slate-400" />
                                 </button>
                                 <SelectorModal
                                     isOpen={isPartyModalOpen}
@@ -438,7 +439,7 @@ function CreateReturnForm() {
                                 }}
                                 className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                             >
-                                <Plus size={16} />
+                                <IoMdAdd size={16} />
                                 Add Item
                             </button>
                         </CardHeader>
@@ -498,7 +499,7 @@ function CreateReturnForm() {
                                                 </td>
                                                 <td className="py-4 text-right pl-4">
                                                     <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                        <Trash2 size={18} />
+                                                        <IoMdTrash size={18} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -507,7 +508,7 @@ function CreateReturnForm() {
                                             <tr>
                                                 <td colSpan={5} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-3 text-slate-400">
-                                                        <Package size={40} strokeWidth={1} className="opacity-20" />
+                                                        <IoMdCube size={40} strokeWidth={1} className="opacity-20" />
                                                         <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin selection.</p>
                                                     </div>
                                                 </td>

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Zap, Heart, Users, Target } from "lucide-react";
+import { MdArrowBack, MdCheckCircle, MdBolt, MdFavorite, MdPeople, MdGpsFixed } from "react-icons/md";
 
 export default function AboutPage() {
     return (
@@ -11,7 +11,7 @@ export default function AboutPage() {
             <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-slate-950/50 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 text-blue-500 group">
-                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <MdArrowBack className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                         <span className="font-bold tracking-tight">Back to Home</span>
                     </Link>
                     <div className="flex items-center gap-2 text-blue-500">
@@ -74,7 +74,7 @@ export default function AboutPage() {
                                         "Only pay if you want premium cloud backup and multi-device sync."
                                     ].map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <CheckCircle2 className="text-blue-500 w-5 h-5 shrink-0" />
+                                            <MdCheckCircle className="text-blue-500 w-5 h-5 shrink-0" />
                                             <span className="text-slate-200">{item}</span>
                                         </div>
                                     ))}
@@ -88,7 +88,7 @@ export default function AboutPage() {
                                 className="relative"
                             >
                                 <div className="aspect-square rounded-[40px] bg-linear-to-br from-blue-600 to-indigo-900 flex items-center justify-center p-12 shadow-2xl shadow-blue-500/20 overflow-hidden group">
-                                    <Zap className="w-full h-full text-white/20 absolute -right-20 -bottom-20 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                                    <MdBolt className="w-full h-full text-white/20 absolute -right-20 -bottom-20 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
                                     <div className="relative text-center">
                                         <div className="text-6xl font-black italic mb-2">₹199</div>
                                         <div className="text-blue-200 font-bold uppercase tracking-widest text-sm">Per Month / ₹1,999 Yearly</div>
@@ -109,21 +109,21 @@ export default function AboutPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[
-                                {
-                                    icon: <Heart className="text-rose-500" />,
-                                    title: "User Centric",
-                                    desc: "Every button and field is placed with purpose to make your workflow faster."
-                                },
-                                {
-                                    icon: <Users className="text-blue-500" />,
-                                    title: "Shared Community",
-                                    desc: "Listen to the feedback of thousands of users to constantly improve the platform."
-                                },
-                                {
-                                    icon: <Target className="text-emerald-500" />,
-                                    title: "GST Ready",
-                                    desc: "Stay compliant with Indian tax laws without needing a degree in accounting."
-                                }
+{
+    icon: <MdFavorite className="text-rose-500" />,
+    title: "User Centric",
+    desc: "Every button and field is placed with purpose to make your workflow faster."
+},
+{
+    icon: <MdPeople className="text-blue-500" />,
+    title: "Shared Community",
+    desc: "Listen to the feedback of thousands of users to constantly improve the platform."
+},
+{
+    icon: <MdGpsFixed className="text-emerald-500" />,
+    title: "GST Ready",
+    desc: "Stay compliant with Indian tax laws without needing a degree in accounting."
+}
                             ].map((item, i) => (
                                 <div key={i} className="p-8 rounded-3xl bg-slate-900/50 border border-white/5 hover:border-white/10 transition-colors">
                                     <div className="mb-6 p-4 w-fit rounded-2xl bg-white/5">{item.icon}</div>

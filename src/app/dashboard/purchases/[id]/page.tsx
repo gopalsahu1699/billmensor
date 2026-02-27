@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Loader2, Trash2, Edit, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { MdArrowBack, MdDownload, MdRefresh, MdDelete, MdEdit, MdShoppingCart, MdCheckCircle } from 'react-icons/md'
 import Image from 'next/image'
 import type { Purchase, PurchaseItem, Profile } from '@/types'
 
@@ -100,7 +100,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+            <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
             <p className="text-slate-500 font-medium">Loading purchase details...</p>
         </div>
     )
@@ -113,7 +113,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100 transition-all">
-                        <ArrowLeft size={20} />
+                        <MdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
@@ -136,29 +136,29 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                             onClick={handleMarkAsPaid}
                             className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-green-200 text-green-600 hover:bg-green-50 transition-all shadow-sm"
                         >
-                            <CheckCircle2 size={18} /> Mark as Paid
+                            <MdCheckCircle size={18} /> Mark as Paid
                         </Button>
                     )}
-                    <Button
-                        variant="outline"
-                        onClick={() => router.push(`/dashboard/purchases/create?edit=${resolvedParams.id}`)}
+                        <Button
+                            variant="outline"
+                            onClick={() => router.push(`/dashboard/purchases/create?edit=${resolvedParams.id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit
-                    </Button>
+                            <MdEdit size={18} /> Edit
+                        </Button>
                     <Button
-                        variant="outline"
-                        onClick={handleDelete}
+                            variant="outline"
+                            onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
-                    </Button>
+                            <MdDelete size={18} /> Delete
+                        </Button>
                     <Button
-                        onClick={handleDownload}
+                            onClick={handleDownload}
                         className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
-                    >
-                        <Download size={18} /> Download Bill
-                    </Button>
+                        >
+                        <MdDownload size={18} /> Download Bill
+                        </Button>
                 </div>
             </div>
 
@@ -170,8 +170,8 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                                 {profile?.logo_url ? (
                                     <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
                                 ) : (
-                                    <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
-                                        <ShoppingCart size={32} />
+                                <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
+                                        <MdShoppingCart size={32} />
                                     </div>
                                 )}
                                 <div>

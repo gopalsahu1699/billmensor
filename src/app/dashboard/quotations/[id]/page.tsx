@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, RotateCcw, Loader2, Layout, Mail, Share2, Trash2, Edit } from 'lucide-react'
+import { MdArrowBack, MdDownload, MdRotateLeft, MdRefresh, MdDashboard, MdMail, MdShare, MdDelete, MdEdit } from 'react-icons/md'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
@@ -265,7 +265,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+            <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
             <p className="text-slate-500 font-medium">Loading professional estimate...</p>
         </div>
     )
@@ -278,7 +278,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-2xl h-12 w-12 hover:bg-slate-100">
-                        <ArrowLeft size={20} />
+                        <MdArrowBack size={20} />
                     </Button>
                     <div>
                         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
@@ -301,7 +301,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                             onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
                             className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                         >
-                            <Layout size={18} /> {printSettings.print_template} Template
+                            <MdDashboard size={18} /> {printSettings.print_template} Template
                         </Button>
 
                         {isTemplateMenuOpen && (
@@ -344,7 +344,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                         disabled={sharing}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        {sharing ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
+                        {sharing ? <MdRefresh size={18} className="animate-spin" /> : <MdShare size={18} />}
                         {sharing ? 'Sharing...' : 'Share'}
                     </Button>
                     <Button
@@ -352,7 +352,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                         onClick={handleEmail}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Mail size={18} /> Email
+                        <MdMail size={18} /> Email
                     </Button>
                     {quotation.status !== 'invoiced' && (
                         <Button
@@ -360,7 +360,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                             disabled={converting}
                             className="flex items-center gap-2 bg-slate-900 text-white px-6 h-12 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-95 disabled:opacity-50"
                         >
-                            {converting ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                        {converting ? <MdRefresh size={18} className="animate-spin" /> : <MdRotateLeft size={18} />} 
                             {converting ? 'CONVERTING...' : 'TO INVOICE'}
                         </Button>
                     )}
@@ -369,20 +369,20 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                         onClick={() => router.push(`/dashboard/quotations/create?edit=${resolvedParams.id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <Edit size={18} /> Edit
+                        <MdEdit size={18} /> Edit
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                        <Trash2 size={18} /> Delete
+                        <MdDelete size={18} /> Delete
                     </Button>
                     <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                        <Download size={18} /> Download
+                        <MdDownload size={18} /> Download
                     </Button>
                 </div>
             </div>

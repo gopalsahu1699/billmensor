@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { toast } from 'sonner'
 import {
-    Search,
-    ShoppingCart,
-    Plus,
-    Minus,
-    Trash2,
-    Package,
-    ArrowRight,
-    Zap,
-    X,
-    ChevronDown
-} from 'lucide-react'
+    IoSearch,
+    IoCart,
+    IoAdd,
+    IoRemove,
+    IoTrash,
+    IoCube,
+    IoArrowForward,
+
+    IoClose,
+    IoChevronDown
+} from 'react-icons/io5'
+import { MdBolt } from 'react-icons/md'
 import { SelectorModal } from '@/components/ui/SelectorModal'
 
 import { Product, Customer } from '@/types'
@@ -27,7 +28,7 @@ export default function POSPage() {
     const [products, setProducts] = useState<Product[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
     const [cart, setCart] = useState<CartItem[]>([])
-    const [search, setSearch] = useState('')
+    const [search, setIoSearch] = useState('')
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [paymentMode, setPaymentMode] = useState('cash')
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
@@ -156,18 +157,18 @@ export default function POSPage() {
                 <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                            <Zap className="text-blue-500" fill="currentColor" size={20} />
+                            <MdBolt className="text-blue-500" fill="currentColor" size={20} />
                             Terminal
                         </h2>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-tight">Quick item search and selection</p>
                     </div>
                     <div className="relative group w-full max-w-xs">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                        <IoSearch size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Scan SKU or name..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => setIoSearch(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-blue-500/20 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                     </div>
@@ -182,7 +183,7 @@ export default function POSPage() {
                                 className="flex flex-col text-left bg-slate-50 dark:bg-white/5 border border-transparent hover:border-blue-600/30 hover:bg-blue-600/5 p-4 rounded-2xl transition-all group active:scale-95"
                             >
                                 <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 mb-3 shadow-sm border border-slate-100 dark:border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                    <Package size={20} />
+                                    <IoCube size={20} />
                                 </div>
                                 <h3 className="text-sm font-black text-slate-900 dark:text-white truncate w-full mb-1">{p.name}</h3>
                                 <p className="text-xs font-black text-blue-600 dark:text-blue-400 leading-none">₹ {(p.price || 0).toLocaleString('en-IN')}</p>
@@ -191,7 +192,7 @@ export default function POSPage() {
                     </div>
                     {filteredProducts.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 py-20">
-                            <Package size={48} strokeWidth={1} className="mb-4 text-slate-200 dark:text-slate-800/50" />
+                            <IoCube size={48} strokeWidth={1} className="mb-4 text-slate-200 dark:text-slate-800/50" />
                             <p className="font-medium italic text-sm">No products found matching your search.</p>
                         </div>
                     )}
@@ -202,14 +203,14 @@ export default function POSPage() {
             <div className="w-full lg:w-100 flex flex-col bg-slate-900 border border-white/5 rounded-3xl shadow-2xl overflow-hidden relative">
                 <div className="p-6 border-b border-white/5 flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-                        <ShoppingCart size={20} />
+                        <IoCart size={20} />
                     </div>
                     <div>
                         <h2 className="text-xl font-black text-white leading-none">Cart</h2>
                         <span className="text-[10px] text-blue-300 font-black uppercase tracking-widest mt-1 block">Checkout Ledger</span>
                     </div>
                     <button onClick={() => setCart([])} className="ml-auto p-2 text-slate-500 hover:text-red-400 transition-colors" title="Clear Cart">
-                        <Trash2 size={18} />
+                        <IoTrash size={18} />
                     </button>
                 </div>
 
@@ -223,17 +224,17 @@ export default function POSPage() {
                                     <p className="text-[10px] text-blue-300 font-black">₹ {(item.price || 0).toLocaleString('en-IN')} / unit</p>
                                 </div>
                                 <button onClick={() => removeFromCart(item.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-red-400 transition-all">
-                                    <X size={14} />
+                                    <IoClose size={14} />
                                 </button>
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 bg-black/20 rounded-xl p-1 border border-white/5">
                                     <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-300 transition-all active:scale-90">
-                                        <Minus size={14} />
+                                        <IoRemove size={14} />
                                     </button>
                                     <span className="w-8 text-center text-xs font-black text-white">{item.quantity}</span>
                                     <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-300 transition-all active:scale-90">
-                                        <Plus size={14} />
+                                        <IoAdd size={14} />
                                     </button>
                                 </div>
                                 <span className="text-sm font-black text-white">₹ {(item.price * item.quantity || 0).toLocaleString('en-IN')}</span>
@@ -242,7 +243,7 @@ export default function POSPage() {
                     ))}
                     {cart.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-500 py-10 opacity-50">
-                            <ShoppingCart size={32} strokeWidth={1} className="mb-2" />
+                            <IoCart size={32} strokeWidth={1} className="mb-2" />
                             <p className="text-[10px] font-black uppercase tracking-widest italic">Order is empty</p>
                         </div>
                     )}
@@ -260,7 +261,7 @@ export default function POSPage() {
                                 <span className={selectedCustomer ? "text-white" : "text-slate-300"}>
                                     {selectedCustomer ? selectedCustomer.name : "Walk-in Customer"}
                                 </span>
-                                <ChevronDown size={14} className="text-slate-500" />
+                                <IoChevronDown size={14} className="text-slate-500" />
                             </button>
                             <SelectorModal
                                 isOpen={isCustomerModalOpen}
@@ -311,7 +312,7 @@ export default function POSPage() {
                         className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95 group"
                     >
                         Checkout Order
-                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <IoArrowForward size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
             </div>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { TrendingUp, ChevronLeft, Download, RefreshCw, FileText } from 'lucide-react'
+import { IoTrendingUp, IoChevronBack, IoDownload, IoRefresh, IoDocument } from 'react-icons/io5'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -182,7 +182,7 @@ export default function ProfitLossStockReport() {
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
-                        <ChevronLeft size={18} />
+                        <IoChevronBack size={18} />
                     </Button>
                 </Link>
                 <h1 className="text-2xl font-bold">Profit & Loss (Stock Wise)</h1>
@@ -210,7 +210,7 @@ export default function ProfitLossStockReport() {
                 </div>
 
                 <Button variant="ghost" size="sm" onClick={calculateStockPL} className="ml-auto">
-                    <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                    <IoRefresh size={16} className={loading ? "animate-spin" : ""} />
                 </Button>
             </div>
 
@@ -256,7 +256,7 @@ export default function ProfitLossStockReport() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <TrendingUp size={24} />
+                                <IoTrendingUp size={24} />
                                 Profit Margin
                             </CardTitle>
                         </CardHeader>
@@ -273,14 +273,14 @@ export default function ProfitLossStockReport() {
                             className="h-20 rounded-3xl bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col gap-1 shadow-sm"
                             onClick={exportToXLS}
                         >
-                            <Download size={20} className="text-blue-600" />
+                            <IoDownload size={20} className="text-blue-600" />
                             <span className="font-bold text-xs uppercase tracking-widest">Export Excel</span>
                         </Button>
                         <Button
                             className="h-20 rounded-3xl bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col gap-1 shadow-sm"
                             onClick={() => window.print()}
                         >
-                            <FileText size={20} className="text-purple-600" />
+                            <IoDocument size={20} className="text-purple-600" />
                             <span className="font-bold text-xs uppercase tracking-widest">Print PDF</span>
                         </Button>
                     </div>

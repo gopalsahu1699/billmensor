@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3 } from "lucide-react";
+import { MdArrowForward, MdCheckCircle, MdBolt, MdShield, MdBarChart } from "react-icons/md";
 import { User } from "@supabase/supabase-js";
 
 export default function LandingPage() {
@@ -41,7 +41,7 @@ export default function LandingPage() {
             {user ? (
               <Link href="/dashboard">
                 <Button className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 px-6">
-                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4" />
+                  Go to Dashboard <MdArrowForward className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
             ) : (
@@ -107,7 +107,7 @@ export default function LandingPage() {
               <Link href="/dashboard">
                 <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
                   Go to Dashboard
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <MdArrowForward className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
             ) : (
@@ -115,7 +115,7 @@ export default function LandingPage() {
                 <Link href="/register">
                   <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
                     Get Started for Free
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <MdArrowForward className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Link href="/demo">
@@ -195,17 +195,17 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                icon: <Zap className="w-6 h-6 text-yellow-400" />,
+                icon: <MdBolt className="w-6 h-6 text-yellow-400" />,
                 title: "Instant Invoicing",
                 desc: "Generate professional GST-ready invoices in seconds with our smart editor."
               },
               {
-                icon: <BarChart3 className="w-6 h-6 text-green-400" />,
+                icon: <MdBarChart className="w-6 h-6 text-green-400" />,
                 title: "Real-time Reports",
                 desc: "Deep insights into your sales, expenses, and profits with beautiful charts."
               },
               {
-                icon: <Shield className="w-6 h-6 text-blue-400" />,
+                icon: <MdShield className="w-6 h-6 text-blue-400" />,
                 title: "Bank-grade Security",
                 desc: "Your data is encrypted and backed up daily. Privacy is our top priority."
               }
@@ -236,7 +236,7 @@ export default function LandingPage() {
             {/* Free Tier */}
             <div className="p-10 rounded-[40px] bg-slate-900/50 border border-white/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Zap size={80} />
+                <MdBolt size={80} />
               </div>
               <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Core Billing</h3>
               <div className="flex items-baseline gap-2 mb-6">
@@ -253,7 +253,7 @@ export default function LandingPage() {
                   "Standard Support"
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-sm text-slate-300">
-                    <CheckCircle2 className="text-blue-500 w-5 h-5 shrink-0" />
+                    <MdCheckCircle className="text-blue-500 w-5 h-5 shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -268,7 +268,7 @@ export default function LandingPage() {
               {/* Monthly Plan */}
               <div className="p-8 rounded-[40px] bg-slate-900/50 border border-white/5 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Zap size={60} />
+                  <MdBolt size={60} />
                 </div>
                 <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Monthly Backup</h3>
                 <div className="flex items-baseline gap-2 mb-4">
@@ -284,7 +284,7 @@ export default function LandingPage() {
               {/* Yearly Plan */}
               <div className="p-8 rounded-[40px] bg-blue-600 border border-blue-400 relative overflow-hidden shadow-2xl shadow-blue-500/20 group">
                 <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:rotate-12 transition-transform">
-                  <Shield size={60} />
+                  <MdShield size={60} />
                 </div>
                 <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[8px] font-black uppercase tracking-widest mb-4">Best Value (2 Months Free)</div>
                 <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Yearly Backup</h3>

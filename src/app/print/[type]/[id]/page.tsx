@@ -3,7 +3,7 @@
 import React, { use, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Printer, Download, ArrowLeft, Loader2 } from 'lucide-react'
+import { IoMdPrint, IoMdDownload, IoMdArrowBack, IoMdRefresh } from 'react-icons/io'
 import { Button } from '@/components/ui/button'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
@@ -186,7 +186,7 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-                <Loader2 className="animate-spin text-blue-600 w-10 h-10 mb-4" />
+                <IoMdRefresh className="animate-spin text-blue-600 w-10 h-10 mb-4" />
                 <p className="text-slate-500 font-medium tracking-wide">Preparing document for print...</p>
             </div>
         )
@@ -208,7 +208,7 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
             <div className="no-print sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-xl hover:bg-slate-100">
-                        <ArrowLeft size={16} className="mr-2" /> Back
+                        <IoMdArrowBack size={16} className="mr-2" /> Back
                     </Button>
                     <h1 className="text-[11px] font-black text-slate-800 uppercase tracking-widest bg-slate-100 px-4 py-2 rounded-lg">
                         Print Preview: {type}
@@ -216,10 +216,10 @@ export default function PrintDocumentPage({ params }: { params: Promise<PrintPar
                 </div>
                 <div className="flex gap-3">
                     <Button onClick={handleDownload} variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[11px] h-10 px-6 border-slate-200 text-slate-700 hover:bg-slate-50">
-                        <Download size={16} className="mr-2" /> PDF Export
+                        <IoMdDownload size={16} className="mr-2" /> PDF Export
                     </Button>
                     <Button onClick={handlePrint} className="rounded-xl font-black uppercase tracking-widest text-[11px] h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-all">
-                        <Printer size={16} className="mr-2" /> Print
+                        <IoMdPrint size={16} className="mr-2" /> Print
                     </Button>
                 </div>
             </div>

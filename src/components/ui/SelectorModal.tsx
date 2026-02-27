@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, X, Loader2, Check } from 'lucide-react'
+import { MdSearch, MdClose, MdRefresh, MdCheck } from 'react-icons/md'
 import { Input } from './input'
 
 interface SelectorModalProps<T> {
@@ -93,13 +93,13 @@ export function SelectorModal<T>({
                                 onClick={onClose}
                                 className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 transition-colors"
                             >
-                                <X size={20} />
+                                <MdClose size={20} />
                             </button>
                         </div>
 
                         <div className="p-4">
                             <div className="relative mb-4">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <Input
                                     ref={inputRef}
                                     placeholder={placeholder}
@@ -130,7 +130,7 @@ export function SelectorModal<T>({
                                                 </div>
                                                 {isSelected && (
                                                     <div className="bg-blue-500 text-white p-1 rounded-full">
-                                                        <Check size={14} />
+                                                        <MdCheck size={14} />
                                                     </div>
                                                 )}
                                             </button>

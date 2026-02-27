@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Package, ArrowUp, ArrowDown, History, ClipboardList } from 'lucide-react'
+import { IoMdAdd, IoMdCube, IoMdArrowUp, IoMdArrowDown } from 'react-icons/io'
+import { IoTime, IoList } from 'react-icons/io5'
 import { toast } from 'sonner'
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -94,12 +95,12 @@ export default function StockAdjustmentsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <ClipboardList className="text-blue-600" /> Stock Adjustments
+                        <IoList className="text-blue-600" /> Stock Adjustments
                     </h1>
                     <p className="text-slate-500">Log manual stock changes for wastage, damages, or corrections.</p>
                 </div>
                 <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
-                    <Plus size={18} /> New Adjustment
+                    <IoMdAdd size={18} /> New Adjustment
                 </Button>
             </div>
 
@@ -136,7 +137,7 @@ export default function StockAdjustmentsPage() {
                                                     "flex items-center gap-1 font-bold",
                                                     adj.adjustment_type === 'add' ? "text-green-600" : "text-red-500"
                                                 )}>
-                                                    {adj.adjustment_type === 'add' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                                                    {adj.adjustment_type === 'add' ? <IoMdArrowUp size={14} /> : <IoMdArrowDown size={14} />}
                                                     {adj.quantity}
                                                 </div>
                                             </td>
@@ -160,7 +161,7 @@ export default function StockAdjustmentsPage() {
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900">Manual Stock Adjustment</h2>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
-                                <Plus size={24} className="rotate-45" />
+                                <IoMdAdd size={24} className="rotate-45" />
                             </button>
                         </div>
                         <form onSubmit={handleAddAdjustment} className="p-6 space-y-4">

@@ -4,21 +4,20 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import {
-    Printer,
-    Layout,
-    CheckCircle2,
-    Eye,
-    EyeOff,
-    Save,
-    Loader2,
-    Truck,
-    Wrench,
-    Landmark,
-    QrCode,
-    FileText,
-    PenTool,
-    Settings2
-} from 'lucide-react'
+    IoPrint,
+    IoGrid,
+    IoCheckmarkCircle,
+    IoEye,
+    IoEyeOff,
+    IoSync,
+    IoBuild,
+    IoQrCode,
+    IoDocument,
+    IoPencil,
+    IoSettings,
+    IoCheckmark
+} from 'react-icons/io5'
+import { FaTruck, FaSave, FaUniversity } from 'react-icons/fa'
 
 const templates = [
     {
@@ -41,11 +40,19 @@ const templates = [
     }
 ]
 
+const paperSizes = [
+    { id: 'a4', name: 'A4', width: '210mm', height: '297mm', description: 'Standard office paper' },
+    { id: 'a5', name: 'A5', width: '148mm', height: '210mm', description: 'Half letter size' },
+    { id: 'thermal_2', name: '2" Thermal', width: '58mm', height: 'Variable', description: 'Small retail receipts' },
+    { id: 'thermal_3', name: '3" Thermal', width: '80mm', height: 'Variable', description: 'Standard thermal printer' },
+]
+
 export default function PrintSettingsPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [settings, setSettings] = useState({
         print_template: 'modern',
+        paper_size: 'a4',
         show_transport: true,
         show_installation: true,
         show_bank_details: true,
@@ -66,7 +73,7 @@ export default function PrintSettingsPage() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('print_template, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields')
+                .select('print_template, paper_size, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields')
                 .eq('id', user.id)
                 .single()
 
@@ -74,6 +81,7 @@ export default function PrintSettingsPage() {
             if (data) {
                 setSettings({
                     print_template: data.print_template || 'modern',
+                    paper_size: data.paper_size || 'a4',
                     show_transport: data.show_transport ?? true,
                     show_installation: data.show_installation ?? true,
                     show_bank_details: data.show_bank_details ?? true,
@@ -139,7 +147,7 @@ export default function PrintSettingsPage() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
-                            <Printer size={24} />
+                            <IoPrint size={24} />
                         </div>
                         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Print Settings</h1>
                     </div>
@@ -150,7 +158,7 @@ export default function PrintSettingsPage() {
                     disabled={saving}
                     className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
                 >
-                    {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} strokeWidth={3} />}
+                    {saving ? <IoSync size={20} className="animate-spin" /> : <FaSave size={20} strokeWidth={3} />}
                     {saving ? 'SAVING...' : 'SAVE SETTINGS'}
                 </button>
             </div>
@@ -158,9 +166,41 @@ export default function PrintSettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* TEMPLATE SELECTION */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Paper Size */}
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden p-6">
                         <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <Layout size={16} className="text-blue-500" />
+                            <IoPrint size={16} className="text-blue-500" />
+                            Paper Size
+                        </h2>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {paperSizes.map((size) => (
+                                <button
+                                    key={size.id}
+                                    onClick={() => setSettings({ ...settings, paper_size: size.id })}
+                                    className={`relative p-4 rounded-2xl border-2 transition-all text-left ${settings.paper_size === size.id
+                                        ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/20'
+                                        : 'border-slate-100 dark:border-white/5 hover:border-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
+                                        }`}
+                                >
+                                    <h3 className="font-bold text-slate-900 dark:text-white">{size.name}</h3>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{size.width} × {size.height}</p>
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">{size.description}</p>
+
+                                    {settings.paper_size === size.id && (
+                                        <div className="absolute top-2 right-2 text-blue-600">
+                                            <IoCheckmarkCircle size={18} />
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Template Selection */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden p-6">
+                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                            <IoGrid size={16} className="text-blue-500" />
                             Select Print Template
                         </h2>
 
@@ -175,14 +215,14 @@ export default function PrintSettingsPage() {
                                         }`}
                                 >
                                     <div className={`w-full aspect-3/4 rounded-lg mb-3 border border-dashed ${template.preview} flex items-center justify-center`}>
-                                        <Printer size={24} className="text-slate-300 group-hover:scale-110 transition-transform" />
+                                        <IoPrint size={24} className="text-slate-300 group-hover:scale-110 transition-transform" />
                                     </div>
                                     <h3 className="font-bold text-slate-900 dark:text-white">{template.name}</h3>
                                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">{template.description}</p>
 
                                     {settings.print_template === template.id && (
                                         <div className="absolute top-2 right-2 text-blue-600">
-                                            <CheckCircle2 size={18} />
+                                            <IoCheckmarkCircle size={18} />
                                         </div>
                                     )}
                                 </button>
@@ -195,49 +235,49 @@ export default function PrintSettingsPage() {
                 <div className="space-y-6">
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden p-6">
                         <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <Settings2 size={16} className="text-blue-500" />
+                            <IoSettings size={16} className="text-blue-500" />
                             Field Customization
                         </h2>
 
                         <div className="space-y-4">
                             <ToggleField
-                                icon={<Truck size={16} />}
+                                icon={<FaTruck size={16} />}
                                 label="Transport Charges"
                                 active={settings.show_transport}
                                 onChange={(v) => setSettings({ ...settings, show_transport: v })}
                             />
                             <ToggleField
-                                icon={<Wrench size={16} />}
+                                icon={<IoBuild size={16} />}
                                 label="Installation Charges"
                                 active={settings.show_installation}
                                 onChange={(v) => setSettings({ ...settings, show_installation: v })}
                             />
                             <ToggleField
-                                icon={<Landmark size={16} />}
+                                icon={<FaUniversity size={16} />}
                                 label="Bank Details"
                                 active={settings.show_bank_details}
                                 onChange={(v) => setSettings({ ...settings, show_bank_details: v })}
                             />
                             <ToggleField
-                                icon={<QrCode size={16} />}
+                                icon={<IoQrCode size={16} />}
                                 label="UPI QR Code"
                                 active={settings.show_upi_qr}
                                 onChange={(v) => setSettings({ ...settings, show_upi_qr: v })}
                             />
                             <ToggleField
-                                icon={<FileText size={16} />}
+                                icon={<IoDocument size={16} />}
                                 label="Terms & Conditions"
                                 active={settings.show_terms}
                                 onChange={(v) => setSettings({ ...settings, show_terms: v })}
                             />
                             <ToggleField
-                                icon={<PenTool size={16} />}
+                                icon={<IoPencil size={16} />}
                                 label="Business Signature"
                                 active={settings.show_signature}
                                 onChange={(v) => setSettings({ ...settings, show_signature: v })}
                             />
                             <ToggleField
-                                icon={<Settings2 size={16} />}
+                                icon={<IoSettings size={16} />}
                                 label="Custom Fields"
                                 active={settings.show_custom_fields}
                                 onChange={(v) => setSettings({ ...settings, show_custom_fields: v })}
@@ -247,7 +287,7 @@ export default function PrintSettingsPage() {
 
                     <div className="bg-blue-600 dark:bg-blue-700 rounded-3xl p-6 text-white shadow-xl shadow-blue-600/20">
                         <div className="flex items-center gap-3 mb-3">
-                            <Eye size={20} className="text-blue-200" />
+                            <IoEye size={20} className="text-blue-200" />
                             <h3 className="font-bold uppercase tracking-widest text-[10px]">Live Preview</h3>
                         </div>
                         <p className="text-xs text-blue-100 leading-relaxed font-medium">
@@ -273,7 +313,7 @@ function ToggleField({ icon, label, active, onChange }: { icon: React.ReactNode,
                 {icon}
                 <span>{label}</span>
             </div>
-            {active ? <Eye size={18} /> : <EyeOff size={18} />}
+            {active ? <IoEye size={18} /> : <IoEyeOff size={18} />}
         </button>
     )
 }

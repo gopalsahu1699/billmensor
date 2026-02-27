@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePayments } from '@/hooks/usePayment'
-import { Plus, Search, ArrowUpRight, Wallet, Banknote } from 'lucide-react'
+import { IoAdd, IoSearch, IoArrowUp, IoWallet, IoCash } from 'react-icons/io5'
 
 
 
@@ -20,9 +20,9 @@ export default function PaymentOutPage() {
 
     const getModeIcon = (mode: string) => {
         switch ((mode || 'cash').toLowerCase()) {
-            case 'bank': return <Banknote size={16} />
-            case 'upi': return <ArrowUpRight size={16} />
-            default: return <Wallet size={16} />
+            case 'bank': return <IoCash size={16} />
+            case 'upi': return <IoArrowUp size={16} />
+            default: return <IoWallet size={16} />
         }
     }
 
@@ -36,7 +36,7 @@ export default function PaymentOutPage() {
                 </div>
                 <Link href="/dashboard/payments-out/create">
                     <button className="flex items-center gap-3 bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-red-600/20 active:scale-95">
-                        <Plus size={20} strokeWidth={3} />
+                        <IoAdd size={20} strokeWidth={3} />
                         Record Payment
                     </button>
                 </Link>
@@ -46,7 +46,7 @@ export default function PaymentOutPage() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden min-h-100">
                 <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div className="relative group w-full max-w-md">
-                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                        <IoSearch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Find by # or supplier name..."
@@ -112,7 +112,7 @@ export default function PaymentOutPage() {
                                 <tr>
                                     <td colSpan={4} className="px-8 py-32 text-center text-slate-400 italic">
                                         <div className="flex flex-col items-center gap-4">
-                                            <Wallet size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
+                                            <IoWallet size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
                                             <p className="text-sm font-medium">No payment records found. Keep track of your supplier payments here.</p>
                                         </div>
                                     </td>

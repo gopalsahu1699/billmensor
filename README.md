@@ -15,7 +15,7 @@ BillMensor is a modern, premium web application built for seamless transactional
 ## 🛠️ Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **UI & Styling**: [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), [Lucide React](https://lucide.dev/)
+- **UI & Styling**: [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), 
 - **Database**: [Supabase](https://supabase.com/)
 - **Document Generation**: `html-to-image`, `jspdf`
 - **AI & Integrations**: NVIDIA AI (Llama 3.1 70B), WhatsApp Bot 

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
+import QRCode from 'react-qr-code'
 
 export function ModernTemplate({
     data,
@@ -16,6 +17,9 @@ export function ModernTemplate({
     const brandColor = profile?.brand_color || '#2563eb'
     const accentColor = profile?.accent_color || '#1e293b'
     const fontFamily = profile?.font_family || 'Inter'
+
+    const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
+    const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
     return (
         <Card
@@ -202,6 +206,18 @@ export function ModernTemplate({
                                         <p>Goods once sold will not be taken back.</p>
                                     )}
                                 </div>
+                            </div>
+                        )}
+
+                        {showUPIQR && upiURL && (
+                            <div className="mt-4 pt-4 border-t border-slate-200">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 mb-2">
+                                    Scan to Pay
+                                </p>
+                                <div className="p-2 bg-white border border-slate-200 rounded-xl inline-block">
+                                    <QRCode value={upiURL} size={84} />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
                             </div>
                         )}
                     </div>

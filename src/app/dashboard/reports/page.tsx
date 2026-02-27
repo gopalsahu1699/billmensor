@@ -17,6 +17,7 @@ const reportGroups = [
             { name: 'Consolidated Audit Report', desc: 'One-page summary for your CA audit', href: '/dashboard/reports/ca-audit', icon: 'analytics' },
             { name: 'GSTR-1 Filing Center', desc: 'JSON Filing & XLS Summary exports', href: '/dashboard/reports/gstr1-json', icon: 'account_balance' },
             { name: 'GSTR-3B Summary', desc: 'Monthly tax summary for return filing', href: '/dashboard/reports/gstr3b', icon: 'description' },
+            { name: 'Tally Export', desc: 'One-click XML export for Tally Prime / ERP 9', href: '/dashboard/reports/tally-export', icon: 'upload_file' },
         ]
     },
     {

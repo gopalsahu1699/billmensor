@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { ArrowLeft, User, Mail, Phone, MapPin, Receipt, Clock, TrendingUp } from 'lucide-react'
+import { MdArrowBack, MdPerson, MdEmail, MdPhone, MdLocationOn, MdReceipt, MdAccessTime, MdTrendingUp } from 'react-icons/md'
 import { toast } from 'sonner'
 
 import { Customer, Invoice } from '@/types'
@@ -70,7 +70,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
         <div className="space-y-6 max-w-6xl mx-auto pb-20">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full dark:text-slate-300">
-                    <ArrowLeft size={20} />
+                    <MdArrowBack size={20} />
                 </Button>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight italic">{customer.name}</h1>
@@ -83,26 +83,26 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                 <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <User size={20} className="text-blue-600" /> Contact Details
+                            <MdPerson size={20} className="text-blue-600" /> Contact Details
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 pt-0 space-y-5">
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
                                 <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
-                                    <Mail size={16} className="text-blue-500" />
+                                    <MdEmail size={16} className="text-blue-500" />
                                 </div>
                                 <span className="text-sm font-medium">{customer.email || 'No Email'}</span>
                             </div>
                             <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
                                 <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
-                                    <Phone size={16} className="text-green-500" />
+                                    <MdPhone size={16} className="text-green-500" />
                                 </div>
                                 <span className="text-sm font-medium">{customer.phone || 'No Phone'}</span>
                             </div>
                             <div className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
                                 <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5 mt-1">
-                                    <MapPin size={16} className="text-red-500" />
+                                    <MdLocationOn size={16} className="text-red-500" />
                                 </div>
                                 <div className="space-y-4 pt-1">
                                     {customer.billing_address && (
@@ -149,7 +149,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                             <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Total Billed</p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono">₹{totalBilled.toLocaleString('en-IN')}</p>
                             <div className="mt-4 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">
-                                <Receipt size={12} className="text-blue-500" /> {invoices.length} Invoices
+                                <MdReceipt size={12} className="text-blue-500" /> {invoices.length} Invoices
                             </div>
                         </CardContent>
                     </Card>
@@ -158,7 +158,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                             <p className="text-xs font-bold uppercase text-green-600 dark:text-green-400 tracking-widest">Total Collected</p>
                             <p className="text-2xl font-black text-green-700 dark:text-green-300 mt-2 font-mono">₹{totalPaid.toLocaleString('en-IN')}</p>
                             <div className="mt-4 flex items-center gap-1 text-[10px] text-green-500 dark:text-green-600 font-black uppercase tracking-widest">
-                                <TrendingUp size={12} /> Payment Received
+                                <MdTrendingUp size={12} /> Payment Received
                             </div>
                         </CardContent>
                     </Card>
@@ -167,7 +167,7 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                             <p className="text-xs font-bold uppercase text-orange-600 dark:text-orange-400 tracking-widest">Outstanding</p>
                             <p className="text-2xl font-black text-orange-700 dark:text-orange-300 mt-2 font-mono">₹{outstanding.toLocaleString('en-IN')}</p>
                             <div className="mt-4 flex items-center gap-1 text-[10px] text-orange-500 dark:text-orange-600 font-black uppercase tracking-widest">
-                                <Clock size={12} /> Pending Amount
+                                <MdAccessTime size={12} /> Pending Amount
                             </div>
                         </CardContent>
                     </Card>

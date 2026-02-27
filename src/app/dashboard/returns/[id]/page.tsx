@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Loader2, Trash2, Edit, RotateCcw } from 'lucide-react'
+import { MdArrowBack as ArrowLeft, MdDownload as Download, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdRefresh as RotateCcw } from 'react-icons/md'
 import Image from 'next/image'
 
 import type { Return, ReturnItem, Profile } from '@/types'

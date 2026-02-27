@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { FileJson, FileSpreadsheet, Calendar, ChevronLeft, FileText } from 'lucide-react'
+import { IoMdDocument, IoMdCalendar, IoMdArrowBack, IoMdDownload } from 'react-icons/io'
+import { IoDocumentText, IoGrid } from 'react-icons/io5'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
@@ -221,7 +222,7 @@ export default function GSTR1Report() {
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0 dark:border-slate-800">
-                        <ChevronLeft size={18} />
+                        <IoMdArrowBack size={18} />
                     </Button>
                 </Link>
                 <div>
@@ -235,7 +236,7 @@ export default function GSTR1Report() {
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
-                                <Calendar size={12} /> Start Date
+                                <IoMdCalendar size={12} /> Start Date
                             </label>
                             <input
                                 type="date"
@@ -246,7 +247,7 @@ export default function GSTR1Report() {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
-                                <Calendar size={12} /> End Date
+                                <IoMdCalendar size={12} /> End Date
                             </label>
                             <input
                                 type="date"
@@ -260,13 +261,13 @@ export default function GSTR1Report() {
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
                             <Button variant="outline" onClick={handlePrint} className="border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                                <FileText size={18} className="mr-2" /> PDF
+                                <IoDocumentText size={18} className="mr-2" /> PDF
                             </Button>
                             <Button variant="outline" onClick={exportToXLS} className="border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20">
-                                <FileSpreadsheet size={18} className="mr-2" /> XLS Summary
+                                <IoGrid size={18} className="mr-2" /> XLS Summary
                             </Button>
                             <Button variant="outline" onClick={exportToJSON} className="border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                                <FileJson size={18} className="mr-2" /> JSON Filing
+                                <IoDocumentText size={18} className="mr-2" /> JSON Filing
                             </Button>
                         </div>
                     </div>
