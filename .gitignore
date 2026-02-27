@@ -47,6 +47,9 @@ next-env.d.ts
 build_output*
 eslint_report.json
 
+# AI agent files
+AGENTS.md
+
 # Tauri
 src-tauri/target/
 src-tauri/gen/schemas/
