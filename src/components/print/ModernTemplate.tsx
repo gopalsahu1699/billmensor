@@ -17,6 +17,7 @@ export function ModernTemplate({
     const brandColor = profile?.brand_color || '#2563eb'
     const accentColor = profile?.accent_color || '#1e293b'
     const fontFamily = profile?.font_family || 'Inter'
+    const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
 
     const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
     const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
@@ -105,21 +106,38 @@ export function ModernTemplate({
                         </div>
                     </div>
 
-                    <div className="text-right border-l border-slate-200 pl-6">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-2">
-                            Bill To Client
-                        </p>
-                        <p className="font-bold text-lg text-slate-900">
-                            {data.customers?.name}
-                        </p>
-                        <p className="text-[12px] text-slate-700 mt-1">
-                            {data.billing_address || data.customers?.billing_address}
-                        </p>
-
-                        <div className="mt-2 text-[11px] space-y-1">
-                            <p><span className="font-semibold">GST:</span> {data.customers?.gstin || 'Not Registered'}</p>
-                            <p><span className="font-semibold">POS:</span> {data.supply_place || data.customers?.supply_place || 'N/A'}</p>
+                    <div className="flex-1 text-right border-l border-slate-200 pl-6 space-y-4">
+                        <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                                Bill To Client
+                            </p>
+                            <p className="font-bold text-lg text-slate-900 leading-tight">
+                                {data.customers?.name}
+                            </p>
+                            <p className="text-[12px] text-slate-700 mt-1 whitespace-pre-line">
+                                {data.billing_address || data.customers?.billing_address}
+                            </p>
+                            <div className="mt-2 text-[11px] space-y-0.5 text-slate-600">
+                                <p><span className="font-semibold text-slate-900">Phone:</span> {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
+                                <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</span></p>
+                                <p><span className="font-semibold text-slate-900">POS:</span> {data.supply_place || data.customers?.supply_place || 'N/A'}</p>
+                            </div>
                         </div>
+
+                        {(data.shipping_address || data.customers?.shipping_address) && (
+                            <div className="pt-4 border-t border-slate-100">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                                    Ship To
+                                </p>
+                                <p className="text-[12px] text-slate-700 whitespace-pre-line">
+                                    {data.shipping_address || data.customers?.shipping_address}
+                                </p>
+                                <div className="mt-2 text-[11px] space-y-0.5 text-slate-600">
+                                    <p><span className="font-semibold text-slate-900">Phone:</span> {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
+                                    <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</span></p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -136,6 +154,7 @@ export function ModernTemplate({
                                 <th className="px-2 pb-2 text-left">Description</th>
                                 <th className="px-2 pb-2 text-center">Qty</th>
                                 <th className="px-2 pb-2 text-center">Rate</th>
+                                {!allGstIsZero && <th className="px-2 pb-2 text-center">GST%</th>}
                                 <th className="px-2 pb-2 text-right">Total</th>
                             </tr>
                         </thead>
@@ -159,8 +178,13 @@ export function ModernTemplate({
                                     <td className="px-2 py-2 text-center">
                                         ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                                     </td>
+                                    {!allGstIsZero && (
+                                        <td className="px-2 py-2 text-center text-slate-600 text-[11px]">
+                                            {item.tax_rate ?? 18}%
+                                        </td>
+                                    )}
                                     <td className="px-2 py-2 text-right font-semibold">
-                                        ₹{(item.total || 0).toLocaleString('en-IN')}
+                                        ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
                                     </td>
                                 </tr>
                             ))}
@@ -183,9 +207,8 @@ export function ModernTemplate({
                                     <p><span className="font-semibold text-slate-600">A/C No:</span> {bankDetails.account_number}</p>
                                     <p><span className="font-semibold text-slate-600">IFSC:</span> {bankDetails.ifsc_code}</p>
                                     <p><span className="font-semibold text-slate-600">Bank:</span> {bankDetails.bank_branch_name}</p>
-                                    {bankDetails.account_holder_name && (
-                                        <p><span className="font-semibold text-slate-600">Holder:</span> {bankDetails.account_holder_name}</p>
-                                    )}
+                                    <p><span className="font-semibold text-slate-600">Holder:</span> {bankDetails.account_holder_name}</p>
+                                    <p><span className="font-semibold text-slate-600">UPI ID:</span> {bankDetails.upi_id}</p>
                                 </div>
                             </div>
                         )}
@@ -209,17 +232,7 @@ export function ModernTemplate({
                             </div>
                         )}
 
-                        {showUPIQR && upiURL && (
-                            <div className="mt-4 pt-4 border-t border-slate-200">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 mb-2">
-                                    Scan to Pay
-                                </p>
-                                <div className="p-2 bg-white border border-slate-200 rounded-xl inline-block">
-                                    <QRCode value={upiURL} size={84} />
-                                </div>
-                                <p className="text-[10px] text-slate-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
-                            </div>
-                        )}
+
                     </div>
 
                     {/* TOTAL */}
@@ -231,21 +244,70 @@ export function ModernTemplate({
                             </span>
                         </div>
 
-                        <div className="flex justify-between text-[12px]">
-                            <span>Tax</span>
-                            <span className="font-semibold">
-                                ₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}
-                            </span>
-                        </div>
+                        {!allGstIsZero && (
+                            <div className="flex justify-between text-[12px]">
+                                <span>Tax</span>
+                                <span className="font-semibold">
+                                    ₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
+
+                        {data.transport_charges > 0 && (
+                            <div className="flex justify-between text-[12px]">
+                                <span>Transport</span>
+                                <span className="font-semibold">
+                                    ₹{data.transport_charges.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
+
+                        {data.installation_charges > 0 && (
+                            <div className="flex justify-between text-[12px]">
+                                <span>Installation</span>
+                                <span className="font-semibold">
+                                    ₹{data.installation_charges.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
+
+                        {(() => {
+                            const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
+                            if (itemDiscountTotal <= 0) return null
+                            return (
+                                <div className="flex justify-between text-[12px]">
+                                    <span>Item Discount</span>
+                                    <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
+                                </div>
+                            )
+                        })()}
 
                         {data.discount > 0 && (
-                            <div className="flex justify-between text-[12px] text-red-600">
-                                <span>Discount</span>
+                            <div className="flex justify-between text-[12px] text-red-600 font-bold">
+                                <span>Addl. Discount</span>
                                 <span className="font-semibold">
                                     -₹{data.discount.toLocaleString('en-IN')}
                                 </span>
                             </div>
                         )}
+
+                        {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-[12px]">
+                                <span>{charge.name || 'Custom'}</span>
+                                <span className="font-semibold">
+                                    ₹{Number(charge.amount || 0).toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        ))}
+                        {/* 
+                        {(data.round_off || 0) !== 0 && (
+                            <div className="flex justify-between text-[12px]">
+                                <span>Round Off</span>
+                                <span className="font-semibold">
+                                    {(data.round_off || 0) > 0 ? '+' : ''}₹{(data.round_off || 0).toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )} */}
 
                         <div className="flex justify-between items-end pt-3 border-t border-slate-900">
                             <span className="text-[13px] font-bold uppercase">

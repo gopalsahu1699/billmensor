@@ -346,7 +346,7 @@ export default function CreateProductPage() {
 
                             {/* Selling Price */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Selling Price (₹) *</label>
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Selling Price (₹) * <span className="text-green-600 normal-case">(incl. GST)</span></label>
                                 <div className="relative">
                                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">storefront</span>
                                     <input

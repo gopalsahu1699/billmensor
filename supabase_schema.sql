@@ -5,7 +5,13 @@
 -- Run this in Supabase SQL Editor (safe: uses IF NOT EXISTS)
 -- ============================================================
 
+-- MIGRATION: Add tax_method to items
+ALTER TABLE public.invoice_items ADD COLUMN IF NOT EXISTS tax_method TEXT DEFAULT 'inclusive';
+ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS tax_method TEXT DEFAULT 'inclusive';
+
+
 -- ─────────────────────────────────────────────────────────────
+
 -- 0. MIGRATION: Add new columns to existing products table
 -- ─────────────────────────────────────────────────────────────
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS barcode TEXT;
@@ -29,6 +35,20 @@ ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_no TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS einvoice_ack_date TIMESTAMPTZ;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS qr_payment_upi_id TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS qr_payment_amount DECIMAL(15,2);
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS billing_phone TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS shipping_phone TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS shipping_gstin TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS billing_gstin TEXT;
+
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS billing_phone TEXT;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS shipping_phone TEXT;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS shipping_gstin TEXT;
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS billing_gstin TEXT;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS billing_phone TEXT;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS shipping_phone TEXT;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS shipping_gstin TEXT;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS billing_gstin TEXT;
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. PROFILES  (extends auth.users 1-to-1)
@@ -71,6 +91,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   show_terms BOOLEAN DEFAULT true,
   show_signature BOOLEAN DEFAULT true,
   show_custom_fields BOOLEAN DEFAULT true,
+
 
   -- Branding items
   brand_color TEXT DEFAULT '#2563eb', -- blue-600
@@ -115,6 +136,10 @@ CREATE TABLE IF NOT EXISTS public.customers (
   shipping_address TEXT,
   supply_place TEXT,
   gstin TEXT,
+  billing_phone TEXT,
+  shipping_phone TEXT,
+  shipping_gstin TEXT,
+  billing_gstin TEXT,
   type TEXT DEFAULT 'customer',   -- 'customer' | 'supplier' | 'both'
   category TEXT,
   business_type TEXT,
@@ -185,6 +210,10 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
+  billing_phone TEXT,
+  shipping_phone TEXT,
+  shipping_gstin TEXT,
+  billing_gstin TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -209,6 +238,7 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
   discount DECIMAL(15,2) DEFAULT 0,
   total DECIMAL(15,2) NOT NULL,
   image_url TEXT,
+  tax_method TEXT DEFAULT 'inclusive', -- 'inclusive' | 'exclusive'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -237,6 +267,10 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   billing_address TEXT,
   shipping_address TEXT,
   supply_place TEXT,
+  billing_phone TEXT,
+  shipping_phone TEXT,
+  shipping_gstin TEXT,
+  billing_gstin TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -261,6 +295,7 @@ CREATE TABLE IF NOT EXISTS public.quotation_items (
   discount DECIMAL(15,2) DEFAULT 0,
   total DECIMAL(15,2) NOT NULL,
   image_url TEXT,
+  tax_method TEXT DEFAULT 'inclusive', -- 'inclusive' | 'exclusive'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

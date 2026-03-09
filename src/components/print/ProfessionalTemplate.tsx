@@ -16,6 +16,7 @@ export function ProfessionalTemplate({
 }: PrintTemplateProps) {
 
     const isInvoice = type === 'invoice'
+    const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -91,23 +92,28 @@ export function ProfessionalTemplate({
             <div className="grid grid-cols-2 gap-6 mb-6">
 
                 <div>
-                    <p className="font-bold text-[14px] mb-2">Bill To:</p>
+                    <p className="font-bold text-[14px] mb-1">Bill To:</p>
                     <p className="font-semibold text-[14px]">
                         {data.customers?.name}
                     </p>
-                    <p>{data.customers?.billing_address}</p>
-                    {(data.customers?.gstin) && (
-                        <p>GST: {data.customers?.gstin}</p>
-                    )}
+                    <p className="whitespace-pre-line text-slate-600 leading-relaxed">{data.billing_address || data.customers?.billing_address}</p>
+                    <div className="mt-2 space-y-1 text-slate-500 font-medium">
+                        <p>Phone: {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
+                        <p>GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>
+                    </div>
                 </div>
 
-                {(data.customers?.shipping_address) && (
+                {(data.shipping_address || data.customers?.shipping_address) && (
                     <div className="text-right">
-                        <p className="font-bold text-[14px] mb-2">Ship To:</p>
+                        <p className="font-bold text-[14px] mb-1">Ship To:</p>
                         <p className="font-semibold text-[14px]">
                             {data.customers?.name}
                         </p>
-                        <p>{data.customers?.shipping_address}</p>
+                        <p className="whitespace-pre-line text-slate-600 leading-relaxed">{data.shipping_address || data.customers?.shipping_address}</p>
+                        <div className="mt-2 space-y-1 text-slate-500 font-medium">
+                            <p>Phone: {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
+                            <p>GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>
+                        </div>
                     </div>
                 )}
             </div>
@@ -122,7 +128,7 @@ export function ProfessionalTemplate({
                         <th className="border px-3 py-2 text-center">HSN</th>
                         <th className="border px-3 py-2 text-center">Qty</th>
                         <th className="border px-3 py-2 text-center">Rate</th>
-                        <th className="border px-3 py-2 text-center">GST%</th>
+                        {!allGstIsZero && <th className="border px-3 py-2 text-center">GST%</th>}
                         <th className="border px-3 py-2 text-right">Amount</th>
                     </tr>
                 </thead>
@@ -143,11 +149,13 @@ export function ProfessionalTemplate({
                             <td className="border px-3 py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            <td className="border px-3 py-2 text-center">
-                                {item.tax_rate || 18}%
-                            </td>
+                            {!allGstIsZero && (
+                                <td className="border px-3 py-2 text-center">
+                                    {item.tax_rate ?? 18}%
+                                </td>
+                            )}
                             <td className="border px-3 py-2 text-right font-medium">
-                                ₹{(item.total || 0).toLocaleString('en-IN')}
+                                ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
                             </td>
                         </tr>
                     ))}
@@ -166,9 +174,8 @@ export function ProfessionalTemplate({
                             <p>A/C: {bankDetails.account_number}</p>
                             <p>IFSC: {bankDetails.ifsc_code}</p>
                             <p>{bankDetails.bank_branch_name}</p>
-                            {bankDetails.account_holder_name && (
-                                <p>Holder: {bankDetails.account_holder_name}</p>
-                            )}
+                            <p>Holder: {bankDetails.account_holder_name}</p>
+                            <p>UPI ID: {bankDetails.upi_id}</p>
                         </div>
                     )}
 
@@ -189,15 +196,7 @@ export function ProfessionalTemplate({
                         </div>
                     )}
 
-                    {showUPIQR && upiURL && (
-                        <div className="pt-4 mt-4 border-t border-gray-200">
-                            <p className="font-bold text-[14px] mb-2">Scan to Pay:</p>
-                            <div className="p-2 border border-gray-300 inline-block bg-white">
-                                <QRCode value={upiURL} size={84} />
-                            </div>
-                            <p className="text-[11px] text-gray-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
-                        </div>
-                    )}
+
                 </div>
 
                 {/* RIGHT TOTALS */}
@@ -208,17 +207,60 @@ export function ProfessionalTemplate({
                         <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
                     </div>
 
-                    <div className="flex justify-between">
-                        <span>GST</span>
-                        <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
-                    </div>
-
-                    {data.discount > 0 && (
-                        <div className="flex justify-between text-red-600">
-                            <span>Discount</span>
-                            <span>-₹{data.discount}</span>
+                    {!allGstIsZero && (
+                        <div className="flex justify-between">
+                            <span>GST</span>
+                            <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
+
+                    {(data.transport_charges || 0) > 0 && (
+                        <div className="flex justify-between">
+                            <span>Transport</span>
+                            <span>₹{(data.transport_charges || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+
+                    {(data.installation_charges || 0) > 0 && (
+                        <div className="flex justify-between">
+                            <span>Installation</span>
+                            <span>₹{(data.installation_charges || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+
+                    {(() => {
+                        const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
+                        if (itemDiscountTotal <= 0) return null
+                        return (
+                            <div className="flex justify-between text-red-600 font-bold">
+                                <span>Item Discount Total</span>
+                                <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                        )
+                    })()}
+
+                    {data.discount > 0 && (
+                        <div className="flex justify-between text-red-600 font-bold">
+                            <span>Additional Discount {data.discount > 0 && data.discount < 100 && data.discount % 1 !== 0 ? `(${data.discount}%)` : ''}</span>
+                            <span>-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+
+                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                        <div key={idx} className="flex justify-between">
+                            <span>{charge.name || 'Custom'}</span>
+                            <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    ))}
+
+                    {/* {(data.round_off || 0) !== 0 && (
+                        <div className="flex justify-between">
+                            <span>Round Off</span>
+                            <span>
+                                {(data.round_off || 0) > 0 ? '+' : ''}₹{(data.round_off || 0).toLocaleString('en-IN')}
+                            </span>
+                        </div>
+                    )} */}
 
                     <div className="flex justify-between font-bold border-t pt-3 text-[16px]">
                         <span>Total</span>

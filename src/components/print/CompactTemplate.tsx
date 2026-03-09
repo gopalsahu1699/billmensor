@@ -15,6 +15,7 @@ export function CompactTemplate({
 }: PrintTemplateProps) {
 
     const isInvoice = type === 'invoice'
+    const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -82,19 +83,22 @@ export function CompactTemplate({
                 </div>
             </div>
 
-            {/* BILLING */}
             <div className="flex justify-between border-b border-black pb-3 mb-3">
-                <div>
-                    <h3 className="font-bold">Billed To:</h3>
-                    <p>{data.customers?.name}</p>
-                    <p>{data.customers?.billing_address}</p>
-                    <p>GST: {data.customers?.gstin || 'N/A'}</p>
+                <div className="flex-1">
+                    <h3 className="font-bold uppercase text-[11px] text-gray-500 mb-1">Billed To:</h3>
+                    <p className="font-semibold text-[14px]">{data.customers?.name}</p>
+                    <p className="whitespace-pre-line text-xs">{data.billing_address || data.customers?.billing_address}</p>
+                    <p className="text-xs mt-1">Phone: {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
+                    <p className="text-xs">GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>
                 </div>
 
-                {(data.customers?.shipping_address) && (
-                    <div className="text-right">
-                        <h3 className="font-bold">Shipped To:</h3>
-                        <p>{data.customers?.shipping_address}</p>
+                {(data.shipping_address || data.customers?.shipping_address) && (
+                    <div className="flex-1 text-right border-l border-gray-100 pl-4 ml-4">
+                        <h3 className="font-bold uppercase text-[11px] text-gray-500 mb-1">Shipped To:</h3>
+                        <p className="font-semibold text-[14px]">{data.customers?.name}</p>
+                        <p className="whitespace-pre-line text-xs">{data.shipping_address || data.customers?.shipping_address}</p>
+                        <p className="text-xs mt-1">Phone: {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
+                        <p className="text-xs">GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>
                     </div>
                 )}
             </div>
@@ -109,6 +113,7 @@ export function CompactTemplate({
                         <th className="py-2 text-center">HSN</th>
                         <th className="py-2 text-center">Qty</th>
                         <th className="py-2 text-center">Rate</th>
+                        {!allGstIsZero && <th className="py-2 text-center">GST%</th>}
                         <th className="py-2 text-right">Total</th>
                     </tr>
 
@@ -140,8 +145,13 @@ export function CompactTemplate({
                             <td className="py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
+                            {!allGstIsZero && (
+                                <td className="py-2 text-center text-[10px]">
+                                    {item.tax_rate ?? 18}%
+                                </td>
+                            )}
                             <td className="py-2 text-right">
-                                ₹{(item.total || 0).toLocaleString('en-IN')}
+                                ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
                             </td>
                         </tr>
 
@@ -149,47 +159,25 @@ export function CompactTemplate({
                 </tbody>
             </table>
 
-            {/* TOTALS */}
-            <div className="flex justify-end mb-4">
-                <div style={{ width: 250 }}>
-                    <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>GST:</span>
-                        <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
-                    </div>
-                    {data.discount > 0 && (
-                        <div className="flex justify-between text-red-600">
-                            <span>Discount:</span>
-                            <span>-₹{data.discount.toLocaleString('en-IN')}</span>
-                        </div>
-                    )}
-                    <div className="flex justify-between font-bold border-t border-black pt-2">
-                        <span>Total:</span>
-                        <span>₹{(data.total_amount || 0).toLocaleString('en-IN')}</span>
-                    </div>
-                </div>
-            </div>
+            {/* BOTTOM SECTION: Bank Details (Left) + Totals (Right) */}
+            <div className="flex justify-between gap-6 mt-2">
 
-            {/* BANK + TERMS + SIGN */}
-            <div className="flex justify-between">
-
-                <div style={{ width: '60%' }}>
+                {/* LEFT: Bank Details + Terms */}
+                <div style={{ width: '55%' }} className="space-y-3">
                     {settings.show_bank_details && bankDetails && (
-                        <>
-                            <h4 className="font-bold">Bank Details:</h4>
+                        <div>
+                            <h4 className="font-bold text-[13px] mb-1 border-b border-black pb-1">Bank Details</h4>
                             <p>Account: {bankDetails.account_number}</p>
                             <p>IFSC: {bankDetails.ifsc_code}</p>
                             <p>Bank: {bankDetails.bank_branch_name}</p>
                             <p>Holder: {bankDetails.account_holder_name}</p>
-                        </>
+                            {bankDetails.upi_id && <p>UPI ID: {bankDetails.upi_id}</p>}
+                        </div>
                     )}
 
                     {settings.show_terms && (
-                        <>
-                            <h4 className="font-bold mt-3">Terms & Conditions:</h4>
+                        <div>
+                            <h4 className="font-bold text-[13px] mb-1 border-b border-black pb-1">Terms & Conditions</h4>
                             <div className="text-[12px]">
                                 {profile?.terms_and_conditions ? (
                                     <ul className="list-disc pl-4 space-y-0.5">
@@ -201,36 +189,78 @@ export function CompactTemplate({
                                     <p>Goods once sold will not be taken back.</p>
                                 )}
                             </div>
-                        </>
-                    )}
-
-                    {showUPIQR && upiURL && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h4 className="font-bold mb-2">Scan to Pay</h4>
-                            <div className="p-2 border border-gray-300 rounded inline-block bg-white">
-                                <QRCode value={upiURL} size={72} />
-                            </div>
-                            <p className="text-[10px] text-gray-500 mt-1">UPI ID: {bankDetails.upi_id}</p>
                         </div>
                     )}
                 </div>
 
-                {settings.show_signature && (
-                    <div className="text-right">
-                        <p className="mb-10">Authorized Signatory</p>
-                        {profile?.signature_url && (
-                            <div style={{ width: 120, height: 50, position: 'relative' }}>
-                                <Image
-                                    src={profile.signature_url}
-                                    alt="Signature"
-                                    fill
-                                    priority
-                                    className="object-contain object-right"
-                                />
-                            </div>
-                        )}
+                {/* RIGHT: Charges + Totals + Signature */}
+                <div style={{ width: '40%' }} className="space-y-1">
+                    <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
                     </div>
-                )}
+                    {!allGstIsZero && (
+                        <div className="flex justify-between">
+                            <span>GST:</span>
+                            <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+                    {(data.transport_charges || 0) > 0 && (
+                        <div className="flex justify-between">
+                            <span>Transport:</span>
+                            <span>₹{(data.transport_charges || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+                    {(data.installation_charges || 0) > 0 && (
+                        <div className="flex justify-between">
+                            <span>Installation:</span>
+                            <span>₹{(data.installation_charges || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+                    {(() => {
+                        const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
+                        if (itemDiscountTotal <= 0) return null
+                        return (
+                            <div className="flex justify-between text-red-600 font-bold">
+                                <span>Item Discount:</span>
+                                <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                        )
+                    })()}
+                    {data.discount > 0 && (
+                        <div className="flex justify-between text-red-600 font-bold">
+                            <span>Addl. Disc:</span>
+                            <span>-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                        <div key={idx} className="flex justify-between">
+                            <span>{charge.name || 'Custom'}:</span>
+                            <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    ))}
+                    <div className="flex justify-between font-bold border-t border-black pt-2 text-[14px]">
+                        <span>Total:</span>
+                        <span>₹{(data.total_amount || 0).toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {settings.show_signature && (
+                        <div className="mt-8 text-right">
+                            <p className="mb-10 text-[12px]">Authorized Signatory</p>
+                            {profile?.signature_url && (
+                                <div style={{ width: 120, height: 50, position: 'relative' }} className="ml-auto">
+                                    <Image
+                                        src={profile.signature_url}
+                                        alt="Signature"
+                                        fill
+                                        priority
+                                        className="object-contain object-right"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* PROMO FOOTER */}

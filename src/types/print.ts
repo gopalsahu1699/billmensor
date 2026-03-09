@@ -72,6 +72,10 @@ export interface InvoiceData {
     custom_charges?: { name: string; amount: number }[]
     billing_address?: string
     shipping_address?: string
+    billing_phone?: string
+    shipping_phone?: string
+    shipping_gstin?: string
+    billing_gstin?: string
     notes?: string
     customer_id?: string
     supply_place?: string
@@ -89,6 +93,10 @@ export interface InvoiceData {
         gstin?: string
         email?: string
         phone?: string
+        billing_phone?: string
+        shipping_phone?: string
+        billing_gstin?: string
+        shipping_gstin?: string
         supply_place?: string
     }
 }

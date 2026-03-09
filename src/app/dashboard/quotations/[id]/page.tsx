@@ -105,8 +105,6 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
         fetchQuotation()
     }, [fetchQuotation])
 
-
-
     const handleConvertToInvoice = async () => {
         if (!quotation) return
         setConverting(true)
@@ -148,7 +146,13 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     transport_charges: quotation?.transport_charges || 0,
                     installation_charges: quotation?.installation_charges || 0,
                     custom_charges: quotation?.custom_charges || [],
+                    billing_address: quotation?.billing_address || null,
                     shipping_address: quotation?.shipping_address || null,
+                    billing_phone: quotation?.billing_phone || null,
+                    shipping_phone: quotation?.shipping_phone || null,
+                    billing_gstin: quotation?.billing_gstin || null,
+                    shipping_gstin: quotation?.shipping_gstin || null,
+                    supply_place: quotation?.supply_place || null,
                     total_amount: quotation?.total_amount || 0,
                     notes: quotation?.notes || '',
                     payment_status: 'unpaid'
@@ -360,7 +364,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                             disabled={converting}
                             className="flex items-center gap-2 bg-slate-900 text-white px-6 h-12 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-95 disabled:opacity-50"
                         >
-                        {converting ? <MdRefresh size={18} className="animate-spin" /> : <MdRotateLeft size={18} />} 
+                            {converting ? <MdRefresh size={18} className="animate-spin" /> : <MdRotateLeft size={18} />}
                             {converting ? 'CONVERTING...' : 'TO INVOICE'}
                         </Button>
                     )}
