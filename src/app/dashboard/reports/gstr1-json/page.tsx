@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { IoMdDocument, IoMdCalendar, IoMdArrowBack, IoMdDownload } from 'react-icons/io'
-import { IoDocumentText, IoGrid , IoShare} from "react-icons/io5"
+import { IoDocumentText, IoGrid, IoShare } from "react-icons/io5"
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 type InvoiceData = {
     id: string;
@@ -208,101 +210,30 @@ export default function GSTR1Report() {
         }
     }
 
-    const generatePDFFile = async (): Promise<File> => {
-        const element = document.getElementById('report-content')
-        if (!element) throw new Error('Report element not found')
-
-        const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]')
-        let styles = ''
-        styleNodes.forEach((node) => {
-            if (node.tagName === 'LINK') {
-                const href = node.getAttribute('href')
-                if (href) {
-                    const absoluteUrl = new URL(href, window.location.href).href
-                    styles += `<link rel="stylesheet" href="${absoluteUrl}">\n`
-                }
-            } else {
-                styles += node.outerHTML + '\n'
-            }
-        })
-
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                ${styles}
-                <style>
-                    body { background: white !important; margin: 0; padding: 20px; font-family: 'Inter', sans-serif; }
-                    #report-content { box-shadow: none !important; border: none !important; margin: 0 auto !important; width: 1024px !important; }
-                    .no-print { display: none !important; }
-                </style>
-            </head>
-            <body class="bg-white">
-                <div style="width: 1024px; max-width: 1024px; margin: 0 auto;">
-                    ${element.outerHTML}
-                </div>
-            </body>
-            </html>
-        `
-        
-        const filename = `Report.pdf`
-
-        const response = await fetch('/api/pdf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html: htmlContent, filename })
-        })
-
-        if (!response.ok) throw new Error('Server PDF Failed')
-
-        const blob = await response.blob()
-        return new File([blob], filename, { type: 'application/pdf' })
-    }
-
     const handleShare = async () => {
-        toast.loading('Preparing PDF to share...', { id: 'pdf-share' })
-        try {
-            const file = await generatePDFFile()
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                toast.dismiss('pdf-share')
-                await navigator.share({
-                    files: [file],
-                    title: `Report`,
-                    text: `Attached is the report.`
-                })
-            } else {
-                toast.error('Sharing files is not supported on this device.', { id: 'pdf-share' })
-            }
-        } catch (error) {
-            console.error('Share failed', error)
-            toast.error('Failed to share PDF.', { id: 'pdf-share' })
-        }
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `GSTR1_Report_${dateRange.start}.pdf`,
+            title: 'GSTR-1 Sales Report',
+            text: `Attached is the GSTR-1 sales report for the period ${dateRange.start} to ${dateRange.end}.`
+        })
     }
 
     const handlePrint = async () => {
-        toast.loading('Generating Perfect Web PDF...', { id: 'pdf-generation' })
-        try {
-            const file = await generatePDFFile()
-            const url = window.URL.createObjectURL(file)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = file.name
-            a.click()
-            window.URL.revokeObjectURL(url)
-            toast.success('PDF Downloaded!', { id: 'pdf-generation' })
-        } catch (error) {
-            console.error(error)
-            toast.error('Failed using Server PDF.', { id: 'pdf-generation' })
-        }
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `GSTR1_Report_${dateRange.start}.pdf`
+        })
     }
+
 
     return (
         <div id="report-content" className="space-y-6 print:space-y-4">
-            <div id="report-content" className="hidden print:block border-b-2 border-blue-900 pb-4 mb-6">
+            <div className="hidden print:block border-b-2 border-blue-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">GSTR-1 Sales Report</h1>
                 <p className="text-slate-500">Filing Period: {dateRange.start} to {dateRange.end}</p>
             </div>
+
 
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
