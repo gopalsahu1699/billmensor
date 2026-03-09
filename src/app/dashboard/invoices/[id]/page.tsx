@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
 
@@ -135,40 +136,20 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
 
     async function handleShare() {
-        if (sharing) return
-        setSharing(true)
-
         if (!invoice) return
-        const shareData = {
-            title: `Invoice ${invoice.invoice_number}`,
-            text: `View invoice ${invoice.invoice_number} from ${profile?.company_name || 'Billmensor'}`,
-            url: window.location.href,
-        }
-
-
         try {
-            const printUrl = `${window.location.origin}/print/invoices/${invoice.id}`
-            const updatedShareData = { ...shareData, url: printUrl }
-
-            // Fallback to basic sharing
-            if (navigator.share) {
-                await navigator.share(updatedShareData)
-                toast.success('Shared successfully')
-            } else {
-                await navigator.clipboard.writeText(printUrl)
-                toast.success('Link copied to clipboard')
-            }
-        } catch (error) {
-            console.error('Error sharing:', error)
-            // Only show error if it's not the user cancelling
-            if (error instanceof Error && error.name !== 'AbortError') {
-                toast.error('Sharing failed')
-            }
-
+            setSharing(true)
+            await sharePDF({
+                elementId: 'invoice-render-area',
+                filename: `${invoice.invoice_number}.pdf`,
+                title: `Invoice ${invoice.invoice_number}`,
+                text: `Please find attached the invoice ${invoice.invoice_number} from ${profile?.company_name || 'Billmensor'}`
+            })
         } finally {
             setSharing(false)
         }
     }
+
 
     const handleEmail = () => {
         if (!invoice) return
@@ -203,8 +184,15 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
     async function handleDownload() {
         if (!invoice) return
-        window.open(`/print/invoices/${invoice.id}`, '_blank')
+        await downloadPDF({
+            elementId: 'invoice-render-area',
+            filename: `${invoice.invoice_number}.pdf`
+        })
     }
+
+
+
+
 
 
     async function handleDelete() {

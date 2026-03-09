@@ -4,10 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
- import { MdToday, MdChevronLeft, MdDownload, MdPieChart, MdArrowDownward, MdDescription } from 'react-icons/md'
+import { MdToday, MdChevronLeft, MdDownload, MdPieChart, MdArrowDownward, MdDescription } from 'react-icons/md'
+import { IoShare } from 'react-icons/io5'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function ExpenseSummaryReport() {
     const [loading, setLoading] = useState(false)
@@ -53,9 +56,22 @@ export default function ExpenseSummaryReport() {
         toast.success("Excel Report Exported")
     }
 
-    const handlePrint = () => {
-        window.print()
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `Expense_Report_${dateRange.start}.pdf`,
+            title: 'Expense Report',
+            text: `Attached is the expense analysis report for the period ${dateRange.start} to ${dateRange.end}.`
+        })
     }
+
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `Expense_Report_${dateRange.start}.pdf`
+        })
+    }
+
 
     const categoryTotals: Record<string, number> = {}
     let grandTotal = 0
@@ -68,13 +84,13 @@ export default function ExpenseSummaryReport() {
     const sortedCategories = Object.entries(categoryTotals).sort((a: [string, number], b: [string, number]) => b[1] - a[1])
 
     return (
-        <div className="space-y-6 print:space-y-4">
+        <div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-red-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Expense Analysis Report</h1>
                 <p className="text-slate-500">Period: {dateRange.start} onwards</p>
             </div>
 
-                <div className="flex items-center gap-4 no-print">
+            <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
                         <MdChevronLeft size={18} />
@@ -113,6 +129,9 @@ export default function ExpenseSummaryReport() {
                             Apply Filter
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
+                            <Button variant="outline" onClick={handleShare}>
+                                <IoShare size={18} className="mr-2" /> Share
+                            </Button>
                             <Button variant="outline" onClick={handlePrint} disabled={expenses.length === 0}>
                                 <MdDescription size={18} className="mr-2" /> PDF
                             </Button>

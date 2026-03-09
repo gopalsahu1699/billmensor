@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { MdArrowBack, MdDownload, MdRefresh, MdDelete, MdEdit, MdShoppingCart, MdCheckCircle } from 'react-icons/md'
+import { MdArrowBack, MdDownload, MdRefresh, MdDelete, MdEdit, MdShoppingCart, MdCheckCircle, MdShare } from 'react-icons/md'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 import Image from 'next/image'
 import type { Purchase, PurchaseItem, Profile } from '@/types'
 
@@ -74,8 +76,22 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 
     async function handleDownload() {
         if (!purchase) return
-        window.open(`/print/purchases/${purchase.id}`, '_blank')
+        await downloadPDF({
+            elementId: 'purchase-render-area',
+            filename: `Purchase_${purchase.purchase_number}.pdf`
+        })
     }
+
+    async function handleShare() {
+        if (!purchase) return
+        await sharePDF({
+            elementId: 'purchase-render-area',
+            filename: `Purchase_${purchase.purchase_number}.pdf`,
+            title: `Purchase Bill ${purchase.purchase_number}`,
+            text: `View purchase bill ${purchase.purchase_number} from ${profile?.company_name || 'Billmensor'}`
+        })
+    }
+
 
     async function handleDelete() {
         if (!window.confirm('Are you sure you want to delete this purchase? This will NOT automatically reverse stock adjustments.')) return
@@ -139,26 +155,34 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                             <MdCheckCircle size={18} /> Mark as Paid
                         </Button>
                     )}
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push(`/dashboard/purchases/create?edit=${resolvedParams.id}`)}
+                    <Button
+                        variant="outline"
+                        onClick={() => router.push(`/dashboard/purchases/create?edit=${resolvedParams.id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
-                            <MdEdit size={18} /> Edit
-                        </Button>
+                        <MdEdit size={18} /> Edit
+                    </Button>
                     <Button
-                            variant="outline"
-                            onClick={handleDelete}
+                        variant="outline"
+                        onClick={handleShare}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <MdShare size={18} /> Share
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
-                            <MdDelete size={18} /> Delete
-                        </Button>
+                        <MdDelete size={18} /> Delete
+                    </Button>
+
                     <Button
-                            onClick={handleDownload}
+                        onClick={handleDownload}
                         className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
-                        >
+                    >
                         <MdDownload size={18} /> Download Bill
-                        </Button>
+                    </Button>
                 </div>
             </div>
 
@@ -170,7 +194,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                                 {profile?.logo_url ? (
                                     <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
                                 ) : (
-                                <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
+                                    <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                                         <MdShoppingCart size={32} />
                                     </div>
                                 )}

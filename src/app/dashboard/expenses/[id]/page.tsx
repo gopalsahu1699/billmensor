@@ -18,6 +18,9 @@ import {
     IoCash
 } from 'react-icons/io5'
 import { FaHashtag } from 'react-icons/fa'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+import { MdShare, MdDownload } from 'react-icons/md'
+
 
 export default function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -29,7 +32,26 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
         fetchExpense()
     }, [id])
 
+    async function handleDownload() {
+        if (!expense) return
+        await downloadPDF({
+            elementId: 'expense-render-area',
+            filename: `Expense_${expense.title}_${new Date(expense.expense_date).toLocaleDateString()}.pdf`
+        })
+    }
+
+    async function handleShare() {
+        if (!expense) return
+        await sharePDF({
+            elementId: 'expense-render-area',
+            filename: `Expense_${expense.title}_${new Date(expense.expense_date).toLocaleDateString()}.pdf`,
+            title: `Expense: ${expense.title}`,
+            text: `View expense details for ${expense.title} recorded on ${new Date(expense.expense_date).toLocaleDateString()}`
+        })
+    }
+
     async function fetchExpense() {
+
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -96,6 +118,20 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex gap-3">
                     <Button
                         variant="outline"
+                        onClick={handleShare}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <MdShare size={18} /> Share
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleDownload}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <MdDownload size={18} /> Download
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={() => router.push(`/dashboard/expenses/create?edit=${id}`)}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                     >
@@ -109,11 +145,13 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                         <IoTrash size={18} /> Delete
                     </Button>
                 </div>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Main Content */}
-                <Card className="md:col-span-2 border-none shadow-2xl rounded-[40px] overflow-hidden">
+                <Card id="expense-render-area" className="md:col-span-2 border-none shadow-2xl rounded-[40px] overflow-hidden">
+
                     <div className="bg-slate-900 p-12 text-white flex flex-col items-center justify-center text-center space-y-4">
                         <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-red-600/30">
                             <IoWallet size={40} />

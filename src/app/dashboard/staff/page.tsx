@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { MdArrowBack, MdAdd, MdRefresh, MdPerson, MdCalendarToday, MdCheckCircle, MdCancel, MdAccessTime, MdDelete } from 'react-icons/md'
+import { MdArrowBack, MdAdd, MdRefresh, MdPerson, MdCalendarToday, MdCheckCircle, MdCancel, MdAccessTime, MdDelete, MdEdit, MdCalendarMonth } from 'react-icons/md'
 
 interface StaffMember {
     id: string
@@ -15,6 +15,9 @@ interface StaffMember {
     joining_date: string
     status: 'active' | 'inactive'
     created_at: string
+    photo_url?: string
+    half_day_salary?: number
+    overtime_rate?: number
 }
 
 interface AttendanceRecord {
@@ -32,18 +35,9 @@ export default function StaffPage() {
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'staff' | 'attendance' | 'payroll'>('staff')
-    const [showAddStaff, setShowAddStaff] = useState(false)
     const [selectedMonth, setSelectedMonth] = useState(() => {
         const now = new Date()
         return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`
-    })
-
-    const [staffForm, setStaffForm] = useState({
-        name: '',
-        phone: '',
-        role: '',
-        salary: 0,
-        joining_date: new Date().toISOString().slice(0, 10)
     })
 
     const fetchData = useCallback(async () => {
@@ -87,28 +81,7 @@ export default function StaffPage() {
         fetchData()
     }, [fetchData])
 
-    const handleAddStaff = async () => {
-        try {
-            if (!staffForm.name) return toast.error('Staff name is required')
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) return
 
-            const { error } = await supabase.from('staff_members').insert({
-                ...staffForm,
-                user_id: session.user.id,
-                status: 'active'
-            })
-
-            if (error) throw error
-            toast.success('Staff member added!')
-            setShowAddStaff(false)
-            setStaffForm({ name: '', phone: '', role: '', salary: 0, joining_date: new Date().toISOString().slice(0, 10) })
-            fetchData()
-        } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Failed to add staff'
-            toast.error(msg)
-        }
-    }
 
     const handleMarkAttendance = async (staffId: string, date: string, status: AttendanceRecord['status']) => {
         try {
@@ -169,8 +142,12 @@ export default function StaffPage() {
         const halfDays = records.filter(a => a.status === 'half_day').length
         const absentDays = records.filter(a => a.status === 'absent').length
         const leaveDays = records.filter(a => a.status === 'leave').length
+
+        // Use custom half day amount if provided, else fall back to 50% of per day
+        const hPay = (member.half_day_salary && Number(member.half_day_salary) > 0) ? Number(member.half_day_salary) : (perDay * 0.5)
+        const payable = Math.round((perDay * (presentDays + leaveDays)) + (hPay * halfDays))
+
         const effectiveDays = presentDays + (halfDays * 0.5) + leaveDays
-        const payable = Math.round(perDay * effectiveDays)
 
         return { presentDays, halfDays, absentDays, leaveDays, effectiveDays, payable, perDay: Math.round(perDay), daysInMonth }
     }
@@ -203,12 +180,12 @@ export default function StaffPage() {
                         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Staff Management</h1>
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowAddStaff(true)}
+                <Link
+                    href="/dashboard/staff/add"
                     className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-violet-600/20 active:scale-95 transition-all"
                 >
                     <MdAdd size={18} /> Add Staff
-                </button>
+                </Link>
             </div>
 
             {/* Tabs */}
@@ -218,8 +195,8 @@ export default function StaffPage() {
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                ? 'bg-white dark:bg-slate-900 text-violet-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white dark:bg-slate-900 text-violet-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         {tab}
@@ -243,8 +220,12 @@ export default function StaffPage() {
                             {staff.map(member => (
                                 <div key={member.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-lg transition-all">
                                     <div className="flex items-center gap-5">
-                                        <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-violet-500/20">
-                                            {member.name.charAt(0).toUpperCase()}
+                                        <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-violet-500/20 overflow-hidden">
+                                            {member.photo_url ? (
+                                                <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                member.name.charAt(0).toUpperCase()
+                                            )}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white text-lg">{member.name}</h3>
@@ -259,9 +240,17 @@ export default function StaffPage() {
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Salary</p>
                                             <p className="text-xl font-black text-slate-900 dark:text-white italic">₹{member.salary.toLocaleString('en-IN')}</p>
                                         </div>
-                                        <button onClick={() => handleDeleteStaff(member.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">
-                                            <MdDelete size={18} />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <Link href={`/dashboard/staff/attendance/${member.id}`} className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all" title="View Attendance">
+                                                <MdCalendarMonth size={18} />
+                                            </Link>
+                                            <Link href={`/dashboard/staff/edit/${member.id}`} className="p-2.5 text-slate-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-xl transition-all" title="Edit Profile">
+                                                <MdEdit size={18} />
+                                            </Link>
+                                            <button onClick={() => handleDeleteStaff(member.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Delete Staff">
+                                                <MdDelete size={18} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -301,11 +290,11 @@ export default function StaffPage() {
                                                     key={status}
                                                     onClick={() => handleMarkAttendance(member.id, today, status)}
                                                     className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${todayRecord?.status === status
-                                                            ? status === 'present' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
-                                                                : status === 'absent' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                                                                    : status === 'half_day' ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/30'
-                                                                        : 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                        ? status === 'present' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                                                            : status === 'absent' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                                                                : status === 'half_day' ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/30'
+                                                                    : 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                         }`}
                                                 >
                                                     {status === 'present' && <MdCheckCircle className="inline mr-1" size={14} />}
@@ -369,7 +358,12 @@ export default function StaffPage() {
                                                         </div>
                                                     </td>
                                                     <td className="text-center px-4 py-4 font-bold text-green-600">{payroll.presentDays}</td>
-                                                    <td className="text-center px-4 py-4 font-bold text-yellow-600">{payroll.halfDays}</td>
+                                                    <td className="text-center px-4 py-4 font-bold text-yellow-600">
+                                                        {payroll.halfDays}
+                                                        {member.half_day_salary && Number(member.half_day_salary) > 0 && (
+                                                            <span className="block text-[9px] text-slate-400 font-normal mt-0.5">@ ₹{member.half_day_salary}</span>
+                                                        )}
+                                                    </td>
                                                     <td className="text-center px-4 py-4 font-bold text-red-500">{payroll.absentDays}</td>
                                                     <td className="text-center px-4 py-4 font-bold text-blue-500">{payroll.leaveDays}</td>
                                                     <td className="text-right px-4 py-4 text-slate-500">₹{payroll.perDay.toLocaleString('en-IN')}</td>
@@ -400,88 +394,6 @@ export default function StaffPage() {
                 </div>
             )}
 
-            {/* Add Staff Modal */}
-            {showAddStaff && (
-                <>
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowAddStaff(false)} />
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                            <h2 className="text-2xl font-black text-slate-900 dark:text-white italic uppercase">Add Staff Member</h2>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Full Name *</label>
-                                    <input
-                                        type="text"
-                                        value={staffForm.name}
-                                        onChange={e => setStaffForm({ ...staffForm, name: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                        placeholder="e.g. Ramesh Kumar"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Phone</label>
-                                        <input
-                                            type="text"
-                                            value={staffForm.phone}
-                                            onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                            placeholder="9876543210"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Role</label>
-                                        <input
-                                            type="text"
-                                            value={staffForm.role}
-                                            onChange={e => setStaffForm({ ...staffForm, role: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                            placeholder="e.g. Cashier"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Monthly Salary (₹)</label>
-                                        <input
-                                            type="number"
-                                            value={staffForm.salary || ''}
-                                            onChange={e => setStaffForm({ ...staffForm, salary: Number(e.target.value) })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                            placeholder="15000"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Joining Date</label>
-                                        <input
-                                            type="date"
-                                            value={staffForm.joining_date}
-                                            onChange={e => setStaffForm({ ...staffForm, joining_date: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => setShowAddStaff(false)}
-                                    className="flex-1 px-6 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleAddStaff}
-                                    className="flex-1 px-6 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-violet-600/20 active:scale-95 transition-all"
-                                >
-                                    Add Staff
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
         </div>
     )
 }

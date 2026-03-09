@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { IoTrendingUp, IoTrendingDown, IoCalendar, IoChevronBack, IoDownload, IoDocument } from 'react-icons/io5'
+import { IoTrendingUp, IoTrendingDown, IoCalendar, IoChevronBack, IoDownload, IoDocument, IoShare } from "react-icons/io5"
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function ProfitLossInvoiceReport() {
     const [loading, setLoading] = useState(false)
@@ -122,13 +124,26 @@ export default function ProfitLossInvoiceReport() {
         toast.success("Excel Report Exported")
     }
 
-    const handlePrint = () => {
-        window.print()
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `Profit_Loss_Report_${dateRange.start}.pdf`,
+            title: 'Profit & Loss Report',
+            text: `Attached is the invoice-wise profit & loss statement for the period ${dateRange.start} to ${dateRange.end}.`
+        })
+    }
+
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `Profit_Loss_Report_${dateRange.start}.pdf`
+        })
     }
 
 
+
     return (
-        <div className="space-y-6 print:space-y-4">
+        <div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Profit & Loss Statement (Invoice Wise)</h1>
                 <p className="text-slate-500">Analysis Period: {dateRange.start} to {dateRange.end}</p>
@@ -173,6 +188,9 @@ export default function ProfitLossInvoiceReport() {
                             Apply Analysis
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
+                            <Button variant="outline" onClick={handleShare}>
+                                <IoShare size={18} className="mr-2" /> Share
+                            </Button>
                             <Button variant="outline" onClick={handlePrint} disabled={invoices.length === 0}>
                                 <IoDocument size={18} className="mr-2" /> PDF
                             </Button>

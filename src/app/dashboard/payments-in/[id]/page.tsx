@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/card'
 import { IoArrowBack, IoSync, IoTrash, IoCreate, IoWallet, IoCalendar, IoCash, IoCard, IoSend, IoShare, IoMail, IoDocument, IoChevronDown, IoDownload } from 'react-icons/io5'
 import { FaHashtag } from 'react-icons/fa'
 import type { Payment, Profile } from '@/types'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function PaymentInDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
@@ -94,30 +96,25 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
 
     const handleShare = async () => {
         if (!payment) return
-        try {
-            setSharing(true)
-            const shareData = {
-                title: `Receipt ${payment.payment_number}`,
-                text: `Payment Receipt from ${profile?.company_name || 'Billmensor'}`,
-                url: window.location.href,
-            }
-            if (navigator.share) {
-                await navigator.share(shareData)
-            } else {
-                await navigator.clipboard.writeText(window.location.href)
-                toast.success('Link copied to clipboard')
-            }
-        } catch (error: unknown) {
-            console.error('Error sharing:', error)
-        } finally {
-            setSharing(false)
-            setIsShareOpen(false)
-        }
+        await sharePDF({
+            elementId: 'receipt-content',
+            filename: `Receipt_${payment.payment_number}.pdf`,
+            title: `Receipt ${payment.payment_number}`,
+            text: `Payment Receipt from ${profile?.company_name || 'Billmensor'}`
+        })
+        setIsShareOpen(false)
     }
 
-    const handleDownload = () => {
-        window.print()
+
+    const handleDownload = async () => {
+        if (!payment) return
+        await downloadPDF({
+            elementId: 'receipt-content',
+            filename: `Receipt_${payment.payment_number}.pdf`
+        })
+        setIsShareOpen(false)
     }
+
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">

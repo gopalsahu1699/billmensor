@@ -8,6 +8,8 @@ import { MdInventory as Package, MdSearch as Search, MdDownload as Download, MdD
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+import { IoShare } from 'react-icons/io5'
 
 import { Product } from '@/types'
 
@@ -59,12 +61,25 @@ export default function StockSummaryReport() {
         toast.success("Stock Summary Exported")
     }
 
-    const handlePrint = () => {
-        window.print()
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `Stock_Summary_${new Date().toLocaleDateString()}.pdf`,
+            title: 'Stock Summary Report',
+            text: 'Attached is the inventory stock summary report.'
+        })
     }
 
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `Stock_Summary_${new Date().toLocaleDateString()}.pdf`
+        })
+    }
+
+
     return (
-        <div className="space-y-6 print:space-y-4">
+        <div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Inventory Stock Summary Report</h1>
                 <p className="text-slate-500">As of: {new Date().toLocaleDateString()}</p>
@@ -142,6 +157,9 @@ export default function StockSummaryReport() {
                             />
                         </div>
                         <div className="flex gap-2">
+                            <Button variant="outline" onClick={handleShare}>
+                                <IoShare size={18} className="mr-2" /> Share
+                            </Button>
                             <Button variant="outline" onClick={handlePrint} disabled={products.length === 0}>
                                 <FileText size={18} className="mr-2" /> PDF
                             </Button>

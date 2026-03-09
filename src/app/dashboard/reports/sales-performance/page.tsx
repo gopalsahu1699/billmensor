@@ -5,9 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { MdInventory as Package, MdTrendingUp as TrendingUp, MdCalendarToday as Calendar, MdChevronLeft as ChevronLeft, MdCallMade as ArrowUpRight, MdBarChart as BarChart2, MdDownload as Download, MdDescription as FileText } from 'react-icons/md'
+import { IoShare } from 'react-icons/io5'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function ItemProfitSummary() {
     const [loading, setLoading] = useState(false)
@@ -93,14 +96,27 @@ export default function ItemProfitSummary() {
         toast.success("Excel Report Exported")
     }
 
-    const handlePrint = () => {
-        window.print()
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `Sales_Performance_${dateRange.start}.pdf`,
+            title: 'Sales Performance Report',
+            text: `Attached is the sales performance report for the period ${dateRange.start} to ${dateRange.end}.`
+        })
     }
+
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `Sales_Performance_${dateRange.start}.pdf`
+        })
+    }
+
 
     const totalProfit = itemStats.reduce((acc, curr) => acc + curr.profit, 0)
 
     return (
-        <div className="space-y-6 print:space-y-4">
+        <div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-purple-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Item Profit & Sales Summary</h1>
                 <p className="text-slate-500">Generated on: {new Date().toLocaleDateString()}</p>
@@ -145,6 +161,9 @@ export default function ItemProfitSummary() {
                             Generate Summary
                         </Button>
                         <div className="ml-auto flex gap-2 no-print">
+                            <Button variant="outline" onClick={handleShare}>
+                                <IoShare size={18} className="mr-2" /> Share
+                            </Button>
                             <Button variant="outline" onClick={handlePrint} disabled={itemStats.length === 0} className="h-10">
                                 <FileText size={18} className="mr-2" /> PDF
                             </Button>

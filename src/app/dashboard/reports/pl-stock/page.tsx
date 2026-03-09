@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { IoTrendingUp, IoChevronBack, IoDownload, IoRefresh, IoDocument } from 'react-icons/io5'
+import { IoTrendingUp, IoChevronBack, IoDownload, IoRefresh, IoDocument, IoShare } from "react-icons/io5"
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function ProfitLossStockReport() {
     const [loading, setLoading] = useState(false)
@@ -177,8 +179,27 @@ export default function ProfitLossStockReport() {
         exportToExcel(rows, headers, `Stock_Profit_Loss_${new Date().toLocaleDateString()}`)
     }
 
+
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `Stock_Profit_Loss_${new Date().toLocaleDateString()}.pdf`,
+            title: 'Profit & Loss Report (Stock Wise)',
+            text: `Attached is the stock-wise profit & loss statement for the period ${dateRange.start} to ${dateRange.end}.`
+        })
+    }
+
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `Stock_Profit_Loss_${new Date().toLocaleDateString()}.pdf`
+        })
+    }
+
+
+
     return (
-        <div className="space-y-8 pb-20">
+        <div id="report-content" className="space-y-8 pb-20">
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
@@ -268,7 +289,7 @@ export default function ProfitLossStockReport() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Button
                             className="h-20 rounded-3xl bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col gap-1 shadow-sm"
                             onClick={exportToXLS}
@@ -278,7 +299,14 @@ export default function ProfitLossStockReport() {
                         </Button>
                         <Button
                             className="h-20 rounded-3xl bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col gap-1 shadow-sm"
-                            onClick={() => window.print()}
+                            onClick={handleShare}
+                        >
+                            <IoShare size={20} className="text-green-600" />
+                            <span className="font-bold text-xs uppercase tracking-widest">Share PDF</span>
+                        </Button>
+                        <Button
+                            className="h-20 rounded-3xl bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col gap-1 shadow-sm"
+                            onClick={handlePrint}
                         >
                             <IoDocument size={20} className="text-purple-600" />
                             <span className="font-bold text-xs uppercase tracking-widest">Print PDF</span>

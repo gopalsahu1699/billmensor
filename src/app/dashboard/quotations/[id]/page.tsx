@@ -11,6 +11,8 @@ import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 // Redundant interfaces removed, using shared types from @/types/print
 
@@ -194,41 +196,22 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
     async function handleDownload() {
         if (!quotation) return
-        window.open(`/print/quotations/${quotation.id}`, '_blank')
+        await downloadPDF({
+            elementId: 'quotation-render-area',
+            filename: `Quotation_${quotation.quotation_number}.pdf`
+        })
     }
 
     async function handleShare() {
-        if (!quotation || sharing) return
-        setSharing(true)
-
-        const shareData = {
-            title: `Quotation ${quotation.quotation_number || ''}`,
-            text: `View estimate ${quotation?.quotation_number || ''} from ${profile?.company_name || 'Billmensor'}`,
-            url: window.location.href,
-        }
-
-        try {
-            const printUrl = `${window.location.origin}/print/quotations/${quotation.id}`
-            const updatedShareData = { ...shareData, url: printUrl }
-
-            // Fallback to basic sharing
-            if (navigator.share) {
-                await navigator.share(updatedShareData)
-                toast.success('Shared successfully')
-            } else {
-                await navigator.clipboard.writeText(printUrl)
-                toast.success('Link copied to clipboard')
-            }
-        } catch (err: unknown) {
-            console.error('Error sharing:', err)
-            // Only show error if it's not the user cancelling
-            if (err instanceof Error && err.name !== 'AbortError') {
-                toast.error('Sharing failed')
-            }
-        } finally {
-            setSharing(false)
-        }
+        if (!quotation) return
+        await sharePDF({
+            elementId: 'quotation-render-area',
+            filename: `Quotation_${quotation.quotation_number}.pdf`,
+            title: `Quotation ${quotation.quotation_number}`,
+            text: `View estimate ${quotation.quotation_number} from ${profile?.company_name || 'Billmensor'}`
+        })
     }
+
 
     const handleEmail = () => {
         if (!quotation) return

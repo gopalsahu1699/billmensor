@@ -5,6 +5,23 @@
 -- Run this in Supabase SQL Editor (safe: uses IF NOT EXISTS)
 -- ============================================================
 
+-- Migration to add extra staff fields (v2.1)
+-- Run this in your Supabase SQL Editor
+
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS half_day_salary NUMERIC DEFAULT 0;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS overtime_rate NUMERIC DEFAULT 0;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS aadhaar_number TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS pan_number TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS bank_ifsc_code TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS father_name TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE public.staff_members ADD COLUMN IF NOT EXISTS whatsapp_phone TEXT;
+
 -- MIGRATION: Add tax_method to items
 ALTER TABLE public.invoice_items ADD COLUMN IF NOT EXISTS tax_method TEXT DEFAULT 'inclusive';
 ALTER TABLE public.quotation_items ADD COLUMN IF NOT EXISTS tax_method TEXT DEFAULT 'inclusive';

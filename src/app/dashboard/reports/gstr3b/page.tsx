@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { IoDocument, IoChevronBack, IoDownload } from 'react-icons/io5'
+import { IoDocument, IoChevronBack, IoDownload, IoShare } from "react-icons/io5"
 import { FaArrowUp, FaArrowDown, FaFileAlt } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { exportToExcel } from '@/lib/excel-utils'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 interface TaxData {
     taxable: number;
@@ -157,10 +159,25 @@ export default function GSTR3BReport() {
         exportToExcel(rows, headers, `GSTR3B_Summary_${dateRange.start}`)
     }
 
-    const handlePrint = () => window.print()
+    const handleShare = async () => {
+        await sharePDF({
+            elementId: 'report-content',
+            filename: `GSTR3B_Summary_${dateRange.start}.pdf`,
+            title: 'GSTR-3B Report',
+            text: `Attached is the GSTR-3B tax summary for the period ${dateRange.start} to ${dateRange.end}.`
+        })
+    }
+
+    const handlePrint = async () => {
+        await downloadPDF({
+            elementId: 'report-content',
+            filename: `GSTR3B_Summary_${dateRange.start}.pdf`
+        })
+    }
+
 
     return (
-        <div className="space-y-6 print:space-y-4">
+        <div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">GSTR-3B Monthly Tax Summary</h1>
                 <p className="text-slate-500">Period: {dateRange.start} to {dateRange.end}</p>
@@ -203,6 +220,9 @@ export default function GSTR3BReport() {
                             Generate Summary
                         </Button>
                         <div className="flex gap-2">
+                            <Button variant="outline" onClick={handleShare}>
+                                <IoShare size={18} className="mr-2" /> Share
+                            </Button>
                             <Button variant="outline" onClick={handlePrint} className="h-11">
                                 <IoDocument size={18} />
                             </Button>

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { MdArrowBack as ArrowLeft, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdWallet as Wallet, MdCalendarToday as Calendar, MdTag as Hash, MdAccountBalance as Banknote, MdCreditCard as CreditCard, MdSend as Send, MdShare as Share2, MdEmail as Mail, MdDescription as FileText, MdExpandMore as ChevronDown, MdDownload as Download } from 'react-icons/md'
 import type { Payment, Profile } from '@/types'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 
 export default function PaymentOutDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
@@ -89,30 +91,25 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
 
     const handleShare = async () => {
         if (!payment) return
-        try {
-            setSharing(true)
-            const shareData = {
-                title: `Voucher ${payment.payment_number}`,
-                text: `Payment Voucher for ${payment.customers?.name} from ${profile?.company_name || 'Billmensor'}`,
-                url: window.location.href,
-            }
-            if (navigator.share) {
-                await navigator.share(shareData)
-            } else {
-                await navigator.clipboard.writeText(window.location.href)
-                toast.success('Link copied to clipboard')
-            }
-        } catch (error: unknown) {
-            console.error('Error sharing:', error)
-        } finally {
-            setSharing(false)
-            setIsShareOpen(false)
-        }
+        await sharePDF({
+            elementId: 'voucher-content',
+            filename: `Voucher_${payment.payment_number}.pdf`,
+            title: `Voucher ${payment.payment_number}`,
+            text: `Payment Voucher for ${payment.customers?.name} from ${profile?.company_name || 'Billmensor'}`
+        })
+        setIsShareOpen(false)
     }
 
-    const handleDownload = () => {
-        window.print()
+
+    const handleDownload = async () => {
+        if (!payment) return
+        await downloadPDF({
+            elementId: 'voucher-content',
+            filename: `Voucher_${payment.payment_number}.pdf`
+        })
+        setIsShareOpen(false)
     }
+
 
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">

@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { MdArrowBack as ArrowLeft, MdDownload as Download, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdRefresh as RotateCcw } from 'react-icons/md'
+import { MdArrowBack as ArrowLeft, MdDownload as Download, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdRefresh as RotateCcw, MdShare } from 'react-icons/md'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 import Image from 'next/image'
 
 import type { Return, ReturnItem, Profile } from '@/types'
@@ -60,8 +62,22 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
 
     async function handleDownload() {
         if (!returnDoc) return
-        window.open(`/print/returns/${returnDoc.id}`, '_blank')
+        await downloadPDF({
+            elementId: 'return-render-area',
+            filename: `${returnDoc.type === 'sales_return' ? 'Credit_Note' : 'Debit_Note'}_${returnDoc.return_number}.pdf`
+        })
     }
+
+    async function handleShare() {
+        if (!returnDoc) return
+        await sharePDF({
+            elementId: 'return-render-area',
+            filename: `${returnDoc.type === 'sales_return' ? 'Credit_Note' : 'Debit_Note'}_${returnDoc.return_number}.pdf`,
+            title: `${returnDoc.type === 'sales_return' ? 'Credit Note' : 'Debit Note'} ${returnDoc.return_number}`,
+            text: `View ${returnDoc.type === 'sales_return' ? 'sales return' : 'purchase return'} ${returnDoc.return_number} from ${profile?.company_name || 'Billmensor'}`
+        })
+    }
+
 
     async function handleDelete() {
         if (!window.confirm('Are you sure you want to delete this return? Stock levels will NOT be automatically reverted.')) return
@@ -123,11 +139,19 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={handleShare}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <MdShare size={18} /> Share
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
                         <Trash2 size={18} /> Delete
                     </Button>
+
                     <Button
                         onClick={handleDownload}
                         className={`flex items-center gap-2 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all ${isSalesReturn ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'}`}

@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { MdArrowBack, MdDownload, MdSync, MdDelete, MdEdit, MdLocalShipping, MdRefresh } from 'react-icons/md'
+import { MdArrowBack, MdDownload, MdSync, MdDelete, MdEdit, MdLocalShipping, MdRefresh, MdShare } from 'react-icons/md'
+import { downloadPDF, sharePDF } from '@/lib/pdf-service'
+
 import Image from 'next/image'
 
 interface ChallanItem {
@@ -172,8 +174,22 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
     async function handleDownload() {
         if (!challan) return
-        window.open(`/print/delivery-challans/${challan.id}`, '_blank')
+        await downloadPDF({
+            elementId: 'challan-render-area',
+            filename: `Challan_${challan.challan_number}.pdf`
+        })
     }
+
+    async function handleShare() {
+        if (!challan) return
+        await sharePDF({
+            elementId: 'challan-render-area',
+            filename: `Challan_${challan.challan_number}.pdf`,
+            title: `Delivery Challan ${challan.challan_number}`,
+            text: `View delivery challan ${challan.challan_number} from ${profile?.company_name || 'Billmensor'}`
+        })
+    }
+
 
     async function handleDelete() {
         if (!window.confirm('Are you sure you want to delete this challan?')) return
@@ -251,11 +267,19 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={handleShare}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest transition-all shadow-sm"
+                    >
+                        <MdShare size={18} /> Share
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
                         <MdDelete size={18} /> Delete
                     </Button>
+
                     <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
