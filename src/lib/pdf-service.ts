@@ -27,6 +27,24 @@ export async function generateClientSidePDF({
         (el as HTMLElement).style.display = "none";
     });
 
+    // Inject temporary styles to hide scrollbars and force overflow visible
+    const pdfCaptureStyle = document.createElement("style");
+    pdfCaptureStyle.setAttribute("data-pdf-capture", "true");
+    pdfCaptureStyle.textContent = `
+        *, *::before, *::after {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            scrollbar-width: none !important;
+        }
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+    `;
+    document.head.appendChild(pdfCaptureStyle);
+
     try {
         // Capture at 2x resolution for crisp text
         const pixelRatio = 2;
@@ -34,6 +52,9 @@ export async function generateClientSidePDF({
             cacheBust: true,
             pixelRatio,
             backgroundColor: "#ffffff",
+            // Skip font CSS embedding to avoid CORS SecurityError on cross-origin stylesheets.
+            // Fonts are already rendered in the DOM and captured as pixels in the PNG.
+            fontEmbedCSS: "",
             // Filter out no-print elements at the capture level too
             filter: (node: HTMLElement) => {
                 return !node.classList?.contains("no-print");
@@ -119,6 +140,9 @@ export async function generateClientSidePDF({
         const blob = pdf.output("blob");
         return new File([blob], filename, { type: "application/pdf" });
     } finally {
+        // Remove the temporary capture styles
+        pdfCaptureStyle.remove();
+
         // Restore no-print elements
         noPrintElements.forEach((el) => {
             (el as HTMLElement).style.display = "";
