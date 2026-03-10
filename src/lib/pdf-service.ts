@@ -1,4 +1,6 @@
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import { toPng } from "html-to-image";
 
 export interface PDFGenerationOptions {
     elementId: string;
@@ -8,74 +10,120 @@ export interface PDFGenerationOptions {
 }
 
 /**
- * Captures an HTML element and its styles, sends it to the server-side 
- * Puppeteer service, and returns a File object (PDF).
+ * Generates a high-quality PDF entirely on the client side.
+ * Uses html-to-image to capture the element as a high-res PNG,
+ * then embeds it into a jsPDF document with proper A4 sizing.
  */
-export async function generateServerSidePDF({
+export async function generateClientSidePDF({
     elementId,
     filename,
 }: PDFGenerationOptions): Promise<File> {
     const element = document.getElementById(elementId);
     if (!element) throw new Error(`Element with ID "${elementId}" not found`);
 
-    // Gather all style tags and linked stylesheets
-    const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
-    let styles = "";
-    styleNodes.forEach((node) => {
-        if (node.tagName === "LINK") {
-            const href = node.getAttribute("href");
-            if (href) {
-                const absoluteUrl = new URL(href, window.location.href).href;
-                styles += `<link rel="stylesheet" href="${absoluteUrl}">\n`;
-            }
-        } else {
-            styles += node.outerHTML + "\n";
+    // Hide no-print elements during capture
+    const noPrintElements = element.querySelectorAll(".no-print");
+    noPrintElements.forEach((el) => {
+        (el as HTMLElement).style.display = "none";
+    });
+
+    try {
+        // Capture at 2x resolution for crisp text
+        const pixelRatio = 2;
+        const dataUrl = await toPng(element, {
+            cacheBust: true,
+            pixelRatio,
+            backgroundColor: "#ffffff",
+            // Filter out no-print elements at the capture level too
+            filter: (node: HTMLElement) => {
+                return !node.classList?.contains("no-print");
+            },
+        });
+
+        // Create PDF with A4 dimensions (mm)
+        const A4_WIDTH_MM = 210;
+        const A4_HEIGHT_MM = 297;
+        const MARGIN_MM = 10;
+        const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2;
+
+        // Get image dimensions to calculate proper scaling
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = (e) => reject(e);
+            img.src = dataUrl;
+        });
+
+        const imgWidthPx = img.naturalWidth;
+        const imgHeightPx = img.naturalHeight;
+
+        // Scale: fit the width to A4 content area, maintain aspect ratio
+        const scaledHeightMM = (imgHeightPx * CONTENT_WIDTH_MM) / imgWidthPx;
+
+        // If content fits on one page
+        if (scaledHeightMM <= A4_HEIGHT_MM - MARGIN_MM * 2) {
+            const pdf = new jsPDF("p", "mm", "a4");
+            pdf.addImage(dataUrl, "PNG", MARGIN_MM, MARGIN_MM, CONTENT_WIDTH_MM, scaledHeightMM);
+
+            const blob = pdf.output("blob");
+            return new File([blob], filename, { type: "application/pdf" });
         }
-    });
 
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            ${styles}
-            <style>
-                body { 
-                    background: white !important; 
-                    margin: 0; 
-                    padding: 40px; 
-                    font-family: 'Inter', sans-serif; 
-                }
-                #${elementId} { 
-                    box-shadow: none !important; 
-                    border: none !important; 
-                    margin: 0 auto !important; 
-                    width: 100% !important;
-                    max-width: 1024px !important;
-                }
-                .no-print { display: none !important; }
-                /* Ensure background colors and images are printed */
-                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            </style>
-        </head>
-        <body class="bg-white">
-            <div style="width: 100%; max-width: 1024px; margin: 0 auto;">
-                ${element.outerHTML}
-            </div>
-        </body>
-        </html>
-    `;
+        // Multi-page: slice the image across pages
+        const pageContentHeightMM = A4_HEIGHT_MM - MARGIN_MM * 2;
+        const totalPages = Math.ceil(scaledHeightMM / pageContentHeightMM);
+        const pdf = new jsPDF("p", "mm", "a4");
 
-    const response = await fetch("/api/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: htmlContent, filename }),
-    });
+        // We need to use canvas slicing for multi-page
+        const canvas = document.createElement("canvas");
+        canvas.width = imgWidthPx;
+        canvas.height = imgHeightPx;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0);
 
-    if (!response.ok) throw new Error("Server-side PDF generation failed");
+        // Height of each page slice in source pixels
+        const sliceHeightPx = (pageContentHeightMM / scaledHeightMM) * imgHeightPx;
 
-    const blob = await response.blob();
-    return new File([blob], filename, { type: "application/pdf" });
+        for (let page = 0; page < totalPages; page++) {
+            if (page > 0) pdf.addPage();
+
+            const sourceY = page * sliceHeightPx;
+            const sourceH = Math.min(sliceHeightPx, imgHeightPx - sourceY);
+
+            // Create a slice canvas for this page
+            const sliceCanvas = document.createElement("canvas");
+            sliceCanvas.width = imgWidthPx;
+            sliceCanvas.height = sourceH;
+            const sliceCtx = sliceCanvas.getContext("2d")!;
+            sliceCtx.fillStyle = "#ffffff";
+            sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+            sliceCtx.drawImage(
+                canvas,
+                0, sourceY, imgWidthPx, sourceH,
+                0, 0, imgWidthPx, sourceH
+            );
+
+            const sliceDataUrl = sliceCanvas.toDataURL("image/png");
+            const sliceScaledHeight = (sourceH * CONTENT_WIDTH_MM) / imgWidthPx;
+
+            pdf.addImage(
+                sliceDataUrl,
+                "PNG",
+                MARGIN_MM,
+                MARGIN_MM,
+                CONTENT_WIDTH_MM,
+                sliceScaledHeight
+            );
+        }
+
+        const blob = pdf.output("blob");
+        return new File([blob], filename, { type: "application/pdf" });
+    } finally {
+        // Restore no-print elements
+        noPrintElements.forEach((el) => {
+            (el as HTMLElement).style.display = "";
+        });
+    }
 }
 
 /**
@@ -84,7 +132,7 @@ export async function generateServerSidePDF({
 export async function downloadPDF(options: PDFGenerationOptions) {
     const toastId = toast.loading("Generating High-Quality PDF...");
     try {
-        const file = await generateServerSidePDF(options);
+        const file = await generateClientSidePDF(options);
         const url = window.URL.createObjectURL(file);
         const a = document.createElement("a");
         a.href = url;
@@ -104,7 +152,7 @@ export async function downloadPDF(options: PDFGenerationOptions) {
 export async function sharePDF(options: PDFGenerationOptions) {
     const toastId = toast.loading("Preparing PDF for sharing...");
     try {
-        const file = await generateServerSidePDF(options);
+        const file = await generateClientSidePDF(options);
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
