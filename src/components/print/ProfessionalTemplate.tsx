@@ -17,6 +17,7 @@ export function ProfessionalTemplate({
 
     const isInvoice = type === 'invoice'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -128,7 +129,7 @@ export function ProfessionalTemplate({
                         <th className="border px-3 py-2 text-center">HSN</th>
                         <th className="border px-3 py-2 text-center">Qty</th>
                         <th className="border px-3 py-2 text-center">Rate</th>
-                        <th className="border px-3 py-2 text-center">Disc</th>
+                        {hasAnyDiscount && <th className="border px-3 py-2 text-center">Disc</th>}
                         {!allGstIsZero && <th className="border px-3 py-2 text-center">GST%</th>}
                         <th className="border px-3 py-2 text-right">Amount</th>
                     </tr>
@@ -150,9 +151,11 @@ export function ProfessionalTemplate({
                             <td className="border px-3 py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            <td className="border px-3 py-2 text-center">
-                                ₹{(item.discount || 0).toLocaleString('en-IN')}
-                            </td>
+                            {hasAnyDiscount && (
+                                <td className="border px-3 py-2 text-center">
+                                    ₹{(item.discount || 0).toLocaleString('en-IN')}
+                                </td>
+                            )}
                             {!allGstIsZero && (
                                 <td className="border px-3 py-2 text-center">
                                     {item.tax_rate ?? 18}%

@@ -16,6 +16,7 @@ export function CompactTemplate({
 
     const isInvoice = type === 'invoice'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -113,7 +114,7 @@ export function CompactTemplate({
                         <th className="py-2 text-center">HSN</th>
                         <th className="py-2 text-center">Qty</th>
                         <th className="py-2 text-center">Rate</th>
-                        <th className="py-2 text-center">Disc</th>
+                        {hasAnyDiscount && <th className="py-2 text-center">Disc</th>}
                         {!allGstIsZero && <th className="py-2 text-center">GST%</th>}
                         <th className="py-2 text-right">Total</th>
                     </tr>
@@ -146,9 +147,11 @@ export function CompactTemplate({
                             <td className="py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            <td className="py-2 text-center">
-                                ₹{(item.discount || 0).toLocaleString('en-IN')}
-                            </td>
+                            {hasAnyDiscount && (
+                                <td className="py-2 text-center">
+                                    ₹{(item.discount || 0).toLocaleString('en-IN')}
+                                </td>
+                            )}
                             {!allGstIsZero && (
                                 <td className="py-2 text-center text-[10px]">
                                     {item.tax_rate ?? 18}%
