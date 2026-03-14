@@ -28,6 +28,9 @@ interface InvoiceItem {
     sgst: number
     igst: number
     discount: number
+    per_unit_discount: number
+    discount_rate: number
+    discount_type: 'amount' | 'percent'
     total: number
     image_url?: string
     price_type: PriceType
@@ -105,6 +108,9 @@ function CreateInvoiceForm() {
     const [igstTotal, setIgstTotal] = useState(0)
     const [taxMethod, setTaxMethod] = useState<'inclusive' | 'exclusive'>('inclusive')
     const [grandTotal, setGrandTotal] = useState(0)
+    const [showItemDiscount, setShowItemDiscount] = useState(false)
+    const [generalDiscountType, setGeneralDiscountType] = useState<'amount' | 'percent'>('amount')
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0 || (item.discount_rate || 0) > 0)
 
     // Modal States
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
@@ -145,8 +151,15 @@ function CreateInvoiceForm() {
 
         // Grand Total = Sum of inclusive line totals + Charges - General Discount + Round Off
         const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
-        setGrandTotal(Number((itemsTotal - generalDiscount + roundOff + transportCharges + installationCharges + customTotal).toFixed(2)))
-    }, [items, generalDiscount, roundOff, transportCharges, installationCharges, customCharges])
+        const totalBeforeCharges = itemsTotal + transportCharges + installationCharges + customTotal
+        
+        let finalDiscount = generalDiscount
+        if (generalDiscountType === 'percent') {
+            finalDiscount = (totalBeforeCharges * generalDiscount) / 100
+        }
+
+        setGrandTotal(Number((totalBeforeCharges - finalDiscount + roundOff).toFixed(2)))
+    }, [items, generalDiscount, generalDiscountType, roundOff, transportCharges, installationCharges, customCharges])
 
     useEffect(() => {
         calculateTotals()
@@ -249,6 +262,9 @@ function CreateInvoiceForm() {
                     sgst: item.sgst || 0,
                     igst: item.igst || 0,
                     discount: item.discount || 0,
+                    per_unit_discount: (item as any).per_unit_discount || (item.quantity > 0 ? (item.discount || 0) / item.quantity : 0),
+                    discount_rate: (item as any).discount_rate || 0,
+                    discount_type: (item as any).discount_type || 'amount',
                     total: item.total,
                     image_url: item.image_url || '',
                     price_type: 'selling' as PriceType,
@@ -318,6 +334,9 @@ function CreateInvoiceForm() {
             sgst: 0,
             igst: 0,
             discount: 0,
+            per_unit_discount: 0,
+            discount_rate: 0,
+            discount_type: 'amount',
             total: Number(inclusivePrice.toFixed(2)),
             image_url: product.image_url || '',
             price_type: 'selling',
@@ -340,6 +359,9 @@ function CreateInvoiceForm() {
             sgst: 0,
             igst: 0,
             discount: 0,
+            per_unit_discount: 0,
+            discount_rate: 0,
+            discount_type: 'amount',
             total: 0,
             price_type: 'selling',
             tax_method: taxMethod
@@ -354,13 +376,22 @@ function CreateInvoiceForm() {
         let grossAmount = 0
         let baseAmount = 0
         let tax = 0
+        
+        let totalRowDiscount = 0
+        if (updated.discount_type === 'percent') {
+            const rowTotal = updated.quantity * updated.unit_price
+            totalRowDiscount = (rowTotal * (updated.discount_rate || 0)) / 100
+        } else {
+            totalRowDiscount = (updated.per_unit_discount || 0) * updated.quantity
+        }
+        updated.discount = totalRowDiscount
 
         if (updated.tax_method === 'inclusive') {
-            grossAmount = (updated.quantity * updated.unit_price) - (updated.discount || 0)
+            grossAmount = (updated.quantity * updated.unit_price) - totalRowDiscount
             baseAmount = grossAmount / (1 + updated.tax_rate / 100)
             tax = grossAmount - baseAmount
         } else {
-            baseAmount = (updated.quantity * updated.unit_price) - (updated.discount || 0)
+            baseAmount = (updated.quantity * updated.unit_price) - totalRowDiscount
             tax = baseAmount * (updated.tax_rate / 100)
             grossAmount = baseAmount + tax
         }
@@ -533,7 +564,7 @@ function CreateInvoiceForm() {
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
                         <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
                             <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">description</span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Records</h2>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Proforma Details</h2>
                         </div>
                         
                         <div className="space-y-6">
@@ -612,7 +643,7 @@ function CreateInvoiceForm() {
                 <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-sm space-y-8">
                     <div className="flex items-center gap-4 border-b border-slate-50 dark:border-white/5 pb-6">
                         <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">local_shipping</span>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Logistics & Hub</h2>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Logistics & Targets</h2>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -740,6 +771,14 @@ function CreateInvoiceForm() {
                     <div className="flex gap-2">
                         <button
                             type="button"
+                            onClick={() => setShowItemDiscount(!showItemDiscount)}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border active:scale-95 ${showItemDiscount || hasAnyDiscount ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">percent</span>
+                            {showItemDiscount || hasAnyDiscount ? 'Discount Enabled' : 'Add Discount'}
+                        </button>
+                        <button
+                            type="button"
                             onClick={addCustomItem}
                             className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
                         >
@@ -764,10 +803,10 @@ function CreateInvoiceForm() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                <th className="pb-4 w-[40%]">Description</th>
+                                <th className="pb-4 w-[35%]">Description</th>
                                 <th className="pb-4 text-center">Qty</th>
                                 <th className="pb-4 text-center">Rate (₹)</th>
-                                <th className="pb-4 text-center">Disc (₹)</th>
+                                {(showItemDiscount || hasAnyDiscount) && <th className="pb-4 text-center">Discount</th>}
                                 <th className="pb-4 text-right">Amount</th>
                                 <th className="pb-4 text-right"></th>
                             </tr>
@@ -873,17 +912,48 @@ function CreateInvoiceForm() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="py-6 w-28 px-2">
-                                        <div className="relative">
-                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">₹</span>
-                                            <input
-                                                type="number"
-                                                value={item.discount || 0}
-                                                onChange={(e) => updateItem(item.id, { discount: parseFloat(e.target.value) || 0 })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-6 text-right text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
-                                            />
-                                        </div>
-                                    </td>
+                                    {(showItemDiscount || hasAnyDiscount) && (
+                                        <td className="py-6 w-44 px-2">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex gap-1">
+                                                    {(['amount', 'percent'] as const).map(t => (
+                                                        <button
+                                                            key={t}
+                                                            type="button"
+                                                            onClick={() => updateItem(item.id, { discount_type: t })}
+                                                            className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${item.discount_type === t
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                                }`}
+                                                        >
+                                                            {t === 'amount' ? 'Flat' : '% Off'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="relative">
+                                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">
+                                                        {item.discount_type === 'amount' ? '₹' : '%'}
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        value={item.discount_type === 'amount' ? (item.per_unit_discount || 0) : (item.discount_rate || 0)}
+                                                        onChange={(e) => {
+                                                            const val = parseFloat(e.target.value) || 0
+                                                            if (item.discount_type === 'amount') {
+                                                                updateItem(item.id, { per_unit_discount: val })
+                                                            } else {
+                                                                updateItem(item.id, { discount_rate: val })
+                                                            }
+                                                        }}
+                                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-6 text-right text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
+                                                    />
+                                                </div>
+                                                {item.discount_type === 'percent' && item.discount_rate > 0 && (
+                                                    <span className="text-[9px] text-green-600 font-bold text-right">-₹{item.discount.toLocaleString('en-IN')}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
                                     <td className="py-6 text-right">
                                         <div className="flex flex-col items-end">
                                             <span className="font-black text-slate-900 dark:text-slate-100 text-sm italic">₹{item.total.toLocaleString('en-IN')}</span>
@@ -912,7 +982,7 @@ function CreateInvoiceForm() {
                             ))}
                             {items.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center">
+                                    <td colSpan={hasAnyDiscount ? 6 : 5} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-4 text-slate-400 dark:text-slate-600">
                                             <MdInventory size={48} strokeWidth={1} className="opacity-20" />
                                             <p className="italic text-sm font-black uppercase tracking-widest opacity-50">No items added to this invoice yet.<br />Click &quot;Add Item&quot; to pick your first product.</p>
@@ -1043,14 +1113,36 @@ function CreateInvoiceForm() {
                                         <span className="material-symbols-outlined text-[14px]">add</span> Add Charge
                                     </button>
 
-                                    <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px] mt-4 border-t border-slate-800 pt-4">
-                                        <span className="text-primary">Extra Discount</span>
-                                        <input
-                                            type="number"
-                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
-                                            value={generalDiscount}
-                                            onChange={(e) => setGeneralDiscount(parseFloat(e.target.value) || 0)}
-                                        />
+                                    <div className="flex flex-col gap-2 mt-4 border-t border-slate-800 pt-4">
+                                        <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                            <span className="text-primary">Extra Discount</span>
+                                            <div className="flex gap-1">
+                                                {(['amount', 'percent'] as const).map(t => (
+                                                    <button
+                                                        key={t}
+                                                        type="button"
+                                                        onClick={() => setGeneralDiscountType(t)}
+                                                        className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${generalDiscountType === t
+                                                            ? 'bg-primary text-white shadow-sm'
+                                                            : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
+                                                            }`}
+                                                    >
+                                                        {t === 'amount' ? 'Flat' : '%'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-bold">
+                                                {generalDiscountType === 'amount' ? '₹' : '%'}
+                                            </span>
+                                            <input
+                                                type="number"
+                                                className="w-full bg-slate-800 border-none rounded-xl px-7 py-2 text-right focus:ring-1 focus:ring-primary outline-none text-white text-xs font-bold"
+                                                value={generalDiscount}
+                                                onChange={(e) => setGeneralDiscount(parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-2xl mt-4">

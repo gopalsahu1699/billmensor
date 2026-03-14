@@ -75,6 +75,7 @@ function CreateReturnForm() {
     const [discount, setDiscount] = useState(0)
     const [roundOff, setRoundOff] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
     const [isPartyModalOpen, setIsPartyModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
@@ -448,10 +449,11 @@ function CreateReturnForm() {
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500">
-                                            <th className="pb-3 font-semibold">Item</th>
+                                            <th className="pb-3 font-semibold w-[35%]">Item</th>
                                             <th className="pb-3 font-semibold text-center">Qty</th>
-                                            <th className="pb-3 font-semibold text-center">Rate</th>
-                                            <th className="pb-3 font-semibold text-right">Total</th>
+                                            <th className="pb-3 font-semibold text-center">Rate (₹)</th>
+                                            {hasAnyDiscount && <th className="pb-3 font-semibold text-center">Disc (₹)</th>}
+                                            <th className="pb-3 font-semibold text-right">Total (₹)</th>
                                             <th className="pb-3"></th>
                                         </tr>
                                     </thead>
@@ -491,6 +493,19 @@ function CreateReturnForm() {
                                                         />
                                                     </div>
                                                 </td>
+                                                {hasAnyDiscount && (
+                                                    <td className="py-4 w-28 px-2">
+                                                        <div className="relative">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                value={item.discount || 0}
+                                                                onChange={(e) => updateItem(item.id, { discount: parseFloat(e.target.value) || 0 })}
+                                                                className="w-full bg-slate-50 border-none rounded-lg py-2 pl-6 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="py-4 text-right">
                                                     <div className="flex flex-col items-end">
                                                         <span className="font-black text-slate-900 text-sm italic">₹{item.total.toLocaleString('en-IN')}</span>
@@ -506,7 +521,7 @@ function CreateReturnForm() {
                                         ))}
                                         {items.length === 0 && (
                                             <tr>
-                                                <td colSpan={5} className="py-12 text-center">
+                                                <td colSpan={hasAnyDiscount ? 6 : 5} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-3 text-slate-400">
                                                         <IoMdCube size={40} strokeWidth={1} className="opacity-20" />
                                                         <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin selection.</p>
@@ -522,7 +537,7 @@ function CreateReturnForm() {
                 </div>
 
                 <div className="space-y-6">
-                    <Card className="bg-slate-900 text-white border-slate-800">
+                    <Card className="bg-slate-900 text-white border-slate-800 sticky top-6">
                         <CardHeader><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
                         <CardContent className="space-y-4 font-medium">
                             <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>₹ {subtotal.toLocaleString('en-IN')}</span></div>
@@ -547,7 +562,7 @@ function CreateReturnForm() {
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-between pt-4 border-t border-slate-700 text-xl font-bold"><span>Total</span><span className="text-blue-400">₹ {grandTotal.toLocaleString('en-IN')}</span></div>
+                            <div className="flex justify-between pt-4 border-t border-slate-700 text-xl font-bold font-black italic"><span>Total Amount</span><span className="text-blue-400">₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
                         </CardContent>
                     </Card>
                     <Card><CardHeader><CardTitle className="text-md">Inventory Impact</CardTitle></CardHeader>

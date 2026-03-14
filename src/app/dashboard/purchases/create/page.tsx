@@ -12,8 +12,6 @@ import { SelectorModal } from '@/components/ui/SelectorModal'
 import { purchaseService } from '@/services/purchase.service'
 import { purchaseSchema } from '@/lib/validators'
 
-
-
 interface PurchaseItem {
     id: string
     product_id: string
@@ -28,7 +26,6 @@ interface PurchaseItem {
     discount: number
     total: number
 }
-
 
 interface Customer {
     id: string;
@@ -75,6 +72,7 @@ function CreatePurchaseForm() {
     const [discount, setDiscount] = useState(0)
     const [roundOff, setRoundOff] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
@@ -378,8 +376,8 @@ function CreatePurchaseForm() {
                         onClick={handleSavePurchase}
                         disabled={loading}
                         className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
-                        >
-                                    {loading ? <MdRefresh size={20} className="animate-spin" /> : <MdCheckCircle size={20} />}
+                    >
+                        {loading ? <MdRefresh size={20} className="animate-spin" /> : <MdCheckCircle size={20} />}
                         {loading ? 'RECORDING...' : 'SAVE PURCHASE'}
                     </button>
                 </div>
@@ -406,7 +404,7 @@ function CreatePurchaseForm() {
                                             : "Search for a supplier..."
                                         }
                                     </span>
-                                <MdExpandMore size={14} className="text-slate-400" />
+                                    <MdExpandMore size={14} className="text-slate-400" />
                                 </button>
                                 <SelectorModal
                                     isOpen={isCustomerModalOpen}
@@ -448,7 +446,7 @@ function CreatePurchaseForm() {
                                 }}
                                 className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                             >
-                                    <MdAdd size={16} />
+                                <MdAdd size={16} />
                                 Add Item
                             </button>
                         </CardHeader>
@@ -457,9 +455,10 @@ function CreatePurchaseForm() {
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500">
-                                            <th className="pb-3 font-semibold w-[40%]">Item Description</th>
+                                            <th className="pb-3 font-semibold w-[35%]">Item Description</th>
                                             <th className="pb-3 font-semibold text-center">Qty</th>
                                             <th className="pb-3 font-semibold text-center">Cost Price</th>
+                                            {hasAnyDiscount && <th className="pb-3 font-semibold text-center">Disc (₹)</th>}
                                             <th className="pb-3 font-semibold text-center">Tax %</th>
                                             <th className="pb-3 font-semibold text-right">Total (₹)</th>
                                             <th className="pb-3 font-semibold text-right"></th>
@@ -501,6 +500,19 @@ function CreatePurchaseForm() {
                                                         />
                                                     </div>
                                                 </td>
+                                                {hasAnyDiscount && (
+                                                    <td className="py-4 w-28 px-2">
+                                                        <div className="relative">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                value={item.discount || 0}
+                                                                onChange={(e) => updateItem(item.id, { discount: parseFloat(e.target.value) || 0 })}
+                                                                className="w-full bg-slate-50 border-none rounded-lg py-2 pl-6 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="py-4 text-center text-sm font-bold text-slate-500 italic">
                                                     {item.tax_rate}%
                                                 </td>
@@ -519,7 +531,7 @@ function CreatePurchaseForm() {
                                         ))}
                                         {items.length === 0 && (
                                             <tr>
-                                                <td colSpan={6} className="py-12 text-center text-slate-400">
+                                                <td colSpan={hasAnyDiscount ? 7 : 6} className="py-12 text-center text-slate-400">
                                                     No items added. Click &quot;Add Item&quot; to start.
                                                 </td>
                                             </tr>

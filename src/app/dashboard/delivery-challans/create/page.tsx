@@ -72,6 +72,7 @@ function CreateChallanForm() {
     const [discount, setDiscount] = useState(0)
     const [roundOff, setRoundOff] = useState(0)
     const [grandTotal, setGrandTotal] = useState(0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
 
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
@@ -388,9 +389,10 @@ function CreateChallanForm() {
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="border-b border-slate-100 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-500">
-                                            <th className="pb-3 font-semibold w-[45%]">Item</th>
+                                            <th className="pb-3 font-semibold w-[35%]">Item</th>
                                             <th className="pb-3 font-semibold text-center">Qty</th>
                                             <th className="pb-3 font-semibold text-center">Rate (₹)</th>
+                                            {hasAnyDiscount && <th className="pb-3 font-semibold text-center">Disc (₹)</th>}
                                             <th className="pb-3 font-semibold text-right">Total (₹)</th>
                                             <th className="pb-3"></th>
                                         </tr>
@@ -410,13 +412,29 @@ function CreateChallanForm() {
                                                     />
                                                 </td>
                                                 <td className="py-4 w-28 px-2">
-                                                    <input
-                                                        type="number"
-                                                        value={item.unit_price}
-                                                        onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
-                                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
-                                                    />
+                                                    <div className="relative">
+                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            value={item.unit_price}
+                                                            onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 pl-6 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
+                                                        />
+                                                    </div>
                                                 </td>
+                                                {hasAnyDiscount && (
+                                                    <td className="py-4 w-28 px-2">
+                                                        <div className="relative">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                value={item.discount || 0}
+                                                                onChange={(e) => updateItem(item.id, { discount: parseFloat(e.target.value) || 0 })}
+                                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 pl-6 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="py-4 text-right font-black text-slate-900 dark:text-white text-sm italic">
                                                     ₹{item.total.toLocaleString('en-IN')}
                                                 </td>
@@ -429,7 +447,7 @@ function CreateChallanForm() {
                                         ))}
                                         {items.length === 0 && (
                                             <tr>
-                                                <td colSpan={5} className="py-12 text-center">
+                                                <td colSpan={hasAnyDiscount ? 6 : 5} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-3 text-slate-400">
                                                         <IoCube size={40} strokeWidth={1} className="opacity-20" />
                                                         <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin.</p>
@@ -446,7 +464,7 @@ function CreateChallanForm() {
 
                 {/* Right: Summary */}
                 <div className="space-y-6">
-                    <Card className="bg-slate-900 text-white border-slate-800">
+                    <Card className="bg-slate-900 text-white border-slate-800 sticky top-6">
                         <CardHeader>
                             <CardTitle className="text-lg text-slate-100">Summary</CardTitle>
                         </CardHeader>
