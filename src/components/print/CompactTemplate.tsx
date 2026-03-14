@@ -113,6 +113,7 @@ export function CompactTemplate({
                         <th className="py-2 text-center">HSN</th>
                         <th className="py-2 text-center">Qty</th>
                         <th className="py-2 text-center">Rate</th>
+                        <th className="py-2 text-center">Disc</th>
                         {!allGstIsZero && <th className="py-2 text-center">GST%</th>}
                         <th className="py-2 text-right">Total</th>
                     </tr>
@@ -145,13 +146,16 @@ export function CompactTemplate({
                             <td className="py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
+                            <td className="py-2 text-center">
+                                ₹{(item.discount || 0).toLocaleString('en-IN')}
+                            </td>
                             {!allGstIsZero && (
                                 <td className="py-2 text-center text-[10px]">
                                     {item.tax_rate ?? 18}%
                                 </td>
                             )}
                             <td className="py-2 text-right">
-                                ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
+                                ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
                             </td>
                         </tr>
 

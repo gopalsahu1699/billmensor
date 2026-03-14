@@ -154,8 +154,9 @@ export function ModernTemplate({
                                 <th className="px-2 pb-2 text-left">Description</th>
                                 <th className="px-2 pb-2 text-center">Qty</th>
                                 <th className="px-2 pb-2 text-center">Rate</th>
+                                <th className="px-2 pb-2 text-center">Disc</th>
                                 {!allGstIsZero && <th className="px-2 pb-2 text-center">GST%</th>}
-                                <th className="px-2 pb-2 text-right">Total</th>
+                                <th className="px-2 pb-2 text-right">Amount</th>
                             </tr>
                         </thead>
 
@@ -178,13 +179,16 @@ export function ModernTemplate({
                                     <td className="px-2 py-2 text-center">
                                         ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                                     </td>
+                                    <td className="px-2 py-2 text-center text-slate-600">
+                                        ₹{(item.discount || 0).toLocaleString('en-IN')}
+                                    </td>
                                     {!allGstIsZero && (
                                         <td className="px-2 py-2 text-center text-slate-600 text-[11px]">
                                             {item.tax_rate ?? 18}%
                                         </td>
                                     )}
                                     <td className="px-2 py-2 text-right font-semibold">
-                                        ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
+                                        ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
                                     </td>
                                 </tr>
                             ))}

@@ -499,397 +499,454 @@ function CreateInvoiceForm() {
     }
 
     return (
-        <div className="space-y-10 max-w-6xl mx-auto pb-20 animate-in fade-in duration-500">
+        <div className="space-y-10 max-w-screen-2xl mx-auto pb-20 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-primary/5 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-slate-900/40 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800 backdrop-blur-xl">
                 <div className="space-y-2">
-                    <h1 className="text-4xl font-black tracking-tight italic uppercase">{editId ? 'Update' : 'New'} <span className="text-blue-500">Invoice</span></h1>
-                    <p className="text-slate-300 font-medium tracking-tight whitespace-pre-line">{editId ? 'Modify existing tax invoice details.' : 'Generate professional tax invoices for your clients.'}</p>
+                    <h1 className="text-4xl font-black tracking-tight italic uppercase">{editId ? 'Modify' : 'Create'} <span className="text-primary">Invoice</span></h1>
+                    <p className="text-slate-300 font-medium tracking-tight italic uppercase text-[10px] tracking-[0.2em]">{editId ? 'Universal Tax Record Update' : 'Generate Professional Tax Records'}</p>
                 </div>
                 <div className="flex gap-4">
                     <button
                         onClick={() => router.back()}
-                        className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-widest"
+                        className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-widest active:scale-95"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSaveInvoice}
                         disabled={loading}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
                     >
                         {loading ? <MdRefresh size={20} className="animate-spin" /> : <MdCheckCircle size={20} />}
-                        {loading ? 'SAVING...' : 'SAVE INVOICE'}
+                        {loading ? 'SYNCING...' : 'SAVE INVOICE'}
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Invoice Details */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Customer & Basic Info</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Select Customer *</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCustomerModalOpen(true)}
-                                    className="w-full flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-left"
-                                >
-                                    <span className={selectedCustomerId ? "text-slate-900 font-bold" : "text-slate-400"}>
-                                        {selectedCustomerId
-                                            ? customers.find(c => c.id === selectedCustomerId)?.name || "Select Customer"
-                                            : "Choose a customer..."
-                                        }
-                                    </span>
-                                    <MdExpandMore size={16} className="text-slate-400" />
-                                </button>
-                                <SelectorModal
-                                    isOpen={isCustomerModalOpen}
-                                    onClose={() => setIsCustomerModalOpen(false)}
-                                    title="Search Customer"
-                                    items={customers}
-                                    searchKeys={['name', 'phone', 'email']}
-                                    valueKey="id"
-                                    selectedValue={selectedCustomerId}
-                                    onSelect={(c) => setSelectedCustomerId(c.id)}
-                                    renderItem={(c) => (
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.name}</span>
-                                            <span className="text-xs text-slate-500">{c.phone || 'No phone'} • {c.email || 'No email'}</span>
-                                        </div>
-                                    )}
+            {/* Top Grid: Details & Logistics */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left: Essential Details (Col 4) */}
+                <div className="lg:col-span-4 space-y-8">
+                    {/* Basic Info Card */}
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+                            <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">description</span>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Records</h2>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Invoice Number</label>
+                                <input
+                                    type="text"
+                                    value={invoiceNumber}
+                                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700">Invoice #</label>
-                                    <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700">Date</label>
-                                    <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
 
-                    <Card className="border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden">
-                        <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 py-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
-                                    <MdInventory size={20} />
-                                </div>
-                                <CardTitle className="text-lg font-black italic uppercase tracking-tight">Billing & Shipping Hub</CardTitle>
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Universal Date</label>
+                                <input
+                                    type="date"
+                                    value={invoiceDate}
+                                    onChange={(e) => setInvoiceDate(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold"
+                                />
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-8 space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Billing Section */}
-                                <div className="space-y-6 p-6 rounded-3xl bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                                            <span className="material-symbols-outlined text-[18px]">payments</span>
-                                        </div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Billing Destination</h3>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
-                                            <textarea
-                                                value={billingAddress}
-                                                onChange={(e) => setBillingAddress(e.target.value)}
-                                                rows={3}
-                                                className="w-full bg-white dark:bg-slate-800 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
-                                                placeholder="Street address, City, ZIP..."
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                                                <input
-                                                    value={billingPhone}
-                                                    onChange={(e) => setBillingPhone(e.target.value)}
-                                                    className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm"
-                                                    placeholder="+91..."
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GSTIN</label>
-                                                <input
-                                                    value={billingGST}
-                                                    onChange={(e) => setBillingGST(e.target.value)}
-                                                    className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
-                                                    placeholder="Billing GSTIN"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Place of Supply</label>
-                                            <div className="relative">
-                                                <select
-                                                    value={supplyPlace}
-                                                    onChange={(e) => setSupplyPlace(e.target.value)}
-                                                    className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 pr-10 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-900 dark:text-slate-100 appearance-none font-bold shadow-sm"
-                                                >
-                                                    <option value="">Select State</option>
-                                                    {INDIAN_STATES.map(s => (
-                                                        <option key={s.code} value={s.name}>{s.name}</option>
-                                                    ))}
-                                                </select>
-                                                <MdExpandMore size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
 
-                                {/* Shipping Section */}
-                                <div className="space-y-6 p-6 rounded-3xl bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30 transition-all hover:shadow-lg">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                                            <span className="material-symbols-outlined text-[18px]">local_shipping</span>
-                                        </div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-blue-600">Shipping Destination</h3>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Address</label>
-                                            <textarea
-                                                value={shippingAddress}
-                                                onChange={(e) => setShippingAddress(e.target.value)}
-                                                rows={3}
-                                                className="w-full bg-white dark:bg-slate-800 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
-                                                placeholder="Shipping location if different..."
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Phone</label>
-                                                <input
-                                                    value={shippingPhone}
-                                                    onChange={(e) => setShippingPhone(e.target.value)}
-                                                    className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm"
-                                                    placeholder="Alt shipping contact"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Shipping GSTIN</label>
-                                                <input
-                                                    value={shippingGST}
-                                                    onChange={(e) => setShippingGST(e.target.value)}
-                                                    className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
-                                                    placeholder="Shipping GST"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="pt-2">
-                                            <button
-                                                onClick={() => {
-                                                    setShippingAddress(billingAddress)
-                                                    setShippingPhone(billingPhone)
-                                                    setShippingGST(billingGST)
-                                                }}
-                                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 underline underline-offset-4"
-                                            >
-                                                Copy from billing
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Customer Selection Card */}
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6">
+                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+                            <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">person</span>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Client</h2>
+                        </div>
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-lg">Line Items</CardTitle>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={addCustomItem}
-                                    className="flex items-center gap-2 bg-slate-100 text-slate-600 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200 active:scale-95"
-                                >
-                                    <MdAdd size={16} />
-                                    Custom Item
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setActiveItemIndex(null)
-                                        setIsProductModalOpen(true)
-                                    }}
-                                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                                >
-                                    <MdAdd size={16} />
-                                    Add Item
-                                </button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500">
-                                            <th className="pb-3 font-semibold w-[40%]">Item Description</th>
-                                            <th className="pb-3 font-semibold text-center">Qty</th>
-                                            <th className="pb-3 font-semibold text-center">Rate (₹)</th>
-                                            <th className="pb-3 font-semibold text-center">GST %</th>
-                                            <th className="pb-3 font-semibold text-right">Amount (₹)</th>
-                                            <th className="pb-3 font-semibold text-right"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {items.map((item) => (
-                                            <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
-                                                <td className="py-4 pr-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        {!item.product_id ? (
-                                                            <input
-                                                                type="text"
-                                                                value={item.name}
-                                                                onChange={(e) => updateItem(item.id, { name: e.target.value })}
-                                                                placeholder="Custom Item Name..."
-                                                                className="bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none font-black text-slate-900 text-sm uppercase italic tracking-tight py-1"
-                                                            />
-                                                        ) : (
-                                                            <span className="font-black text-slate-900 text-sm uppercase italic tracking-tight">{item.name}</span>
-                                                        )}
-                                                        <div className="flex items-center gap-2">
-                                                            {item.product_id && item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
-                                                            {!item.product_id && (
-                                                                <input
-                                                                    type="text"
-                                                                    value={item.hsn_code}
-                                                                    onChange={(e) => updateItem(item.id, { hsn_code: e.target.value })}
-                                                                    placeholder="HSN Code..."
-                                                                    className="bg-transparent border-none p-0 text-[10px] text-slate-400 font-bold uppercase tracking-widest focus:ring-0 outline-none w-20"
-                                                                />
-                                                            )}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                setActiveItemIndex(item.id)
-                                                                setIsProductModalOpen(true)
-                                                            }}
-                                                            className="text-[10px] text-blue-500 font-bold uppercase tracking-widest hover:text-blue-600 transition-colors w-fit"
-                                                        >
-                                                            Replace Product
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 w-24">
-                                                    <input
-                                                        type="number"
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                                                        className="w-full bg-slate-50 border-none rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900"
-                                                    />
-                                                </td>
-                                                <td className="py-4 w-36 px-2">
-                                                    <div className="relative">
-                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            value={item.unit_price}
-                                                            onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
-                                                            className="w-full bg-slate-50 border-none rounded-lg py-2 pl-6 text-right text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1 mt-1">
-                                                        <div className="flex gap-1">
-                                                            {(['inclusive', 'exclusive'] as const).map(m => (
-                                                                <button
-                                                                    key={m}
-                                                                    type="button"
-                                                                    onClick={() => updateItem(item.id, { tax_method: m })}
-                                                                    className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
-                                                                        ? 'bg-slate-900 text-white shadow-sm'
-                                                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                                        }`}
-                                                                >
-                                                                    {m === 'inclusive' ? 'Incl. GST' : 'Excl. GST'}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                        {item.product_id && (() => {
-                                                            const prod = products.find(p => p.id === item.product_id)
-                                                            if (!prod) return null
-                                                            const hasMultiplePrices = (prod.mrp && prod.mrp !== prod.price) || (prod.wholesale_price && prod.wholesale_price !== prod.price)
-                                                            if (!hasMultiplePrices) return null
-                                                            return (
-                                                                <div className="flex gap-0.5 mt-0.5">
-                                                                    {(['selling', 'mrp', 'wholesale'] as PriceType[]).map(pt => {
-                                                                        const price = getProductPrice(prod, pt)
-                                                                        if (pt === 'mrp' && !prod.mrp) return null
-                                                                        if (pt === 'wholesale' && !prod.wholesale_price) return null
-                                                                        const label = pt === 'selling' ? 'Sell' : pt === 'mrp' ? 'MRP' : 'W.Sale'
-                                                                        return (
-                                                                            <button
-                                                                                key={pt}
-                                                                                type="button"
-                                                                                onClick={() => changePriceType(item.id, pt)}
-                                                                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
-                                                                                    ? 'bg-blue-600 text-white shadow-sm'
-                                                                                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                                                    }`}
-                                                                                title={`₹${price.toLocaleString('en-IN')}`}
-                                                                            >
-                                                                                {label}
-                                                                            </button>
-                                                                        )
-                                                                    })}
-                                                                </div>
-                                                            )
-                                                        })()}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-center">
-                                                    <select
-                                                        value={item.tax_rate}
-                                                        onChange={(e) => updateItem(item.id, { tax_rate: parseFloat(e.target.value) })}
-                                                        className="bg-slate-50 border-none text-[12px] font-black text-blue-600 p-1 rounded-md h-auto w-auto focus:ring-0 cursor-pointer mx-auto block"
-                                                    >
-                                                        {[0, 5, 12, 18, 28].map(r => (
-                                                            <option key={r} value={r}>{r}%</option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-black text-slate-900 text-sm italic">₹{item.total.toLocaleString('en-IN')}</span>
-                                                        <span className="text-[10px] text-green-600 font-bold">Base: ₹{item.tax_method === 'inclusive' ? (item.total - item.tax_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (item.total / (1 + item.tax_rate / 100)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase">GST {item.tax_rate}% = ₹{item.tax_amount.toLocaleString('en-IN')}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-right pl-4">
-                                                    <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                        <MdDelete size={18} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {items.length === 0 && (
-                                            <tr>
-                                                <td colSpan={6} className="py-12 text-center">
-                                                    <div className="flex flex-col items-center gap-3 text-slate-400">
-                                                        <MdInventory size={40} strokeWidth={1} className="opacity-20" />
-                                                        <p className="italic text-sm font-medium">No items added. Click &quot;Add Item&quot; to begin selection.</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Client</label>
+                            <button
+                                type="button"
+                                onClick={() => setIsCustomerModalOpen(true)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-5 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-left flex items-center justify-between group"
+                            >
+                                <div className="flex flex-col">
+                                    <span className={selectedCustomerId ? "text-slate-900 dark:text-slate-100 font-black uppercase tracking-tight" : "text-slate-400 font-bold"}>
+                                        {selectedCustomerId
+                                            ? customers.find(c => c.id === selectedCustomerId)?.name || "Select Client"
+                                            : "Search Client..."
+                                        }
+                                    </span>
+                                    {selectedCustomerId && (
+                                        <span className="text-[10px] text-slate-400 font-bold">
+                                            {customers.find(c => c.id === selectedCustomerId)?.phone}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">search</span>
+                            </button>
+                            <SelectorModal
+                                isOpen={isCustomerModalOpen}
+                                onClose={() => setIsCustomerModalOpen(false)}
+                                title="Search Customer"
+                                items={customers}
+                                searchKeys={['name', 'phone', 'email']}
+                                valueKey="id"
+                                selectedValue={selectedCustomerId}
+                                onSelect={(c) => setSelectedCustomerId(c.id)}
+                                renderItem={(c) => (
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors uppercase tracking-tight">{c.name}</span>
+                                        <span className="text-xs text-slate-500">{c.phone || 'No phone'} • {c.email || 'No email'}</span>
+                                    </div>
+                                )}
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right: Summary */}
-                <div className="space-y-8">
-                    <div className="bg-slate-900 p-10 rounded-[40px] text-white shadow-2xl border border-slate-800 backdrop-blur-xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-[60px] pointer-events-none"></div>
+                {/* Right: Logistics (Col 8) */}
+                <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-sm space-y-8">
+                    <div className="flex items-center gap-4 border-b border-slate-50 dark:border-white/5 pb-6">
+                        <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">local_shipping</span>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Logistics & Hub</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Billing Section */}
+                        <div className="space-y-6 p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 italic shadow-inner">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-primary text-sm">payments</span>
+                                </div>
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Billing Address</h3>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location</label>
+                                    <textarea
+                                        value={billingAddress}
+                                        onChange={(e) => setBillingAddress(e.target.value)}
+                                        rows={2}
+                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-500 shadow-sm"
+                                        placeholder="Point of Billing..."
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 flex-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
+                                        <input
+                                            value={billingPhone}
+                                            onChange={(e) => setBillingPhone(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm"
+                                            placeholder="+91..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 flex-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GSTIN</label>
+                                        <input
+                                            value={billingGST}
+                                            onChange={(e) => setBillingGST(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
+                                            placeholder="Gst Number"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Place of Supply</label>
+                                    <div className="relative">
+                                        <select
+                                            value={supplyPlace}
+                                            onChange={(e) => setSupplyPlace(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-800 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 appearance-none font-black shadow-sm cursor-pointer"
+                                        >
+                                            <option value="">Select State</option>
+                                            {INDIAN_STATES.map(s => (
+                                                <option key={s.code} value={s.name}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                        <MdExpandMore size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Shipping Section */}
+                        <div className="space-y-6 p-6 rounded-3xl bg-primary/5 border border-primary/10 italic shadow-inner">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                    <span className="material-symbols-outlined text-sm">local_shipping</span>
+                                </div>
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/70">Shipping Address</h3>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Location</label>
+                                    <textarea
+                                        value={shippingAddress}
+                                        onChange={(e) => setShippingAddress(e.target.value)}
+                                        rows={2}
+                                        className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-500 shadow-sm"
+                                        placeholder="Point of Delivery..."
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 flex-1">
+                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Phone</label>
+                                        <input
+                                            value={shippingPhone}
+                                            onChange={(e) => setShippingPhone(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl h-12 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm"
+                                            placeholder="+91..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 flex-1">
+                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Shipping GSTIN</label>
+                                        <input
+                                            value={shippingGST}
+                                            onChange={(e) => setShippingGST(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
+                                            placeholder="Recipient Gst"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShippingAddress(billingAddress)
+                                            setShippingPhone(billingPhone)
+                                            setShippingGST(billingGST)
+                                        }}
+                                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 underline underline-offset-4"
+                                    >
+                                        Duplicate Billing
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>            {/* Line Items Card - FULL WIDTH */}
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
+                    <div className="flex items-center gap-4">
+                        <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">inventory_2</span>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Invoiceables</h2>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={addCustomItem}
+                            className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+                        >
+                            <MdAdd size={16} />
+                            Custom Item
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveItemIndex(null)
+                                setIsProductModalOpen(true)
+                            }}
+                            className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
+                        >
+                            <MdAdd size={16} className="text-white" />
+                            Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th className="pb-4 w-[40%]">Description</th>
+                                <th className="pb-4 text-center">Qty</th>
+                                <th className="pb-4 text-center">Rate (₹)</th>
+                                <th className="pb-4 text-center">Disc (₹)</th>
+                                <th className="pb-4 text-right">Amount</th>
+                                <th className="pb-4 text-right"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                            {items.map((item) => (
+                                <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td className="py-6 pr-6">
+                                        <div className="flex flex-col gap-1">
+                                            {!item.product_id ? (
+                                                <input
+                                                    type="text"
+                                                    value={item.name}
+                                                    onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                                                    placeholder="Custom Item Name..."
+                                                    className="bg-transparent border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight py-1"
+                                                />
+                                            ) : (
+                                                <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {item.product_id && item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
+                                                {!item.product_id && (
+                                                    <input
+                                                        type="text"
+                                                        value={item.hsn_code}
+                                                        onChange={(e) => updateItem(item.id, { hsn_code: e.target.value })}
+                                                        placeholder="HSN Code..."
+                                                        className="bg-transparent border-none p-0 text-[10px] text-slate-400 font-bold uppercase tracking-widest focus:ring-0 outline-none w-20"
+                                                    />
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveItemIndex(item.id)
+                                                    setIsProductModalOpen(true)
+                                                }}
+                                                className="text-[10px] text-primary font-bold uppercase tracking-widest hover:text-primary/80 transition-colors w-fit"
+                                            >
+                                                Replace Product
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className="py-6 w-24">
+                                        <input
+                                            type="number"
+                                            value={item.quantity}
+                                            onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
+                                        />
+                                    </td>
+                                    <td className="py-6 w-36 px-2">
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">₹</span>
+                                            <input
+                                                type="number"
+                                                value={item.unit_price}
+                                                onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-6 text-right text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 mt-1">
+                                            <div className="flex gap-1">
+                                                {(['inclusive', 'exclusive'] as const).map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => updateItem(item.id, { tax_method: m })}
+                                                        className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
+                                                            ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                            }`}
+                                                    >
+                                                        {m === 'inclusive' ? 'Incl. GST' : 'Excl. GST'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {item.product_id && products.find(p => p.id === item.product_id) && (
+                                                <div className="flex gap-0.5 mt-0.5">
+                                                    {(['selling', 'mrp', 'wholesale'] as PriceType[]).map(pt => {
+                                                        const prod = products.find(p => p.id === item.product_id)!
+                                                        const price = getProductPrice(prod, pt)
+                                                        if (pt === 'mrp' && !prod.mrp) return null
+                                                        if (pt === 'wholesale' && !prod.wholesale_price) return null
+                                                        const label = pt === 'selling' ? 'Sell' : pt === 'mrp' ? 'MRP' : 'W.Sale'
+                                                        return (
+                                                            <button
+                                                                key={pt}
+                                                                type="button"
+                                                                onClick={() => changePriceType(item.id, pt)}
+                                                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
+                                                                    ? 'bg-primary text-white shadow-sm'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                                    }`}
+                                                                title={`₹${price.toLocaleString('en-IN')}`}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="py-6 w-28 px-2">
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">₹</span>
+                                            <input
+                                                type="number"
+                                                value={item.discount || 0}
+                                                onChange={(e) => updateItem(item.id, { discount: parseFloat(e.target.value) || 0 })}
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-6 text-right text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td className="py-6 text-right">
+                                        <div className="flex flex-col items-end">
+                                            <span className="font-black text-slate-900 dark:text-slate-100 text-sm italic">₹{item.total.toLocaleString('en-IN')}</span>
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase">GST</span>
+                                                <select
+                                                    value={item.tax_rate}
+                                                    onChange={(e) => updateItem(item.id, { tax_rate: parseFloat(e.target.value) })}
+                                                    className="bg-slate-50 dark:bg-slate-800 border-none text-[10px] font-black text-primary p-0 h-auto w-auto focus:ring-0 cursor-pointer"
+                                                >
+                                                    {[0, 5, 12, 18, 28].map(r => (
+                                                        <option key={r} value={r}>{r}%</option>
+                                                    ))}
+                                                </select>
+                                                <span className="text-[10px] text-slate-400 font-bold">= ₹{item.tax_amount.toLocaleString('en-IN')}</span>
+                                            </div>
+                                            <span className="text-[10px] text-green-600 font-bold">Base: ₹{item.tax_method === 'inclusive' ? (item.total - item.tax_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (item.total / (1 + item.tax_rate / 100)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                    </td>
+                                    <td className="py-6 text-right pl-4">
+                                        <button type="button" onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                            <MdDelete size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {items.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-4 text-slate-400 dark:text-slate-600">
+                                            <MdInventory size={48} strokeWidth={1} className="opacity-20" />
+                                            <p className="italic text-sm font-black uppercase tracking-widest opacity-50">No items added to this invoice yet.<br />Click &quot;Add Item&quot; to pick your first product.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Bottom Grid: Observations & Valuation */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Observations Hub (2 Cols) */}
+                <div className="lg:col-span-2">
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 h-full">
+                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+                            <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">draw</span>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Observations</h2>
+                        </div>
+                        <textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-3xl p-6 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none min-h-[250px] text-slate-900 dark:text-slate-100 placeholder:text-slate-300 shadow-inner font-medium"
+                            placeholder="Add specific terms, notes, or payment instructions..."
+                        />
+                    </div>
+                </div>
+
+                {/* Right: Valuation Sidebar (1 Col) */}
+                <div className="space-y-8 h-full sticky top-8">
+                    <div className="bg-slate-900 dark:bg-slate-900/60 p-10 rounded-[40px] text-white shadow-2xl border border-slate-800 backdrop-blur-xl relative overflow-hidden h-full">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] pointer-events-none"></div>
 
                         <h3 className="text-xl font-black italic uppercase tracking-tight mb-8">Valuation</h3>
 
@@ -903,7 +960,7 @@ function CreateInvoiceForm() {
                                         setItems(prev => prev.map(item => calculateItemTotals(item, { tax_method: m })))
                                     }}
                                     className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${taxMethod === m
-                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        ? 'bg-primary text-white shadow-lg'
                                         : 'text-slate-400 hover:bg-slate-700/50'
                                         }`}
                                 >
@@ -913,127 +970,133 @@ function CreateInvoiceForm() {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                <span>Subtotal</span>
-                                <span className="text-slate-200">₹{subtotal.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                <span>Tax Aggregate</span>
-                                <span className="text-slate-200">₹{taxTotal.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div className="space-y-3 pt-4 border-t border-slate-800">
+                            {/* Calculation Rows */}
+                            <div className="space-y-6">
                                 <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                    <span>Transport</span>
-                                    <input
-                                        type="number"
-                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
-                                        value={transportCharges}
-                                        onChange={(e) => setTransportCharges(parseFloat(e.target.value) || 0)}
-                                    />
+                                    <span>Subtotal</span>
+                                    <span className="text-slate-200">₹{subtotal.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                    <span>Installation</span>
-                                    <input
-                                        type="number"
-                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
-                                        value={installationCharges}
-                                        onChange={(e) => setInstallationCharges(parseFloat(e.target.value) || 0)}
-                                    />
+                                    <span>Tax Aggregate</span>
+                                    <span className="text-slate-200">₹{taxTotal.toLocaleString('en-IN')}</span>
                                 </div>
-                                {customCharges.map((charge, index) => (
-                                    <div key={index} className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px] group">
-                                        <div className="flex items-center gap-1 flex-1">
-                                            <button
-                                                onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}
-                                                className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-500 transition-all"
-                                            >
-                                                <MdDelete size={14} />
-                                            </button>
+
+                                <div className="space-y-3 pt-4 border-t border-slate-800">
+                                    <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                        <span>Transport</span>
+                                        <input
+                                            type="number"
+                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
+                                            value={transportCharges}
+                                            onChange={(e) => setTransportCharges(parseFloat(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                        <span>Installation</span>
+                                        <input
+                                            type="number"
+                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
+                                            value={installationCharges}
+                                            onChange={(e) => setInstallationCharges(parseFloat(e.target.value) || 0)}
+                                        />
+                                    </div>
+
+                                    {customCharges.map((charge, index) => (
+                                        <div key={index} className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px] group">
+                                            <div className="flex items-center gap-1 flex-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}
+                                                    className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-500 transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">delete</span>
+                                                </button>
+                                                <input
+                                                    placeholder="Charge name..."
+                                                    className="bg-transparent border-none p-0 text-[10px] focus:ring-0 outline-none text-slate-200 w-full"
+                                                    value={charge.name}
+                                                    onChange={(e) => {
+                                                        const newCharges = [...customCharges]
+                                                        newCharges[index].name = e.target.value
+                                                        setCustomCharges(newCharges)
+                                                    }}
+                                                />
+                                            </div>
                                             <input
-                                                placeholder="Charge name..."
-                                                className="bg-transparent border-none p-0 text-[10px] focus:ring-0 outline-none text-slate-200 w-full"
-                                                value={charge.name}
+                                                type="number"
+                                                className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
+                                                value={charge.amount}
                                                 onChange={(e) => {
                                                     const newCharges = [...customCharges]
-                                                    newCharges[index].name = e.target.value
+                                                    newCharges[index].amount = parseFloat(e.target.value) || 0
                                                     setCustomCharges(newCharges)
                                                 }}
                                             />
                                         </div>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setCustomCharges([...customCharges, { name: '', amount: 0 }])}
+                                        className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors font-black uppercase tracking-widest mt-2"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">add</span> Add Charge
+                                    </button>
+
+                                    <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px] mt-4 border-t border-slate-800 pt-4">
+                                        <span className="text-primary">Extra Discount</span>
                                         <input
                                             type="number"
-                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
-                                            value={charge.amount}
-                                            onChange={(e) => {
-                                                const newCharges = [...customCharges]
-                                                newCharges[index].amount = parseFloat(e.target.value) || 0
-                                                setCustomCharges(newCharges)
-                                            }}
+                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-primary outline-none text-white text-[11px]"
+                                            value={generalDiscount}
+                                            onChange={(e) => setGeneralDiscount(parseFloat(e.target.value) || 0)}
                                         />
                                     </div>
-                                ))}
 
-                                <button
-                                    onClick={() => setCustomCharges([...customCharges, { name: '', amount: 0 }])}
-                                    className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-black uppercase tracking-widest mt-2"
-                                >
-                                    <MdAdd size={14} /> Add Charge
-                                </button>
-                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px] mt-4 border-t border-slate-800 pt-4">
-                                    <span className="text-blue-400">Extra Discount</span>
-                                    <input
-                                        type="number"
-                                        className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
-                                        value={generalDiscount}
-                                        onChange={(e) => setGeneralDiscount(parseFloat(e.target.value) || 0)}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                    <span>Round Off</span>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => {
-                                                const currentTotalWithoutRoundOff = items.reduce((acc, item) => acc + item.total, 0) - generalDiscount + transportCharges + installationCharges + customCharges.reduce((acc, curr) => acc + curr.amount, 0)
-                                                const roundedTotal = Math.round(currentTotalWithoutRoundOff)
-                                                setRoundOff(Number((roundedTotal - currentTotalWithoutRoundOff).toFixed(2)))
-                                            }}
-                                            className="text-[8px] bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded uppercase"
-                                        >
-                                            Auto
-                                        </button>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            className="w-24 bg-slate-800 border-none rounded px-3 py-1 text-right focus:ring-1 focus:ring-blue-500 outline-none text-white text-[11px]"
-                                            value={roundOff}
-                                            onChange={(e) => setRoundOff(parseFloat(e.target.value) || 0)}
-                                        />
+                                    <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-2xl mt-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                                <span className="material-symbols-outlined text-[20px]">exposure_zero</span>
+                                            </div>
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-300">Round Off</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const currentTotalWithoutRoundOff = items.reduce((acc, item) => acc + item.total, 0) + transportCharges + installationCharges + customCharges.reduce((acc, curr) => acc + curr.amount, 0) - generalDiscount
+                                                    const roundedTotal = Math.round(currentTotalWithoutRoundOff)
+                                                    setRoundOff(Number((roundedTotal - currentTotalWithoutRoundOff).toFixed(2)))
+                                                }}
+                                                className="bg-primary text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/80 transition-all shadow-xl shadow-primary/20 active:scale-95"
+                                            >
+                                                Auto Balance
+                                            </button>
+                                            <div className="relative w-28">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold font-mono">₹</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={roundOff}
+                                                    onChange={(e) => setRoundOff(parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-7 py-2 text-sm text-right focus:ring-2 focus:ring-primary outline-none text-white font-mono"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex justify-between items-center pt-6 border-t border-slate-800">
-                                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Total Payable</span>
-                                <span className="text-3xl font-black text-blue-400 tracking-tighter italic">₹{grandTotal.toLocaleString('en-IN')}</span>
-                            </div>
+                                <div className="pt-6 border-t border-slate-800 flex justify-between items-end">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Net Total</p>
+                                        <h4 className="text-3xl font-black italic shadow-sm">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                                    </div>
+                                </div>
                         </div>
                     </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-md">Notes</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-25"
-                                placeholder="Thanks for your business!"
-                            />
-                        </CardContent>
-                    </Card>
                 </div>
-            </div >
+            </div>
 
             <SelectorModal
                 isOpen={isProductModalOpen}

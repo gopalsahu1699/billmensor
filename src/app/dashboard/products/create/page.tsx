@@ -26,7 +26,7 @@ export default function CreateProductPage() {
         wholesale_price: '',
         stock_quantity: '',
         opening_stock_value: '',
-        tax_rate: '0',
+        tax_rate: '18',
         unit: 'pcs',
         image_url: '',
         // New fields for upgrade
@@ -34,7 +34,7 @@ export default function CreateProductPage() {
         batch_number: '',
         expiry_date: '',
         mfg_date: '',
-        reorder_point: '',
+        reorder_point: '5',
         is_low_stock_alert: true,
     })
 
@@ -476,7 +476,7 @@ export default function CreateProductPage() {
                                         value={form.reorder_point}
                                         onChange={(e) => setForm({ ...form, reorder_point: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="10"
+                                        placeholder="5"
                                     />
                                 </div>
                             </div>

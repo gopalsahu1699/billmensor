@@ -128,6 +128,7 @@ export function ProfessionalTemplate({
                         <th className="border px-3 py-2 text-center">HSN</th>
                         <th className="border px-3 py-2 text-center">Qty</th>
                         <th className="border px-3 py-2 text-center">Rate</th>
+                        <th className="border px-3 py-2 text-center">Disc</th>
                         {!allGstIsZero && <th className="border px-3 py-2 text-center">GST%</th>}
                         <th className="border px-3 py-2 text-right">Amount</th>
                     </tr>
@@ -149,13 +150,16 @@ export function ProfessionalTemplate({
                             <td className="border px-3 py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
+                            <td className="border px-3 py-2 text-center">
+                                ₹{(item.discount || 0).toLocaleString('en-IN')}
+                            </td>
                             {!allGstIsZero && (
                                 <td className="border px-3 py-2 text-center">
                                     {item.tax_rate ?? 18}%
                                 </td>
                             )}
                             <td className="border px-3 py-2 text-right font-medium">
-                                ₹{((item.quantity || 0) * (item.unit_price || item.rate || 0)).toLocaleString('en-IN')}
+                                ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
                             </td>
                         </tr>
                     ))}
