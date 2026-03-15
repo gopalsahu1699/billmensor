@@ -1,12 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
-    console.log('PROXY: Intercepting request to:', request.nextUrl.pathname);
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
+export async function middleware(request: NextRequest) {
+    console.log('MIDDLEWARE: Intercepting request to:', request.nextUrl.pathname);
+    
+    let supabaseResponse = NextResponse.next({
+        request,
     })
 
     const supabase = createServerClient(
@@ -19,22 +18,21 @@ export async function proxy(request: NextRequest) {
                 },
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
+                    supabaseResponse = NextResponse.next({
+                        request,
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, options)
+                        supabaseResponse.cookies.set(name, value, options)
                     )
                 },
             },
         }
     )
 
+    // IMPORTANT: Check for active session to handle RLS and auth persistence
     await supabase.auth.getUser()
 
-    return response
+    return supabaseResponse
 }
 
 export const config = {
@@ -49,3 +47,5 @@ export const config = {
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }
+
+export default middleware;

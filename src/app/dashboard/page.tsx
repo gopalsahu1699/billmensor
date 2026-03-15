@@ -298,6 +298,7 @@ export default function DashboardPage() {
                                     <stop offset="100%" stopColor="#2563eb" stopOpacity="0"></stop>
                                 </linearGradient>
                             </defs>
+                            {chartData.length > 0 && (<>
                             <path
                                 d={`M0,${chartData[0]} ${chartData.map((y, i) => `L${(i * 800) / (chartData.length - 1)},${y}`).join(' ')} V240 H0 Z`}
                                 fill="url(#gradient)"
@@ -321,6 +322,7 @@ export default function DashboardPage() {
                                     className="hover:r-6 transition-all cursor-pointer box-content border-2 border-white dark:border-slate-900 shadow-lg"
                                 />
                             ))}
+                            </>)}
                         </svg>
                         <div className="flex justify-between mt-8 px-2 overflow-hidden">
                             {chartLabels.map((lbl, idx) => (

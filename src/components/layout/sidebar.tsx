@@ -69,6 +69,8 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
             if (data?.role) {
                 setUserRole(data.role);
             }
+        }).catch(() => {
+            // team_members table may not exist yet - default to owner
         });
     }, []);
 

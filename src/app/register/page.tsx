@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 import { toast } from 'sonner'
 
 export default function RegisterPage() {
@@ -56,7 +57,21 @@ export default function RegisterPage() {
                 </div>
 
                 <h1 className="text-2xl font-bold text-slate-900 mb-2 text-center">Create an account</h1>
-                <p className="text-slate-500 mb-8 text-center">Start managing your business inventory and billing today.</p>
+                <p className="text-slate-500 mb-6 text-center font-medium">Start managing your business inventory and billing today.</p>
+
+                {/* Google Sign Up Button — appears first */}
+                <div className="mt-4">
+                    <GoogleLoginButton text="Sign up with Google" />
+                </div>
+
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-slate-500">Or sign up with email</span>
+                    </div>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
