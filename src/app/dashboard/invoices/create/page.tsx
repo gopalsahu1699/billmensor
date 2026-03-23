@@ -208,7 +208,7 @@ function CreateInvoiceForm() {
             setLoading(true)
             const { data: inv, error: invError } = await supabase
                 .from('invoices')
-                .select('*, invoice_items(*)')
+                .select('*, invoice_items(*, products(image_url))')
                 .eq('id', editId)
                 .single()
 
@@ -266,7 +266,7 @@ function CreateInvoiceForm() {
                     discount_rate: (item as any).discount_rate || 0,
                     discount_type: (item as any).discount_type || 'amount',
                     total: item.total,
-                    image_url: item.image_url || '',
+                    image_url: item.image_url || (item as any).products?.image_url || '',
                     price_type: 'selling' as PriceType,
                     tax_method: (item as any).tax_method || 'inclusive',
                 }, {})

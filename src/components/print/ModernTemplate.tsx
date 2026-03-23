@@ -191,7 +191,7 @@ export function ModernTemplate({
                                         </td>
                                     )}
                                     <td className="px-2 py-2 text-right font-semibold">
-                                        ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
+                                        ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}
@@ -199,51 +199,97 @@ export function ModernTemplate({
                     </table>
                 </div>
 
-                {/* FOOTER */}
-                <div className="flex justify-between items-start pt-6 border-t border-slate-300">
+                {/* FOOTER: Balanced Grid Layout */}
+                <div className="flex flex-row justify-between pt-8 border-t border-slate-200 mt-8 gap-12">
 
-                    {/* BANK + TERMS */}
-                    <div className="flex-1 space-y-4 min-w-[250px]">
+                    {/* LEFT SECTION: Taxes, Banks, Terms */}
+                    <div className="flex-1 space-y-6">
+
+                        {!allGstIsZero && (
+                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 border-b border-slate-100 pb-2">Tax analysis summary</p>
+                                <table className="w-full text-[11px] border-collapse">
+                                    <thead>
+                                        <tr className="text-slate-400 border-b border-slate-100 italic">
+                                            <th className="text-left py-2 font-black uppercase">Tax Category</th>
+                                            <th className="text-right py-2 font-black uppercase">Net Taxable</th>
+                                            <th className="text-right py-2 font-black uppercase text-blue-600">GST Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.values(items.reduce((acc, item) => {
+                                            const rate = item.tax_rate ?? 18;
+                                            const taxable = (item.total - (item.tax_amount || 0));
+                                            const tax = item.tax_amount || 0;
+                                            const key = `${rate}`;
+                                            if (!acc[key]) acc[key] = { rate, taxable: 0, tax: 0 };
+                                            acc[key].taxable += taxable;
+                                            acc[key].tax += tax;
+                                            return acc;
+                                        }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                            <tr key={i} className="border-b border-slate-50 last:border-0">
+                                                <td className="py-3 text-slate-700 font-bold uppercase tracking-tighter italic">GST {t.rate}%</td>
+                                                <td className="text-right py-3 text-slate-500 italic">₹{t.taxable.toLocaleString('en-IN')}</td>
+                                                <td className="text-right py-3 font-black text-slate-900 border-l border-slate-50 pl-4 italic">₹{t.tax.toLocaleString('en-IN')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                         {settings.show_bank_details && bankDetails && (
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 mb-2">
-                                    Bank Details
+                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2 mb-4 italic">
+                                    Bank Account Settlement
                                 </p>
-                                <div className="text-[11px] space-y-1">
-                                    <p><span className="font-semibold text-slate-600">A/C No:</span> {bankDetails.account_number}</p>
-                                    <p><span className="font-semibold text-slate-600">IFSC:</span> {bankDetails.ifsc_code}</p>
-                                    <p><span className="font-semibold text-slate-600">Bank:</span> {bankDetails.bank_branch_name}</p>
-                                    <p><span className="font-semibold text-slate-600">Holder:</span> {bankDetails.account_holder_name}</p>
-                                    <p><span className="font-semibold text-slate-600">UPI ID:</span> {bankDetails.upi_id}</p>
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[11px] italic">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter not-italic">Account No</span>
+                                        <span className="font-black text-slate-900">{bankDetails.account_number}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter not-italic">IFSC Code</span>
+                                        <span className="font-bold text-slate-900">{bankDetails.ifsc_code}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter not-italic">Bank Name</span>
+                                        <span className="text-slate-600">{bankDetails.bank_branch_name}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter not-italic">Account Holder</span>
+                                        <span className="text-slate-600">{bankDetails.account_holder_name}</span>
+                                    </div>
+                                    <div className="col-span-2 mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] not-italic">Instant UPI ID</span>
+                                        <span className="text-primary font-black text-sm">{bankDetails.upi_id}</span>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {settings.show_terms && (
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 mb-1">
-                                    Terms & Conditions
+                            <div className="px-5">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mb-2">
+                                    General Terms & Conditions
                                 </p>
-                                <div className="text-[11px] text-slate-700">
+                                <div className="text-[10px] text-slate-500 leading-relaxed italic">
                                     {profile?.terms_and_conditions ? (
-                                        <ul className="list-disc pl-3 space-y-0.5">
+                                        <ul className="list-disc pl-4 space-y-1">
                                             {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
                                                 <li key={i}>{term.trim()}</li>
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p>Goods once sold will not be taken back.</p>
+                                        <p>Certified that the particulars given above are true and correct.</p>
                                     )}
                                 </div>
                             </div>
                         )}
-
-
                     </div>
 
-                    {/* TOTAL */}
-                    <div className="w-64 text-right space-y-2">
+                    {/* RIGHT SECTION: Totals */}
+                    <div className="w-[320px] pt-4 pr-4 space-y-3">
                         <div className="flex justify-between text-[12px]">
                             <span>Subtotal</span>
                             <span className="font-semibold">
@@ -277,17 +323,6 @@ export function ModernTemplate({
                                 </span>
                             </div>
                         )}
-
-                        {(() => {
-                            const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
-                            if (itemDiscountTotal <= 0) return null
-                            return (
-                                <div className="flex justify-between text-[12px]">
-                                    <span>Item Discount</span>
-                                    <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
-                                </div>
-                            )
-                        })()}
 
                         {data.discount > 0 && (
                             <div className="flex justify-between text-[12px] text-red-600 font-bold">

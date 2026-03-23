@@ -43,12 +43,18 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
             setLoading(true)
             const [quoteRes, itemsRes] = await Promise.all([
                 supabase.from('quotations').select('*, customers(*)').eq('id', resolvedParams.id).single(),
-                supabase.from('quotation_items').select('*').eq('quotation_id', resolvedParams.id)
+                supabase.from('quotation_items').select('*, products(image_url)').eq('quotation_id', resolvedParams.id)
             ])
 
             if (quoteRes.error) throw quoteRes.error
+            
+            const mappedItems = (itemsRes.data || []).map(item => ({
+                ...item,
+                image_url: (item as any).image_url || (item as any).products?.image_url
+            }))
+            
             setQuotation(quoteRes.data as InvoiceData)
-            setItems((itemsRes.data as Item[]) || [])
+            setItems(mappedItems as Item[])
 
             const { data: profData } = await supabase
                 .from('profiles')
@@ -176,7 +182,8 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 tax_rate: item.tax_rate || 0,
                 tax_amount: item.tax_amount || 0,
                 discount: item.discount || 0,
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || null
             }))
 
             const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems)

@@ -98,11 +98,17 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('invoice_items')
-                .select('*')
+                .select('*, products(image_url)')
                 .eq('invoice_id', id)
 
             if (itemsError) throw itemsError
-            setItems(itemsData || [])
+            
+            const mappedItems = (itemsData || []).map(item => ({
+                ...item,
+                image_url: item.image_url || (item.products as any)?.image_url
+            }))
+            
+            setItems(mappedItems)
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to fetch invoice'
             toast.error(message)

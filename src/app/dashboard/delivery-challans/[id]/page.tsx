@@ -17,6 +17,7 @@ interface ChallanItem {
     quantity: number
     unit_price: number
     total: number
+    image_url?: string
 }
 
 interface Challan {
@@ -71,6 +72,12 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                 .single()
 
             if (error) throw error
+            
+            // For challans, items are sometimes already nested or in separate table?
+            // Let's check how they are stored. Usually in these pages they select('*') which includes items if it's a JSON column.
+            // If it's a separate table, we should fetch it.
+            // Based on create page, it's likely a column in delivery_challans or a separate table.
+            
             setChallan(data as Challan)
 
             // Fetch business profile
@@ -153,7 +160,8 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                 unit_price: item.unit_price,
                 tax_rate: 0,
                 tax_amount: 0,
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || null
             }))
 
             const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems)

@@ -1,5 +1,4 @@
-'use client'
-
+import React from 'react'
 import Image from 'next/image'
 import { MdEdit } from 'react-icons/md'
 import { PrintTemplateProps } from '@/types/print'
@@ -162,7 +161,7 @@ export function ProfessionalTemplate({
                                 </td>
                             )}
                             <td className="border px-3 py-2 text-right font-medium">
-                                ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
+                                ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                         </tr>
                     ))}
@@ -172,24 +171,71 @@ export function ProfessionalTemplate({
             {/* BOTTOM SECTION */}
             <div className="grid grid-cols-2 gap-8 mt-6">
 
-                {/* LEFT */}
-                <div className="space-y-4">
+                {/* LEFT: Bank Details, Terms, and Tax Breakdown */}
+                <div className="space-y-6">
+
+                    
+                    {/* Tax Summary on Left as requested */}
+                    {!allGstIsZero && (
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p className="font-bold text-[14px] mb-3 border-b pb-1">Tax Analysis Sum:</p>
+                            <table className="w-full text-[11px] border-collapse">
+                                <thead>
+                                    <tr className="text-gray-500 border-b">
+                                        <th className="text-left py-1">Type</th>
+                                        <th className="text-center py-1">Rate</th>
+                                        <th className="text-right py-1">Taxable</th>
+                                        <th className="text-right py-1">Tax Amt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {/* Group by tax rate for summary */}
+                                    {Object.values(items.reduce((acc, item) => {
+                                        const rate = item.tax_rate ?? 18;
+                                        const taxable = (item.total - (item.tax_amount || 0));
+                                        const tax = item.tax_amount || 0;
+                                        const key = `${rate}`;
+                                        if (!acc[key]) acc[key] = { rate, taxable: 0, tax: 0 };
+                                        acc[key].taxable += taxable;
+                                        acc[key].tax += tax;
+                                        return acc;
+                                    }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                        <React.Fragment key={i}>
+                                            <tr className="border-b border-gray-200">
+                                                <td className="py-1">GST ({t.rate}%)</td>
+                                                <td className="text-center py-1">{t.rate}%</td>
+                                                <td className="text-right py-1">₹{t.taxable.toLocaleString('en-IN')}</td>
+                                                <td className="text-right py-1 font-bold">₹{t.tax.toLocaleString('en-IN')}</td>
+                                            </tr>
+                                        </React.Fragment>
+                                    ))}
+                                    <tr className="font-black">
+                                        <td colSpan={3} className="pt-2 text-right">Total Tax:</td>
+                                        <td className="pt-2 text-right">₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
 
                     {settings.show_bank_details && bankDetails && (
-                        <div>
-                            <p className="font-bold text-[14px] mb-2">Bank Details:</p>
-                            <p>A/C: {bankDetails.account_number}</p>
-                            <p>IFSC: {bankDetails.ifsc_code}</p>
-                            <p>{bankDetails.bank_branch_name}</p>
-                            <p>Holder: {bankDetails.account_holder_name}</p>
-                            <p>UPI ID: {bankDetails.upi_id}</p>
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p className="font-bold text-[14px] mb-3 border-b pb-1">Bank Account Info:</p>
+                            <div className="grid grid-cols-2 gap-y-1 text-[12px]">
+                                <span className="text-gray-500 font-medium">Account No:</span> <span className="font-bold">{bankDetails.account_number}</span>
+                                <span className="text-gray-500 font-medium">IFSC Code:</span> <span className="font-bold">{bankDetails.ifsc_code}</span>
+                                <span className="text-gray-500 font-medium">Bank Name:</span> <span>{bankDetails.bank_branch_name}</span>
+                                <span className="text-gray-500 font-medium">Account Holder:</span> <span>{bankDetails.account_holder_name}</span>
+                                <span className="text-gray-500 font-medium">UPI ID:</span> <span className="text-primary font-bold">{bankDetails.upi_id}</span>
+                            </div>
                         </div>
                     )}
 
                     {settings.show_terms && (
                         <div>
-                            <p className="font-bold text-[14px] mb-2">Terms & Conditions:</p>
-                            <div className="text-[12px] leading-relaxed">
+                            <p className="font-bold text-[14px] mb-2 uppercase tracking-tighter italic">Terms & Conditions:</p>
+                            <div className="text-[11px] leading-relaxed text-gray-600">
                                 {profile?.terms_and_conditions ? (
                                     <ul className="list-decimal pl-4 space-y-1">
                                         {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
@@ -202,76 +248,56 @@ export function ProfessionalTemplate({
                             </div>
                         </div>
                     )}
-
-
                 </div>
 
-                {/* RIGHT TOTALS */}
-                <div className="space-y-2 text-[14px]">
-
-                    <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
+                {/* RIGHT TOTALS: Simplified and clear */}
+                <div className="space-y-3 pt-4 pr-2">
+                    <div className="flex justify-between text-gray-600">
+                        <span className="font-bold">Subtotal (Net Value)</span>
+                        <span className="font-black text-slate-900">₹{(data.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
 
                     {!allGstIsZero && (
-                        <div className="flex justify-between">
-                            <span>GST</span>
-                            <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-gray-600">
+                            <span className="font-bold">Estimated Tax (GST)</span>
+                            <span className="font-black text-slate-900">₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                     )}
 
                     {(data.transport_charges || 0) > 0 && (
-                        <div className="flex justify-between">
-                            <span>Transport</span>
-                            <span>₹{(data.transport_charges || 0).toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-gray-600">
+                            <span className="font-bold">Transport Charges</span>
+                            <span className="font-black text-slate-900">₹{(data.transport_charges || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
 
                     {(data.installation_charges || 0) > 0 && (
-                        <div className="flex justify-between">
-                            <span>Installation</span>
-                            <span>₹{(data.installation_charges || 0).toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-gray-600">
+                            <span className="font-bold">Installation Costs</span>
+                            <span className="font-black text-slate-900">₹{(data.installation_charges || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
 
-                    {(() => {
-                        const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
-                        if (itemDiscountTotal <= 0) return null
-                        return (
-                            <div className="flex justify-between text-red-600 font-bold">
-                                <span>Item Discount Total</span>
-                                <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
-                            </div>
-                        )
-                    })()}
-
                     {data.discount > 0 && (
-                        <div className="flex justify-between text-red-600 font-bold">
-                            <span>Additional Discount {data.discount > 0 && data.discount < 100 && data.discount % 1 !== 0 ? `(${data.discount}%)` : ''}</span>
-                            <span>-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded-lg">
+                            <span className="font-bold uppercase text-[11px]">Addl. Cash Discount {data.discount > 0 && data.discount < 100 && data.discount % 1 !== 0 ? `(${data.discount}%)` : ''}</span>
+                            <span className="font-black">-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
 
                     {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
-                        <div key={idx} className="flex justify-between">
-                            <span>{charge.name || 'Custom'}</span>
-                            <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
+                        <div key={idx} className="flex justify-between text-gray-600">
+                            <span className="font-bold">{charge.name || 'Misc Charge'}</span>
+                            <span className="font-black text-slate-900">₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     ))}
 
-                    {/* {(data.round_off || 0) !== 0 && (
-                        <div className="flex justify-between">
-                            <span>Round Off</span>
-                            <span>
-                                {(data.round_off || 0) > 0 ? '+' : ''}₹{(data.round_off || 0).toLocaleString('en-IN')}
-                            </span>
+                    <div className="flex justify-between items-end border-t-4 border-slate-900 pt-6 mt-4">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Payable Amount</span>
+                            <span className="text-xl font-black text-slate-900 italic uppercase">Grand Total</span>
                         </div>
-                    )} */}
-
-                    <div className="flex justify-between font-bold border-t pt-3 text-[16px]">
-                        <span>Total</span>
-                        <span>
+                        <span className="text-4xl font-black text-blue-600 italic">
                             ₹{(data.total_amount || 0).toLocaleString('en-IN', {
                                 minimumFractionDigits: 2
                             })}
@@ -279,14 +305,22 @@ export function ProfessionalTemplate({
                     </div>
 
                     {settings.show_signature && (
-                        <div className="mt-10 text-right">
-                            <p className="mb-8">For {profile?.company_name}</p>
-                            <div className="h-12 flex justify-end items-end">
-                                <MdEdit size={22} />
+                        <div className="mt-16 text-right">
+                            <p className="text-[10px] text-gray-400 uppercase font-black mb-12">Authorized Signature</p>
+                            {profile?.signature_url && (
+                                <div className="relative h-12 w-48 ml-auto mb-2">
+                                    <Image
+                                        src={profile.signature_url}
+                                        alt="Signature"
+                                        fill
+                                        priority
+                                        className="object-contain object-right"
+                                    />
+                                </div>
+                            )}
+                            <div className="border-t-2 border-slate-900 w-64 ml-auto pt-2">
+                                <p className="font-black text-slate-900 uppercase text-xs italic tracking-widest">{profile?.company_name}</p>
                             </div>
-                            <p className="border-t w-48 ml-auto text-center pt-1">
-                                Authorized Signatory
-                            </p>
                         </div>
                     )}
                 </div>

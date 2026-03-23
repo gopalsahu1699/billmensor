@@ -158,7 +158,7 @@ export function CompactTemplate({
                                 </td>
                             )}
                             <td className="py-2 text-right">
-                                ₹{(item.total || ((item.quantity || 0) * (item.unit_price || item.rate || 0)) - (item.discount || 0)).toLocaleString('en-IN')}
+                                ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                         </tr>
 
@@ -167,25 +167,60 @@ export function CompactTemplate({
             </table>
 
             {/* BOTTOM SECTION: Bank Details (Left) + Totals (Right) */}
-            <div className="flex justify-between gap-6 mt-2">
+            <div className="flex justify-between gap-6 mt-4 border-t border-black pt-4">
 
-                {/* LEFT: Bank Details + Terms */}
-                <div style={{ width: '55%' }} className="space-y-3">
+                {/* LEFT: Bank Details + Terms + Tax Summary */}
+                <div style={{ width: '55%' }} className="space-y-4">
+                      {!allGstIsZero && (
+                        <div>
+                            <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Tax Analysis</h4>
+                            <table className="w-full text-[10px] border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-100">
+                                        <th className="text-left py-1">Type</th>
+                                        <th className="text-right py-1 text-gray-500 font-normal">Taxable Value</th>
+                                        <th className="text-right py-1">Tax Amt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.values(items.reduce((acc, item) => {
+                                        const rate = item.tax_rate ?? 18;
+                                        const taxable = (item.total - (item.tax_amount || 0));
+                                        const tax = item.tax_amount || 0;
+                                        const key = `${rate}`;
+                                        if (!acc[key]) acc[key] = { rate, taxable: 0, tax: 0 };
+                                        acc[key].taxable += taxable;
+                                        acc[key].tax += tax;
+                                        return acc;
+                                    }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                        <tr key={i} className="border-b border-gray-50">
+                                            <td className="py-1">GST ({t.rate}%)</td>
+                                            <td className="text-right py-1 italic">₹{t.taxable.toLocaleString('en-IN')}</td>
+                                            <td className="text-right py-1 font-bold">₹{t.tax.toLocaleString('en-IN')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                     {settings.show_bank_details && bankDetails && (
                         <div>
-                            <h4 className="font-bold text-[13px] mb-1 border-b border-black pb-1">Bank Details</h4>
-                            <p>Account: {bankDetails.account_number}</p>
-                            <p>IFSC: {bankDetails.ifsc_code}</p>
-                            <p>Bank: {bankDetails.bank_branch_name}</p>
-                            <p>Holder: {bankDetails.account_holder_name}</p>
-                            {bankDetails.upi_id && <p>UPI ID: {bankDetails.upi_id}</p>}
+                            <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Bank Info</h4>
+                            <div className="grid grid-cols-2 text-[11px] gap-x-2 bg-gray-50/50 p-2 border border-gray-100 italic">
+                                <span>A/C: {bankDetails.account_number}</span>
+                                <span>IFSC: {bankDetails.ifsc_code}</span>
+                                <span className="col-span-2">Bank: {bankDetails.bank_branch_name}</span>
+                                <span className="col-span-2">Holder: {bankDetails.account_holder_name}</span>
+                            </div>
                         </div>
                     )}
 
+                  
+
                     {settings.show_terms && (
                         <div>
-                            <h4 className="font-bold text-[13px] mb-1 border-b border-black pb-1">Terms & Conditions</h4>
-                            <div className="text-[12px]">
+                            <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Terms</h4>
+                            <div className="text-[10px] text-gray-600 italic">
                                 {profile?.terms_and_conditions ? (
                                     <ul className="list-disc pl-4 space-y-0.5">
                                         {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
@@ -200,62 +235,51 @@ export function CompactTemplate({
                     )}
                 </div>
 
-                {/* RIGHT: Charges + Totals + Signature */}
-                <div style={{ width: '40%' }} className="space-y-1">
-                    <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>₹{(data.subtotal || 0).toLocaleString('en-IN')}</span>
+                {/* RIGHT: Totals + Signature */}
+                <div style={{ width: '40%' }} className="space-y-2">
+                    <div className="flex justify-between text-[13px] text-gray-700">
+                        <span>Subtotal (Net):</span>
+                        <span className="font-bold">₹{(data.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                     {!allGstIsZero && (
-                        <div className="flex justify-between">
-                            <span>GST:</span>
-                            <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-[13px] text-gray-700 font-medium">
+                            <span>Tax (GST):</span>
+                            <span>₹{(data.tax_total || data.gst_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                     )}
                     {(data.transport_charges || 0) > 0 && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-[12px] text-gray-600">
                             <span>Transport:</span>
                             <span>₹{(data.transport_charges || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
                     {(data.installation_charges || 0) > 0 && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-[12px] text-gray-600">
                             <span>Installation:</span>
                             <span>₹{(data.installation_charges || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
-                    {(() => {
-                        const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
-                        if (itemDiscountTotal <= 0) return null
-                        return (
-                            <div className="flex justify-between text-red-600 font-bold">
-                                <span>Item Discount:</span>
-                                <span>-₹{itemDiscountTotal.toLocaleString('en-IN')}</span>
-                            </div>
-                        )
-                    })()}
                     {data.discount > 0 && (
-                        <div className="flex justify-between text-red-600 font-bold">
-                            <span>Addl. Disc:</span>
+                        <div className="flex justify-between text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded text-[12px]">
+                            <span>Additional Disc:</span>
                             <span>-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     )}
                     {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
-                        <div key={idx} className="flex justify-between">
+                        <div key={idx} className="flex justify-between text-[12px] text-gray-600">
                             <span>{charge.name || 'Custom'}:</span>
                             <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     ))}
-                    <div className="flex justify-between font-bold border-t border-black pt-2 text-[14px]">
-                        <span>Total:</span>
-                        <span>₹{(data.total_amount || 0).toLocaleString('en-IN')}</span>
+                    <div className="flex flex-col items-end border-t-2 border-black pt-3 mt-4">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase leading-none">Net Total Amount</span>
+                        <span className="text-2xl font-black italic">₹{(data.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
 
                     {settings.show_signature && (
-                        <div className="mt-8 text-right">
-                            <p className="mb-10 text-[12px]">Authorized Signatory</p>
+                        <div className="mt-8 text-right pr-2">
                             {profile?.signature_url && (
-                                <div style={{ width: 120, height: 50, position: 'relative' }} className="ml-auto">
+                                <div style={{ width: 120, height: 50, position: 'relative' }} className="ml-auto mb-1">
                                     <Image
                                         src={profile.signature_url}
                                         alt="Signature"
@@ -265,6 +289,7 @@ export function CompactTemplate({
                                     />
                                 </div>
                             )}
+                            <p className="text-[10px] font-black uppercase italic tracking-widest border-t border-black pt-1 inline-block min-w-40 text-center">Authorized Signatory</p>
                         </div>
                     )}
                 </div>

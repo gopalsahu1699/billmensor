@@ -205,7 +205,7 @@ function CreateQuotationForm() {
             setLoading(true)
             const { data: quo, error: quoError } = await supabase
                 .from('quotations')
-                .select('*, quotation_items(*)')
+                .select('*, quotation_items(*, products(image_url))')
                 .eq('id', editId)
                 .single()
 
@@ -246,7 +246,7 @@ function CreateQuotationForm() {
                 discount_rate: (item as any).discount_rate || 0,
                 discount_type: (item as any).discount_type || 'amount',
                 total: item.total,
-                image_url: item.image_url || '',
+                image_url: item.image_url || (item as any).products?.image_url || '',
                 price_type: 'selling' as PriceType,
                 tax_method: item.tax_method || 'inclusive',
             }))
