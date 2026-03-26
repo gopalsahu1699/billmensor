@@ -178,7 +178,14 @@ export interface Purchase {
     status: "draft" | "partial" | "paid" | "cancelled" | "overdue"
     billing_address?: string
     shipping_address?: string
+    billing_phone?: string | null
+    shipping_phone?: string | null
+    shipping_gstin?: string | null
+    billing_gstin?: string | null
     supply_place?: string
+    transport_charges?: number
+    installation_charges?: number
+    custom_charges?: { name: string, amount: number }[]
     notes?: string
     created_at: string
 }
