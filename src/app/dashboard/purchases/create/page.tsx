@@ -33,6 +33,7 @@ interface PurchaseItem {
     tax_method: 'inclusive' | 'exclusive'
     price_type: PriceType
     image_url?: string
+    description?: string
 }
 
 interface Customer {
@@ -57,6 +58,7 @@ interface Product {
     tax_rate: number;
     hsn_code?: string;
     image_url?: string;
+    description?: string;
 }
 
 function CreatePurchaseForm() {
@@ -302,7 +304,8 @@ function CreatePurchaseForm() {
             tax_method: taxMethod,
             price_type: 'purchase',
             total: 0,
-            image_url: product.image_url || ''
+            image_url: product.image_url || '',
+            description: product.description || ''
         }
         setItems([...items, calculateItemTotals(newItem)])
     }
@@ -369,7 +372,8 @@ function CreatePurchaseForm() {
                     igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount || 0,
-                    total: item.total
+                    total: item.total,
+                    description: item.description || null
                 }))
             }
 
@@ -577,7 +581,21 @@ function CreatePurchaseForm() {
                                     <td className="py-6 pr-6">
                                         <div className="flex flex-col gap-1">
                                             <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
-                                            {item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
+                                            <div className="flex flex-col gap-2 mt-2">
+                                                {item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
+                                                <textarea
+                                                    value={item.description || ''}
+                                                    onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                                    placeholder="Product description..."
+                                                    rows={1}
+                                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-lg p-2 text-[10px] focus:ring-1 focus:ring-primary/20 outline-none text-slate-600 dark:text-slate-400 resize-none font-medium"
+                                                    onInput={(e) => {
+                                                        const target = e.target as HTMLTextAreaElement;
+                                                        target.style.height = 'auto';
+                                                        target.style.height = target.scrollHeight + 'px';
+                                                    }}
+                                                />
+                                            </div>
                                             <button type="button" onClick={() => { setActiveItemIndex(item.id); setIsProductModalOpen(true); }} className="text-[10px] text-primary font-bold uppercase tracking-widest w-fit hover:underline">Replace Item</button>
                                         </div>
                                     </td>

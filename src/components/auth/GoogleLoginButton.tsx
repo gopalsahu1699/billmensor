@@ -26,7 +26,7 @@ export function GoogleLoginButton({ text = 'Continue with Google' }: GoogleLogin
     const handleGoogleLogin = async () => {
         setLoading(true)
         try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: `${window.location.origin}/auth/callback`,
@@ -40,8 +40,9 @@ export function GoogleLoginButton({ text = 'Continue with Google' }: GoogleLogin
             // Supabase `@supabase/ssr` with PKCE handles code verifiers in cookies automatically
             // when initiated from the client, provided the callback page fetches it correctly.
             if (error) throw error
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to login with Google')
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Failed to login with Google'
+            toast.error(message)
             setLoading(false)
         }
     }

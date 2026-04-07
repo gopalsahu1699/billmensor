@@ -174,6 +174,9 @@ export function ModernTemplate({
                                     </td>
                                     <td className="px-2 py-2">
                                         <p className="font-semibold text-slate-900 text-[12px]">{item.name || item.item_name}</p>
+                                        {item.description && (
+                                            <p className="text-[10px] text-slate-500 whitespace-pre-wrap mb-1">{item.description}</p>
+                                        )}
                                         <p className="text-[10px] text-slate-600">HSN: {item.hsn_code || '-'}</p>
                                     </td>
                                     <td className="px-2 py-2 text-center">{item.quantity}</td>

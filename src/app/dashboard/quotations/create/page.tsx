@@ -31,6 +31,7 @@ interface QuotationItem {
     discount_type: 'amount' | 'percent'
     total: number
     image_url?: string
+    description?: string
     price_type: PriceType
     tax_method: 'inclusive' | 'exclusive'
 }
@@ -66,6 +67,7 @@ interface Product {
     tax_rate: number;
     hsn_code?: string;
     image_url?: string;
+    description?: string;
 }
 
 function CreateQuotationForm() {
@@ -317,6 +319,7 @@ function CreateQuotationForm() {
             discount_type: 'amount',
             total: Number(inclusivePrice.toFixed(2)),
             image_url: product.image_url || '',
+            description: product.description || '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -341,6 +344,7 @@ function CreateQuotationForm() {
             discount_rate: 0,
             discount_type: 'amount',
             total: 0,
+            description: '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -480,6 +484,7 @@ function CreateQuotationForm() {
                     discount: item.discount,
                     total: item.total,
                     image_url: item.image_url || null,
+                    description: item.description || null,
                 }))
             }
 
@@ -810,17 +815,31 @@ function CreateQuotationForm() {
                                                 ) : (
                                                     <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
                                                 )}
-                                                <div className="flex items-center gap-2">
-                                                    {item.product_id && item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
-                                                    {!item.product_id && (
-                                                        <input
-                                                            type="text"
-                                                            value={item.hsn_code}
-                                                            onChange={(e) => updateItem(item.id, { hsn_code: e.target.value })}
-                                                            placeholder="HSN Code..."
-                                                            className="bg-transparent border-none p-0 text-[10px] text-slate-400 font-bold uppercase tracking-widest focus:ring-0 outline-none w-20"
-                                                        />
-                                                    )}
+                                                <div className="flex flex-col gap-2 mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {item.product_id && item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
+                                                        {!item.product_id && (
+                                                            <input
+                                                                type="text"
+                                                                value={item.hsn_code}
+                                                                onChange={(e) => updateItem(item.id, { hsn_code: e.target.value })}
+                                                                placeholder="HSN Code..."
+                                                                className="bg-transparent border-none p-0 text-[10px] text-slate-400 font-bold uppercase tracking-widest focus:ring-0 outline-none w-20"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <textarea
+                                                        value={item.description || ''}
+                                                        onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                                        placeholder="Product description..."
+                                                        rows={1}
+                                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-lg p-2 text-[10px] focus:ring-1 focus:ring-primary/20 outline-none text-slate-600 dark:text-slate-400 resize-none font-medium"
+                                                        onInput={(e) => {
+                                                            const target = e.target as HTMLTextAreaElement;
+                                                            target.style.height = 'auto';
+                                                            target.style.height = target.scrollHeight + 'px';
+                                                        }}
+                                                    />
                                                 </div>
                                                 <button
                                                     onClick={() => {

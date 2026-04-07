@@ -58,6 +58,7 @@ export interface InvoiceItem {
     discount?: number
     total: number
     image_url?: string
+    description?: string
 }
 
 export interface Invoice {
@@ -116,6 +117,7 @@ export interface QuotationItem {
     discount?: number
     total: number
     image_url?: string
+    description?: string
 }
 
 export interface Quotation {
@@ -158,6 +160,7 @@ export interface PurchaseItem {
     tax_amount: number
     discount?: number
     total: number
+    description?: string
 }
 
 export interface Purchase {
@@ -202,6 +205,7 @@ export interface ReturnItem {
     igst: number
     tax_amount: number
     total: number
+    description?: string
 }
 
 export interface Return {
@@ -240,6 +244,7 @@ export interface DeliveryChallanItem {
     igst: number
     tax_amount: number
     total: number
+    description?: string
 }
 
 export interface DeliveryChallan {
@@ -416,6 +421,7 @@ export interface SalesOrderItem {
     igst: number
     tax_amount: number
     total: number
+    description?: string
 }
 
 export interface SalesOrder {
@@ -455,6 +461,7 @@ export interface PurchaseOrderItem {
     igst: number
     tax_amount: number
     total: number
+    description?: string
 }
 
 export interface PurchaseOrder {

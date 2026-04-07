@@ -23,7 +23,8 @@ const itemBaseSchema = z.object({
     tax_amount: z.number().min(0),
     discount: z.number().min(0).optional(),
     total: z.number().min(0),
-    image_url: z.string().optional().nullable()
+    image_url: z.string().optional().nullable(),
+    description: z.string().optional().nullable()
 })
 
 export const invoiceSchema = z.object({

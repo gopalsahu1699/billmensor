@@ -141,7 +141,12 @@ export function CompactTemplate({
                                     </div>
                                 )}
                             </td>
-                            <td className="py-2 text-left">{item.item_name || item.name}</td>
+                            <td className="py-2 text-left">
+                                <p className="font-semibold">{item.item_name || item.name}</p>
+                                {item.description && (
+                                    <p className="text-[11px] text-gray-500 whitespace-pre-wrap">{item.description}</p>
+                                )}
+                            </td>
                             <td className="py-2 text-center">{item.hsn_code || '-'}</td>
                             <td className="py-2 text-center">{item.quantity}</td>
                             <td className="py-2 text-center">

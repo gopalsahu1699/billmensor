@@ -144,7 +144,12 @@ export function ProfessionalTemplate({
                                     <span className="text-[10px] text-gray-400">No img</span>
                                 )}
                             </td>
-                            <td className="border px-3 py-2">{item.item_name || item.name}</td>
+                            <td className="border px-3 py-2">
+                                <p className="font-bold">{item.item_name || item.name}</p>
+                                {item.description && (
+                                    <p className="text-[11px] text-gray-500 whitespace-pre-wrap">{item.description}</p>
+                                )}
+                            </td>
                             <td className="border px-3 py-2 text-center">{item.hsn_code || '-'}</td>
                             <td className="border px-3 py-2 text-center">{item.quantity}</td>
                             <td className="border px-3 py-2 text-center">

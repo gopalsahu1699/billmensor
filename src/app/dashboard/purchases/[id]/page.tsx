@@ -247,6 +247,9 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                                             <td className="px-4 py-8 font-black text-slate-300">{index + 1}</td>
                                             <td className="px-4 py-8">
                                                 <p className="font-black text-slate-900 uppercase italic tracking-tight">{item.name}</p>
+                                                {item.description && (
+                                                    <p className="text-[10px] text-slate-500 mt-1 font-medium italic whitespace-pre-wrap">{item.description}</p>
+                                                )}
                                             </td>
                                             <td className="px-4 py-8 text-center font-black">{item.quantity}</td>
                                             <td className="px-4 py-8 text-center font-bold text-slate-500">₹{item.unit_price?.toLocaleString('en-IN')}</td>

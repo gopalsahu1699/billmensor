@@ -48,6 +48,7 @@ interface ReturnItem {
     tax_amount: number
     discount: number
     total: number
+    description?: string
 }
 
 function CreateReturnForm() {
@@ -161,7 +162,7 @@ function CreateReturnForm() {
             setReturnNumber(ret.return_number)
             setReturnDate(ret.return_date)
 
-            const mappedItems = ret.return_items.map((item: ReturnItem) => ({
+            const mappedItems = ret.return_items.map((item: any) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
@@ -173,7 +174,8 @@ function CreateReturnForm() {
                 igst: item.igst || 0,
                 tax_amount: item.tax_amount,
                 discount: item.discount || 0,
-                total: item.total
+                total: item.total,
+                description: item.description || ''
             }))
             setItems(mappedItems)
             setDiscount(ret.discount || 0)
@@ -298,7 +300,8 @@ function CreateReturnForm() {
                     igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount || 0,
-                    total: item.total
+                    total: item.total,
+                    description: item.description || ''
                 }))
             }
 
@@ -463,6 +466,18 @@ function CreateReturnForm() {
                                                 <td className="py-4 pr-4">
                                                     <div className="flex flex-col gap-1">
                                                         <span className="font-black text-slate-900 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                        <textarea
+                                                            value={item.description || ''}
+                                                            onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                                            placeholder="Product description..."
+                                                            rows={1}
+                                                            className="w-full bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px] focus:ring-1 focus:ring-blue-500/20 outline-none text-slate-600 resize-none font-medium"
+                                                            onInput={(e) => {
+                                                                const target = e.target as HTMLTextAreaElement;
+                                                                target.style.height = 'auto';
+                                                                target.style.height = target.scrollHeight + 'px';
+                                                            }}
+                                                        />
                                                         <button
                                                             onClick={() => {
                                                                 setActiveItemIndex(item.id)

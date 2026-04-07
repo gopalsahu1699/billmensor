@@ -47,6 +47,7 @@ export interface Item {
     total: number
     image_url?: string
     product_id?: string
+    description?: string
 }
 
 
