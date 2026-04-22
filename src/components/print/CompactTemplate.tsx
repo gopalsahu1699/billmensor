@@ -163,7 +163,7 @@ export function CompactTemplate({
                                 </td>
                             )}
                             <td className="py-2 text-right">
-                                ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                         </tr>
 

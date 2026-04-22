@@ -194,7 +194,7 @@ export function ModernTemplate({
                                         </td>
                                     )}
                                     <td className="px-2 py-2 text-right font-semibold">
-                                        ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        ₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}

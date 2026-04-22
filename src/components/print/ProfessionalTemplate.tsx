@@ -166,7 +166,7 @@ export function ProfessionalTemplate({
                                 </td>
                             )}
                             <td className="border px-3 py-2 text-right font-medium">
-                                ₹{(item.total - (item.tax_amount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                         </tr>
                     ))}
