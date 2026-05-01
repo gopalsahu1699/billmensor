@@ -21,53 +21,56 @@ export async function generateClientSidePDF({
     const element = document.getElementById(elementId);
     if (!element) throw new Error(`Element with ID "${elementId}" not found`);
 
-    // Hide no-print elements during capture
-    const noPrintElements = element.querySelectorAll(".no-print");
-    noPrintElements.forEach((el) => {
-        (el as HTMLElement).style.display = "none";
-    });
+    // 1. Calculate Page Height in Pixels
+    const A4_WIDTH_MM = 210;
+    const A4_HEIGHT_MM = 297;
+    const MARGIN_MM = 10;
+    const CONTENT_WIDTH_MM = A4_WIDTH_MM - (MARGIN_MM * 2);
+    const PAGE_RATIO = (A4_HEIGHT_MM - (MARGIN_MM * 2)) / CONTENT_WIDTH_MM;
+    
+    const elementWidthPx = element.offsetWidth;
+    const pageHeightPx = Math.floor(elementWidthPx * PAGE_RATIO);
 
-    // Inject temporary styles to hide scrollbars and force overflow visible
-    const pdfCaptureStyle = document.createElement("style");
-    pdfCaptureStyle.setAttribute("data-pdf-capture", "true");
-    pdfCaptureStyle.textContent = `
-        *, *::before, *::after {
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            scrollbar-width: none !important;
-        }
-        *::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
-    `;
-    document.head.appendChild(pdfCaptureStyle);
+    // 2. Insert Temporary Spacers
+    // We insert them into the actual DOM to ensure styles/fonts are identical
+    const breakAvoidElements = Array.from(element.querySelectorAll("tr, .break-inside-avoid"));
+    const containerRect = element.getBoundingClientRect();
+    const spacers: HTMLDivElement[] = [];
 
     try {
-        // Capture at 2x resolution for crisp text
+        // We iterate and check positions relative to the container
+        breakAvoidElements.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            const rect = htmlEl.getBoundingClientRect();
+            const relativeTop = rect.top - containerRect.top;
+            const height = rect.height;
+            
+            const pageOfTop = Math.floor(relativeTop / pageHeightPx);
+            const pageOfBottom = Math.floor((relativeTop + height) / pageHeightPx);
+            
+            if (pageOfTop !== pageOfBottom && height < pageHeightPx) {
+                const spaceOnCurrentPage = (pageOfTop + 1) * pageHeightPx - relativeTop;
+                const spacer = document.createElement("div");
+                spacer.style.height = `${spaceOnCurrentPage + 1}px`;
+                spacer.className = "temp-pdf-spacer";
+                spacer.style.width = "100%";
+                htmlEl.parentNode?.insertBefore(spacer, htmlEl);
+                spacers.push(spacer);
+            }
+        });
+
+        // 3. Capture
         const pixelRatio = 2;
         const dataUrl = await toPng(element, {
             cacheBust: true,
             pixelRatio,
             backgroundColor: "#ffffff",
-            // Skip font CSS embedding to avoid CORS SecurityError on cross-origin stylesheets.
-            // Fonts are already rendered in the DOM and captured as pixels in the PNG.
             fontEmbedCSS: "",
-            // Filter out no-print elements at the capture level too
             filter: (node: HTMLElement) => {
                 return !node.classList?.contains("no-print");
             },
         });
 
-        // Create PDF with A4 dimensions (mm)
-        const A4_WIDTH_MM = 210;
-        const A4_HEIGHT_MM = 297;
-        const MARGIN_MM = 10;
-        const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2;
-
-        // Get image dimensions to calculate proper scaling
         const img = new Image();
         await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
@@ -77,41 +80,26 @@ export async function generateClientSidePDF({
 
         const imgWidthPx = img.naturalWidth;
         const imgHeightPx = img.naturalHeight;
-
-        // Scale: fit the width to A4 content area, maintain aspect ratio
         const scaledHeightMM = (imgHeightPx * CONTENT_WIDTH_MM) / imgWidthPx;
 
-        // If content fits on one page
-        if (scaledHeightMM <= A4_HEIGHT_MM - MARGIN_MM * 2) {
-            const pdf = new jsPDF("p", "mm", "a4");
-            pdf.addImage(dataUrl, "PNG", MARGIN_MM, MARGIN_MM, CONTENT_WIDTH_MM, scaledHeightMM);
-
-            const blob = pdf.output("blob");
-            return new File([blob], filename, { type: "application/pdf" });
-        }
-
-        // Multi-page: slice the image across pages
         const pageContentHeightMM = A4_HEIGHT_MM - MARGIN_MM * 2;
         const totalPages = Math.ceil(scaledHeightMM / pageContentHeightMM);
         const pdf = new jsPDF("p", "mm", "a4");
 
-        // We need to use canvas slicing for multi-page
         const canvas = document.createElement("canvas");
         canvas.width = imgWidthPx;
         canvas.height = imgHeightPx;
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0);
 
-        // Height of each page slice in source pixels
         const sliceHeightPx = (pageContentHeightMM / scaledHeightMM) * imgHeightPx;
 
         for (let page = 0; page < totalPages; page++) {
             if (page > 0) pdf.addPage();
 
-            const sourceY = page * sliceHeightPx;
-            const sourceH = Math.min(sliceHeightPx, imgHeightPx - sourceY);
+            const sourceY = Math.round(page * sliceHeightPx);
+            const sourceH = Math.min(Math.round(sliceHeightPx), imgHeightPx - sourceY);
 
-            // Create a slice canvas for this page
             const sliceCanvas = document.createElement("canvas");
             sliceCanvas.width = imgWidthPx;
             sliceCanvas.height = sourceH;
@@ -140,13 +128,8 @@ export async function generateClientSidePDF({
         const blob = pdf.output("blob");
         return new File([blob], filename, { type: "application/pdf" });
     } finally {
-        // Remove the temporary capture styles
-        pdfCaptureStyle.remove();
-
-        // Restore no-print elements
-        noPrintElements.forEach((el) => {
-            (el as HTMLElement).style.display = "";
-        });
+        // REMOVE SPACERS
+        spacers.forEach(s => s.remove());
     }
 }
 

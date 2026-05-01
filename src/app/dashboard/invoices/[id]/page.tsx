@@ -355,6 +355,12 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         <MdDelete size={18} /> Delete
                     </Button>
                     <Button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
+                    >
+                        <MdDownload size={18} className="rotate-180" /> Print
+                    </Button>
+                    <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >

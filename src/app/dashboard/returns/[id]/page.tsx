@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MdArrowBack as ArrowLeft, MdDownload as Download, MdLoop as Loader2, MdDelete as Trash2, MdEdit as Edit, MdRefresh as RotateCcw, MdShare } from 'react-icons/md'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
-import Image from 'next/image'
+
 
 import type { Return, ReturnItem, Profile } from '@/types'
 
@@ -34,11 +34,17 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('return_items')
-                .select('*')
+                .select('*, products(image_url)')
                 .eq('return_id', resolvedParams.id)
 
             if (itemsError) throw itemsError
-            setItems(itemsData || [])
+            
+            const mappedItems = (itemsData || []).map((item: any) => ({
+                ...item,
+                image_url: item.image_url || item.products?.image_url || ''
+            }))
+            
+            setItems(mappedItems)
 
             // Fetch business profile
             const { data: profData } = await supabase
@@ -153,6 +159,12 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                     </Button>
 
                     <Button
+                        onClick={() => window.print()}
+                        className={`flex items-center gap-2 text-white rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all ${isSalesReturn ? 'bg-orange-800 hover:bg-orange-700 shadow-orange-800/20' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'}`}
+                    >
+                        <Download size={18} className="rotate-180" /> Print
+                    </Button>
+                    <Button
                         onClick={handleDownload}
                         className={`flex items-center gap-2 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all ${isSalesReturn ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'}`}
                     >
@@ -167,7 +179,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
+                                    <img src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" />
                                 ) : (
                                     <div className={`w-16 h-16 rounded-3xl flex items-center justify-center text-white shadow-xl ${isSalesReturn ? 'bg-orange-600 shadow-orange-600/30' : 'bg-blue-600 shadow-blue-600/30'}`}>
                                         <RotateCcw size={32} />
@@ -212,6 +224,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                                 <thead>
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                         <th className="px-4 pb-4 w-12">#</th>
+                                        <th className="px-4 pb-4 w-16 text-center">Image</th>
                                         <th className="px-4 pb-4">Product Adjustment</th>
                                         <th className="px-4 pb-4 text-center">Qty</th>
                                         <th className="px-4 pb-4 text-center">Base Rate</th>
@@ -223,6 +236,15 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
                                     {items.map((item, index) => (
                                         <tr key={index} className="group transition-all">
                                             <td className="px-4 py-8 font-black text-slate-300">{index + 1}</td>
+                                            <td className="px-4 py-8 text-center">
+                                                {item.image_url ? (
+                                                    <img src={item.image_url} alt={item.name} className="w-10 h-10 object-contain mx-auto rounded-lg shadow-sm" />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center mx-auto border border-slate-100">
+                                                        <RotateCcw size={16} className="text-slate-300" />
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-8">
                                                 <p className="font-black text-slate-900 uppercase italic tracking-tight">{item.name}</p>
                                             </td>

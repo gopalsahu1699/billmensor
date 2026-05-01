@@ -41,6 +41,7 @@ interface TopProduct {
     name: string;
     quantity: number;
     total: number;
+    image_url?: string;
 }
 
 interface PaymentMode {
@@ -137,7 +138,7 @@ export default function DashboardPage() {
                 const productMap: Record<string, TopProduct> = {}
                 itemData.forEach(item => {
                     if (!productMap[item.name]) {
-                        productMap[item.name] = { name: item.name, quantity: 0, total: 0 }
+                        productMap[item.name] = { name: item.name, quantity: 0, total: 0, image_url: item.image_url }
                     }
                     productMap[item.name].quantity += Number(item.quantity)
                     productMap[item.name].total += Number(item.total)
@@ -346,8 +347,12 @@ export default function DashboardPage() {
                             {topProducts.map((p, i) => (
                                 <div key={i} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                            #{i + 1}
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 overflow-hidden border border-slate-100 dark:border-white/5">
+                                            {p.image_url ? (
+                                                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                `#${i + 1}`
+                                            )}
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-32">{p.name}</p>

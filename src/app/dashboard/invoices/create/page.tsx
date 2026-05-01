@@ -269,6 +269,7 @@ function CreateInvoiceForm() {
                     discount_type: (item as any).discount_type || 'amount',
                     total: item.total,
                     image_url: item.image_url || (item as any).products?.image_url || '',
+                    description: item.description || '',
                     price_type: 'selling' as PriceType,
                     tax_method: (item as any).tax_method || 'inclusive',
                 }, {})
@@ -821,17 +822,24 @@ function CreateInvoiceForm() {
                                 <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="py-6 pr-6">
                                         <div className="flex flex-col gap-1">
-                                            {!item.product_id ? (
-                                                <input
-                                                    type="text"
-                                                    value={item.name}
-                                                    onChange={(e) => updateItem(item.id, { name: e.target.value })}
-                                                    placeholder="Custom Item Name..."
-                                                    className="bg-transparent border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight py-1"
-                                                />
-                                            ) : (
-                                                <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
-                                            )}
+                                            <div className="flex items-center gap-3">
+                                                {item.image_url && (
+                                                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                                                        <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                                {!item.product_id ? (
+                                                    <input
+                                                        type="text"
+                                                        value={item.name}
+                                                        onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                                                        placeholder="Custom Item Name..."
+                                                        className="bg-transparent border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight py-1"
+                                                    />
+                                                ) : (
+                                                    <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                )}
+                                            </div>
                                             <div className="flex flex-col gap-2 mt-2">
                                                 <div className="flex items-center gap-2">
                                                     {item.product_id && item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
@@ -1225,9 +1233,18 @@ function CreateInvoiceForm() {
                 }}
                 renderItem={(p) => (
                     <div className="flex justify-between items-center">
-                        <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{p.name}</span>
-                            <span className="text-xs text-slate-500">{p.sku || 'No SKU'}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                                {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px] text-slate-300">inventory</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{p.name}</span>
+                                <span className="text-xs text-slate-500">{p.sku || 'No SKU'}</span>
+                            </div>
                         </div>
                         <div className="text-right">
                             <span className="block text-sm font-black text-slate-900">₹{p.price.toLocaleString('en-IN')}</span>

@@ -23,6 +23,8 @@ interface ChallanItem {
     tax_amount: number
     discount: number
     total: number
+    image_url?: string
+    description?: string
 }
 
 interface Customer {
@@ -167,7 +169,8 @@ function CreateChallanForm() {
                 cgst: item.cgst || 0,
                 sgst: item.sgst || 0,
                 igst: item.igst || 0,
-                discount: item.discount || 0
+                discount: item.discount || 0,
+                image_url: item.image_url || (item as any).products?.image_url || ''
             })))
             setDiscount(data.discount || 0)
             setRoundOff(data.round_off || 0)
@@ -202,7 +205,9 @@ function CreateChallanForm() {
             igst: 0,
             tax_amount: (product.price * product.tax_rate) / 100,
             discount: 0,
-            total: product.price + (product.price * product.tax_rate) / 100
+            total: product.price + (product.price * product.tax_rate) / 100,
+            image_url: product.image_url || '',
+            description: (product as any).description || ''
         }
         setItems(prev => [...prev, newItem])
     }
@@ -401,7 +406,28 @@ function CreateChallanForm() {
                                         {items.map((item) => (
                                             <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                                                 <td className="py-4 pr-4">
-                                                    <span className="font-black text-slate-900 dark:text-white text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-3">
+                                                            {item.image_url && (
+                                                                <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                                                                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
+                                                            <span className="font-black text-slate-900 dark:text-white text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                        </div>
+                                                        <textarea
+                                                            value={item.description || ''}
+                                                            onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                                            placeholder="Product description..."
+                                                            rows={1}
+                                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-lg p-2 text-[10px] focus:ring-1 focus:ring-blue-500/20 outline-none text-slate-600 dark:text-slate-400 resize-none font-medium"
+                                                            onInput={(e) => {
+                                                                const target = e.target as HTMLTextAreaElement;
+                                                                target.style.height = 'auto';
+                                                                target.style.height = target.scrollHeight + 'px';
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </td>
                                                 <td className="py-4 w-20">
                                                     <input
@@ -545,9 +571,18 @@ function CreateChallanForm() {
                 onSelect={(p: Product) => addItem(p)}
                 renderItem={(p: Product) => (
                     <div className="flex justify-between items-center">
-                        <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{p.name}</span>
-                            <span className="text-xs text-slate-500">{p.sku || 'No SKU'}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                                {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px] text-slate-300">inventory</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{p.name}</span>
+                                <span className="text-xs text-slate-500">{p.sku || 'No SKU'}</span>
+                            </div>
                         </div>
                         <span className="text-sm font-black text-slate-900">₹{p.price?.toLocaleString('en-IN')}</span>
                     </div>

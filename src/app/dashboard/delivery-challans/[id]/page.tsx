@@ -67,18 +67,18 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
             setLoading(true)
             const { data, error } = await supabase
                 .from('delivery_challans')
-                .select('*, customers(*)')
+                .select('*, customers(*), items:delivery_challan_items(*, products(image_url))')
                 .eq('id', resolvedParams.id)
                 .single()
 
             if (error) throw error
-            
-            // For challans, items are sometimes already nested or in separate table?
-            // Let's check how they are stored. Usually in these pages they select('*') which includes items if it's a JSON column.
-            // If it's a separate table, we should fetch it.
-            // Based on create page, it's likely a column in delivery_challans or a separate table.
-            
-            setChallan(data as Challan)
+
+            const mappedItems = (data.items || []).map((item: any) => ({
+                ...item,
+                image_url: item.image_url || item.products?.image_url || ''
+            }))
+
+            setChallan({ ...data, items: mappedItems } as Challan)
 
             // Fetch business profile
             const { data: profData } = await supabase
@@ -289,6 +289,12 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                     </Button>
 
                     <Button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
+                    >
+                        <MdDownload size={18} className="rotate-180" /> Print
+                    </Button>
+                    <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
@@ -305,7 +311,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
                                     <div className="relative w-35 h-10">
-                                        <Image src={profile.logo_url} alt="Logo" fill className="object-contain" />
+                                        <img src={profile.logo_url} alt="Logo" className="w-full h-full object-contain object-left" />
                                     </div>
                                 ) : (
                                     <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white">
@@ -350,6 +356,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                                 <thead>
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                         <th className="px-4 pb-4 w-12">#</th>
+                                        <th className="px-4 pb-4 w-16 text-center">Image</th>
                                         <th className="px-4 pb-4">Item Description</th>
                                         <th className="px-4 pb-4 text-center">Quantity</th>
                                         <th className="px-4 pb-4 text-center">Rate</th>
@@ -360,6 +367,15 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
                                     {challan.items?.map((item: ChallanItem, index: number) => (
                                         <tr key={index} className="group transition-all">
                                             <td className="px-4 py-8 font-black text-slate-300">{index + 1}</td>
+                                            <td className="px-4 py-8 text-center">
+                                                {item.image_url ? (
+                                                    <img src={item.image_url} alt={item.name} className="w-10 h-10 object-contain mx-auto rounded-lg shadow-sm" />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center mx-auto border border-slate-100">
+                                                        <MdLocalShipping size={16} className="text-slate-300" />
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-8">
                                                 <p className="font-black text-slate-900 uppercase italic tracking-tight">{item.name}</p>
                                             </td>

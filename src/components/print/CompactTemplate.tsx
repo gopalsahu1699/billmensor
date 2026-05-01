@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
 import QRCode from 'react-qr-code'
@@ -41,12 +40,10 @@ export function CompactTemplate({
                 <div>
                     {profile?.logo_url && (
                         <div style={{ width: 140, height: 40, position: 'relative' }}>
-                            <Image
+                            <img
                                 src={profile.logo_url}
                                 alt="Logo"
-                                fill
-                                priority
-                                className="object-contain object-left"
+                                className="w-full h-full object-contain object-left"
                             />
                         </div>
                     )}
@@ -123,16 +120,15 @@ export function CompactTemplate({
 
                 <tbody>
                     {items.map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-300">
+                        <tr key={idx} className="border-b border-gray-300 break-inside-avoid">
                             <td className="py-2 text-center w-8">{idx + 1}</td>
                             <td className="py-2 text-center w-12">
                                 {item.image_url ? (
-                                    <div style={{ width: 40, height: 40, position: 'relative' }} className="mx-auto">
-                                        <Image
+                                    <div className="mx-auto flex items-center justify-center">
+                                        <img
                                             src={item.image_url}
                                             alt={item.item_name || item.name || 'Product'}
-                                            fill
-                                            style={{ objectFit: 'contain' }}
+                                            className="w-10 h-10 object-contain"
                                         />
                                     </div>
                                 ) : (
@@ -177,7 +173,7 @@ export function CompactTemplate({
                 {/* LEFT: Bank Details + Terms + Tax Summary */}
                 <div style={{ width: '55%' }} className="space-y-4">
                       {!allGstIsZero && (
-                        <div>
+                        <div className="break-inside-avoid">
                             <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Tax Analysis</h4>
                             <table className="w-full text-[10px] border-collapse">
                                 <thead>
@@ -209,7 +205,7 @@ export function CompactTemplate({
                         </div>
                     )}
                     {settings.show_bank_details && bankDetails && (
-                        <div>
+                        <div className="break-inside-avoid">
                             <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Bank Info</h4>
                             <div className="grid grid-cols-2 text-[11px] gap-x-2 bg-gray-50/50 p-2 border border-gray-100 italic">
                                 <span>A/C: {bankDetails.account_number}</span>
@@ -276,7 +272,7 @@ export function CompactTemplate({
                             <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     ))}
-                    <div className="flex flex-col items-end border-t-2 border-black pt-3 mt-4">
+                    <div className="flex flex-col items-end border-t-2 border-black pt-3 mt-4 break-inside-avoid">
                         <span className="text-[10px] font-bold text-gray-400 uppercase leading-none">Net Total Amount</span>
                         <span className="text-2xl font-black italic">₹{(data.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -285,12 +281,10 @@ export function CompactTemplate({
                         <div className="mt-8 text-right pr-2">
                             {profile?.signature_url && (
                                 <div style={{ width: 120, height: 50, position: 'relative' }} className="ml-auto mb-1">
-                                    <Image
+                                    <img
                                         src={profile.signature_url}
                                         alt="Signature"
-                                        fill
-                                        priority
-                                        className="object-contain object-right"
+                                        className="w-full h-full object-contain object-right"
                                     />
                                 </div>
                             )}

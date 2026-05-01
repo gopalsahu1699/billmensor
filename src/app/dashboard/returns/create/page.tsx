@@ -48,6 +48,7 @@ interface ReturnItem {
     tax_amount: number
     discount: number
     total: number
+    image_url?: string
     description?: string
 }
 
@@ -152,7 +153,7 @@ function CreateReturnForm() {
             setLoading(true)
             const { data: ret, error: retError } = await supabase
                 .from('returns')
-                .select('*, return_items(*)')
+                .select('*, return_items(*, products(image_url))')
                 .eq('id', editId)
                 .single()
 
@@ -175,6 +176,7 @@ function CreateReturnForm() {
                 tax_amount: item.tax_amount,
                 discount: item.discount || 0,
                 total: item.total,
+                image_url: item.image_url || (item as any).products?.image_url || '',
                 description: item.description || ''
             }))
             setItems(mappedItems)
@@ -211,7 +213,8 @@ function CreateReturnForm() {
             igst: 0,
             tax_amount: ((type === 'sales_return' ? product.price : (product.purchase_price || 0)) * product.tax_rate) / 100,
             discount: 0,
-            total: (type === 'sales_return' ? product.price : (product.purchase_price || 0)) + ((type === 'sales_return' ? product.price : (product.purchase_price || 0)) * product.tax_rate) / 100
+            total: (type === 'sales_return' ? product.price : (product.purchase_price || 0)) + ((type === 'sales_return' ? product.price : (product.purchase_price || 0)) * product.tax_rate) / 100,
+            image_url: product.image_url || ''
         }
         setItems([...items, newItem])
     }
@@ -465,7 +468,14 @@ function CreateReturnForm() {
                                             <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
                                                 <td className="py-4 pr-4">
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="font-black text-slate-900 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                        <div className="flex items-center gap-3">
+                                                            {item.image_url && (
+                                                                <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                                                                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
+                                                            <span className="font-black text-slate-900 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                                        </div>
                                                         <textarea
                                                             value={item.description || ''}
                                                             onChange={(e) => updateItem(item.id, { description: e.target.value })}
@@ -600,9 +610,18 @@ function CreateReturnForm() {
                         }
                     }}
                     renderItem={(p) => (
-                        <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{p.name}</span>
-                            <span className="text-xs text-slate-500 italic">Rate: ₹{type === 'sales_return' ? p.price : (p.purchase_price || 0)} • Tax: {p.tax_rate}%</span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                                {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px] text-slate-300">inventory</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{p.name}</span>
+                                <span className="text-xs text-slate-500 italic">Rate: ₹{type === 'sales_return' ? p.price : (p.purchase_price || 0)} • Tax: {p.tax_rate}%</span>
+                            </div>
                         </div>
                     )}
                 />

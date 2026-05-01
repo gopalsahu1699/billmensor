@@ -182,8 +182,12 @@ export default function POSPage() {
                                 onClick={() => addToCart(p)}
                                 className="flex flex-col text-left bg-slate-50 dark:bg-white/5 border border-transparent hover:border-blue-600/30 hover:bg-blue-600/5 p-4 rounded-2xl transition-all group active:scale-95"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 mb-3 shadow-sm border border-slate-100 dark:border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                    <IoCube size={20} />
+                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 mb-3 shadow-sm border border-slate-100 dark:border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all overflow-hidden">
+                                    {p.image_url ? (
+                                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <IoCube size={20} />
+                                    )}
                                 </div>
                                 <h3 className="text-sm font-black text-slate-900 dark:text-white truncate w-full mb-1">{p.name}</h3>
                                 <p className="text-xs font-black text-blue-600 dark:text-blue-400 leading-none">₹ {(p.price || 0).toLocaleString('en-IN')}</p>
@@ -219,9 +223,20 @@ export default function POSPage() {
                     {cart.map((item) => (
                         <div key={item.id} className="bg-white/5 border border-white/5 p-4 rounded-2xl group animate-in slide-in-from-right-2 duration-300">
                             <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h4 className="text-sm font-black text-white mb-0.5">{item.name}</h4>
-                                    <p className="text-[10px] text-blue-300 font-black">₹ {(item.price || 0).toLocaleString('en-IN')} / unit</p>
+                                <div className="flex gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/5 overflow-hidden shrink-0">
+                                        {item.image_url ? (
+                                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                                                <IoCube size={16} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-white mb-0.5">{item.name}</h4>
+                                        <p className="text-[10px] text-blue-300 font-black">₹ {(item.price || 0).toLocaleString('en-IN')} / unit</p>
+                                    </div>
                                 </div>
                                 <button onClick={() => removeFromCart(item.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-red-400 transition-all">
                                     <IoClose size={14} />

@@ -159,8 +159,12 @@ export default function ProductsPage() {
                                 >
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-[20px]">inventory</span>
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden">
+                                                {product.image_url ? (
+                                                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-[20px] text-slate-300">inventory</span>
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{product.name}</p>

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MdArrowBack, MdDownload, MdRefresh, MdDelete, MdEdit, MdShoppingCart, MdCheckCircle, MdShare } from 'react-icons/md'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
-import Image from 'next/image'
+
 import type { Purchase, PurchaseItem, Profile } from '@/types'
 
 export default function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,11 +33,17 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('purchase_items')
-                .select('*')
+                .select('*, products(image_url)')
                 .eq('purchase_id', resolvedParams.id)
 
             if (itemsError) throw itemsError
-            setItems(itemsData || [])
+            
+            const mappedItems = (itemsData || []).map((item: any) => ({
+                ...item,
+                image_url: item.image_url || item.products?.image_url || ''
+            }))
+            
+            setItems(mappedItems)
 
             // Fetch business profile
             const { data: profData } = await supabase
@@ -178,6 +184,12 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                     </Button>
 
                     <Button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-700/20 active:scale-95 transition-all"
+                    >
+                        <MdDownload size={18} className="rotate-180" /> Print
+                    </Button>
+                    <Button
                         onClick={handleDownload}
                         className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
                     >
@@ -192,7 +204,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-6">
                                 {profile?.logo_url ? (
-                                    <Image src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" width={140} height={40} unoptimized />
+                                    <img src={profile.logo_url} alt="Logo" className="w-35 h-10 object-contain" />
                                 ) : (
                                     <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                                         <MdShoppingCart size={32} />
@@ -234,6 +246,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                                 <thead>
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                         <th className="px-4 pb-4 w-12">#</th>
+                                        <th className="px-4 pb-4 w-16 text-center">Image</th>
                                         <th className="px-4 pb-4">Product / Service</th>
                                         <th className="px-4 pb-4 text-center">Qty</th>
                                         <th className="px-4 pb-4 text-center">Unit Price</th>
@@ -245,6 +258,15 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
                                     {items.map((item, index) => (
                                         <tr key={index} className="group transition-all">
                                             <td className="px-4 py-8 font-black text-slate-300">{index + 1}</td>
+                                            <td className="px-4 py-8 text-center">
+                                                {item.image_url ? (
+                                                    <img src={item.image_url} alt={item.name} className="w-10 h-10 object-contain mx-auto rounded-lg shadow-sm" />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center mx-auto border border-slate-100">
+                                                        <MdShoppingCart size={16} className="text-slate-300" />
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-8">
                                                 <p className="font-black text-slate-900 uppercase italic tracking-tight">{item.name}</p>
                                                 {item.description && (

@@ -1,5 +1,4 @@
 import React from 'react'
-import Image from 'next/image'
 import { MdEdit } from 'react-icons/md'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
@@ -39,12 +38,10 @@ export function ProfessionalTemplate({
                 <div>
                     {profile?.logo_url && (
                         <div className="relative h-12 w-44 mb-2">
-                            <Image
+                            <img
                                 src={profile.logo_url}
                                 alt={`${profile.company_name} logo`}
-                                fill
-                                priority
-                                className="object-contain object-left"
+                                className="w-full h-full object-contain object-left"
                             />
                         </div>
                     )}
@@ -135,11 +132,11 @@ export function ProfessionalTemplate({
                 </thead>
                 <tbody>
                     {items.map((item, index) => (
-                        <tr key={index}>
+                        <tr key={index} className="break-inside-avoid">
                             <td className="border px-3 py-2 text-center">{index + 1}</td>
                             <td className="border px-2 py-2 text-center">
                                 {item.image_url ? (
-                                    <Image src={item.image_url} alt={item.name || ''} width={40} height={40} className="object-contain mx-auto" />
+                                    <img src={item.image_url} alt={item.name || ''} className="w-10 h-10 object-contain mx-auto" />
                                 ) : (
                                     <span className="text-[10px] text-gray-400">No img</span>
                                 )}
@@ -182,7 +179,7 @@ export function ProfessionalTemplate({
                     
                     {/* Tax Summary on Left as requested */}
                     {!allGstIsZero && (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 break-inside-avoid">
                             <p className="font-bold text-[14px] mb-3 border-b pb-1">Tax Analysis Sum:</p>
                             <table className="w-full text-[11px] border-collapse">
                                 <thead>
@@ -225,7 +222,7 @@ export function ProfessionalTemplate({
 
 
                     {settings.show_bank_details && bankDetails && (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 break-inside-avoid">
                             <p className="font-bold text-[14px] mb-3 border-b pb-1">Bank Account Info:</p>
                             <div className="grid grid-cols-2 gap-y-1 text-[12px]">
                                 <span className="text-gray-500 font-medium">Account No:</span> <span className="font-bold">{bankDetails.account_number}</span>
@@ -297,7 +294,7 @@ export function ProfessionalTemplate({
                         </div>
                     ))}
 
-                    <div className="flex justify-between items-end border-t-4 border-slate-900 pt-6 mt-4">
+                    <div className="flex justify-between items-end border-t-4 border-slate-900 pt-6 mt-4 break-inside-avoid">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black uppercase text-slate-400">Payable Amount</span>
                             <span className="text-xl font-black text-slate-900 italic uppercase">Grand Total</span>
@@ -314,12 +311,10 @@ export function ProfessionalTemplate({
                             <p className="text-[10px] text-gray-400 uppercase font-black mb-12">Authorized Signature</p>
                             {profile?.signature_url && (
                                 <div className="relative h-12 w-48 ml-auto mb-2">
-                                    <Image
+                                    <img
                                         src={profile.signature_url}
                                         alt="Signature"
-                                        fill
-                                        priority
-                                        className="object-contain object-right"
+                                        className="w-full h-full object-contain object-right"
                                     />
                                 </div>
                             )}

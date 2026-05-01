@@ -212,7 +212,7 @@ function CreatePurchaseForm() {
             setLoading(true)
             const { data: pur, error: purError } = await supabase
                 .from('purchases')
-                .select('*, purchase_items(*)')
+                .select('*, purchase_items(*, products(image_url))')
                 .eq('id', editId)
                 .single()
 
@@ -250,7 +250,9 @@ function CreatePurchaseForm() {
                 discount_rate: 0,
                 tax_method: 'exclusive',
                 price_type: 'purchase',
-                total: item.total
+                total: item.total,
+                image_url: item.image_url || (item as any).products?.image_url || '',
+                description: item.description || ''
             }))
             setItems(mappedItems)
         } catch (error: unknown) {
@@ -580,7 +582,14 @@ function CreatePurchaseForm() {
                                 <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors italic">
                                     <td className="py-6 pr-6">
                                         <div className="flex flex-col gap-1">
-                                            <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                            <div className="flex items-center gap-3">
+                                                {item.image_url && (
+                                                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                                                        <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                                <span className="font-black text-slate-900 dark:text-slate-100 text-sm uppercase italic tracking-tight">{item.name}</span>
+                                            </div>
                                             <div className="flex flex-col gap-2 mt-2">
                                                 {item.hsn_code && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">HSN: {item.hsn_code}</span>}
                                                 <textarea
@@ -880,9 +889,18 @@ function CreatePurchaseForm() {
                 onSelect={p => { if (activeItemIndex) { updateItem(activeItemIndex, { product_id: p.id }); } else { addItem(p); } }}
                 renderItem={p => (
                     <div className="flex justify-between items-center italic text-left">
-                        <div className="flex flex-col">
-                            <span className="font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight italic text-base">{p.name}</span>
-                            <span className="text-[10px] text-slate-400 font-black tracking-[0.2em] uppercase mt-0.5">{p.sku || 'NO SKU TARGET'}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                                {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px] text-slate-300">inventory</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight italic text-base">{p.name}</span>
+                                <span className="text-[10px] text-slate-400 font-black tracking-[0.2em] uppercase mt-0.5">{p.sku || 'NO SKU TARGET'}</span>
+                            </div>
                         </div>
                         <div className="text-right">
                             <span className="block text-sm font-black text-primary italic">Cost: ₹{p.purchase_price?.toLocaleString('en-IN')}</span>

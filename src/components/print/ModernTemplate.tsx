@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+
 import { Card } from '@/components/ui/card'
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
@@ -34,13 +34,11 @@ export function ModernTemplate({
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-3">
                         {profile?.logo_url ? (
-                            <div className="relative w-30 h-8">
-                                <Image
+                            <div className="relative w-30 h-8 mb-2">
+                                <img
                                     src={profile.logo_url}
                                     alt="Logo"
-                                    fill
-                                    priority
-                                    className="object-contain object-left"
+                                    className="w-full h-full object-contain object-left"
                                 />
                             </div>
                         ) : (
@@ -163,11 +161,11 @@ export function ModernTemplate({
 
                         <tbody>
                             {items.map((item, index) => (
-                                <tr key={index} className="border-b border-slate-100">
+                                <tr key={index} className="border-b border-slate-100 break-inside-avoid">
                                     <td className="px-2 py-2 font-semibold text-slate-600">{index + 1}</td>
                                     <td className="px-2 py-2 text-center">
                                         {item.image_url ? (
-                                            <Image src={item.image_url} alt={item.name || ''} width={40} height={40} className="object-contain mx-auto" />
+                                            <img src={item.image_url} alt={item.name || ''} className="w-10 h-10 object-contain mx-auto" />
                                         ) : (
                                             <span className="text-[10px] text-slate-400">No img</span>
                                         )}
@@ -203,13 +201,13 @@ export function ModernTemplate({
                 </div>
 
                 {/* FOOTER: Balanced Grid Layout */}
-                <div className="flex flex-row justify-between pt-8 border-t border-slate-200 mt-8 gap-12">
+                <div className="flex flex-row justify-between pt-8 border-t border-slate-200 mt-8 gap-12 break-inside-avoid">
 
                     {/* LEFT SECTION: Taxes, Banks, Terms */}
                     <div className="flex-1 space-y-6">
 
                         {!allGstIsZero && (
-                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 break-inside-avoid">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 border-b border-slate-100 pb-2">Tax analysis summary</p>
                                 <table className="w-full text-[11px] border-collapse">
                                     <thead>
@@ -242,7 +240,7 @@ export function ModernTemplate({
                         )}
 
                         {settings.show_bank_details && bankDetails && (
-                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 break-inside-avoid">
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2 mb-4 italic">
                                     Bank Account Settlement
                                 </p>
@@ -344,17 +342,8 @@ export function ModernTemplate({
                                 </span>
                             </div>
                         ))}
-                        {/* 
-                        {(data.round_off || 0) !== 0 && (
-                            <div className="flex justify-between text-[12px]">
-                                <span>Round Off</span>
-                                <span className="font-semibold">
-                                    {(data.round_off || 0) > 0 ? '+' : ''}₹{(data.round_off || 0).toLocaleString('en-IN')}
-                                </span>
-                            </div>
-                        )} */}
 
-                        <div className="flex justify-between items-end pt-3 border-t border-slate-900">
+                        <div className="flex justify-between items-end pt-3 border-t border-slate-900 break-inside-avoid">
                             <span className="text-[13px] font-bold uppercase">
                                 Total
                             </span>
@@ -369,12 +358,10 @@ export function ModernTemplate({
                             <div className="pt-6 border-t border-dashed border-slate-300 mt-4 flex flex-col items-end">
                                 {profile?.signature_url && (
                                     <div className="relative h-12 w-32 mb-2">
-                                        <Image
+                                        <img
                                             src={profile.signature_url}
                                             alt="Signature"
-                                            fill
-                                            priority
-                                            className="object-contain object-right"
+                                            className="w-full h-full object-contain object-right"
                                         />
                                     </div>
                                 )}
