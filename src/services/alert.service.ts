@@ -88,15 +88,13 @@ export const alertService = {
             .select("id, stock_quantity, min_stock_level, is_low_stock_alert")
             .eq("user_id", session.session.user.id)
             .eq("is_low_stock_alert", true)
-            .lte("stock_quantity", supabase.rpc("COALESCE", { val: "min_stock_level", def: 0 }))
 
         if (!products || products.length === 0) return
 
-        for (const product of products) {
-            const minLevel = product.min_stock_level || 0
-            if (product.stock_quantity <= minLevel) {
-                await this.createAlert(product.id)
-            }
+        const lowStockProducts = products.filter(p => p.stock_quantity <= (p.min_stock_level || 0))
+
+        for (const product of lowStockProducts) {
+            await this.createAlert(product.id)
         }
     }
 }

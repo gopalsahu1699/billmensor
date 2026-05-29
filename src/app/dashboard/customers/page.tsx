@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function CustomersPage() {
     const router = useRouter()
@@ -18,9 +19,13 @@ export default function CustomersPage() {
 
     async function fetchCustomers() {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('customers')
                 .select('*')
+                .eq('user_id', userData.user.id)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -133,7 +138,16 @@ export default function CustomersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredCustomers.map((customer) => (
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-48" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-32" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-20" /></td>
+                                        <td className="px-8 py-5 text-right"><Skeleton className="h-10 w-16 ml-auto" /></td>
+                                    </tr>
+                                ))
+                            ) : filteredCustomers.map((customer) => (
                                 <tr
                                     key={customer.id}
                                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"

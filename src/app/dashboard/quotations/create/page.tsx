@@ -166,9 +166,12 @@ function CreateQuotationForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const [custRes, prodRes, profileRes] = await Promise.all([
-                supabase.from('customers').select('*').order('name'),
-                supabase.from('products').select('*').order('name'),
+                supabase.from('customers').select('*').eq('user_id', userData.user.id).order('name'),
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
                 supabase.from('profiles').select('*').single()
             ])
             setCustomers((custRes.data as Customer[]) || [])
@@ -365,7 +368,7 @@ function CreateQuotationForm() {
             const rowTotal = updated.quantity * updated.unit_price
             totalRowDiscount = (rowTotal * (updated.discount_rate || 0)) / 100
         } else {
-            totalRowDiscount = (updated.per_unit_discount || 0) * updated.quantity
+            totalRowDiscount = updated.discount_rate || 0
         }
         updated.discount = totalRowDiscount
 

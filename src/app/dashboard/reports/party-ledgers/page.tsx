@@ -50,9 +50,13 @@ export default function PartyLedgerReport() {
   });
 
   const fetchParties = useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) return
+
     const { data } = await supabase
       .from("customers")
       .select("id, name")
+      .eq("user_id", userData.user.id)
       .order("name");
     setParties(data || []);
   }, []);
@@ -65,22 +69,28 @@ export default function PartyLedgerReport() {
     if (!selectedParty) return toast.error("Please select a party");
     setLoading(true);
     try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('Not authenticated')
+
       // Fetch Invoices, Purchases, and Payments
       const [invRes, purRes, payRes] = await Promise.all([
         supabase
           .from("invoices")
           .select("*")
           .eq("customer_id", selectedParty)
+          .eq("user_id", userData.user.id)
           .order("invoice_date", { ascending: true }),
         supabase
           .from("purchases")
           .select("*")
           .eq("supplier_id", selectedParty)
+          .eq("user_id", userData.user.id)
           .order("purchase_date", { ascending: true }),
         supabase
           .from("payments")
           .select("*")
           .eq("customer_id", selectedParty)
+          .eq("user_id", userData.user.id)
           .order("payment_date", { ascending: true }),
       ]);
 

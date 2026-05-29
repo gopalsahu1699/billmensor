@@ -61,6 +61,9 @@ export default function DashboardPage() {
     const [totalSales, setTotalSales] = useState(0)
     const [totalReceived, setTotalReceived] = useState(0)
     const [totalExpenses, setTotalExpenses] = useState(0)
+    const [pendingPayments, setPendingPayments] = useState(0)
+    const [topCustomer, setTopCustomer] = useState<{ name: string; total: number } | null>(null)
+    const [stockValue, setStockValue] = useState(0)
     const [chartData, setChartData] = useState<number[]>([])
     const [chartLabels, setChartLabels] = useState<string[]>([])
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
@@ -75,16 +78,20 @@ export default function DashboardPage() {
 
     async function fetchDashboardStats() {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+            const uid = userData.user.id
+
             const [custCount, invCount, paidInvCount, expRes, invData, payData, totalSalesData, totalReturns, totalPurchases] = await Promise.all([
-                supabase.from('customers').select('*', { count: 'exact', head: true }),
-                supabase.from('invoices').select('*', { count: 'exact', head: true }),
-                supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'paid'),
-                supabase.from('expenses').select('amount'),
-                supabase.from('invoices').select('*, customers(name)').order('created_at', { ascending: false }).limit(5),
-                supabase.from('payments').select('*, customers(name)').eq('type', 'payment_in').order('payment_date', { ascending: false }).limit(5),
-                supabase.from('invoices').select('total_amount, created_at'),
-                supabase.from('returns').select('total_amount, type'),
-                supabase.from('purchases').select('total_amount')
+                supabase.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+                supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+                supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'paid').eq('user_id', uid),
+                supabase.from('expenses').select('amount').eq('user_id', uid),
+                supabase.from('invoices').select('*, customers(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(5),
+                supabase.from('payments').select('*, customers(name)').eq('type', 'payment_in').eq('user_id', uid).order('payment_date', { ascending: false }).limit(5),
+                supabase.from('invoices').select('total_amount, created_at').eq('user_id', uid),
+                supabase.from('returns').select('total_amount, type').eq('user_id', uid),
+                supabase.from('purchases').select('total_amount').eq('user_id', uid)
             ])
 
             const invTotal = (totalSalesData.data as Invoice[])?.reduce((acc: number, curr: Invoice) => acc + (curr.total_amount || 0), 0) || 0
@@ -96,12 +103,55 @@ export default function DashboardPage() {
             const purchaseReturns = (totalReturns.data as Return[])?.filter(r => r.type === 'purchase_return').reduce((acc: number, curr: Return) => acc + (curr.total_amount || 0), 0) || 0
             const computedExpenses = (purchaseTotal - purchaseReturns) + otherExpenses
 
-            const { data: allPayments } = await supabase.from('payments').select('amount').eq('type', 'payment_in')
+            const { data: allPayments } = await supabase.from('payments').select('amount').eq('type', 'payment_in').eq('user_id', uid)
             const computedReceived = (allPayments as { amount: number }[])?.reduce((acc: number, curr: { amount: number }) => acc + (curr.amount || 0), 0) || 0
 
             setTotalSales(computedSales)
             setTotalReceived(computedReceived)
             setTotalExpenses(computedExpenses)
+
+            // Pending Payments (unpaid invoices)
+            const { data: unpaidInvoices } = await supabase
+                .from('invoices')
+                .select('balance_amount')
+                .eq('user_id', uid)
+                .not('payment_status', 'eq', 'paid')
+
+            const totalPending = (unpaidInvoices || []).reduce((sum: number, inv: any) => sum + (inv.balance_amount || 0), 0)
+            setPendingPayments(totalPending)
+
+            // Top Customer this month
+            const startOfMonth = new Date()
+            startOfMonth.setDate(1)
+            startOfMonth.setHours(0, 0, 0, 0)
+
+            const { data: monthlyInvoices } = await supabase
+                .from('invoices')
+                .select('total_amount, customer_id, customers(name)')
+                .eq('user_id', uid)
+                .gte('invoice_date', startOfMonth.toISOString().split('T')[0])
+
+            if (monthlyInvoices && monthlyInvoices.length > 0) {
+                const customerMap: Record<string, { name: string; total: number }> = {}
+                ;(monthlyInvoices as any[]).forEach(inv => {
+                    const custName = inv.customers?.name || 'Unknown'
+                    if (!customerMap[inv.customer_id]) {
+                        customerMap[inv.customer_id] = { name: custName, total: 0 }
+                    }
+                    customerMap[inv.customer_id].total += inv.total_amount || 0
+                })
+                const topCust = Object.values(customerMap).sort((a, b) => b.total - a.total)[0]
+                setTopCustomer(topCust || null)
+            }
+
+            // Stock Value
+            const { data: products } = await supabase
+                .from('products')
+                .select('price, stock_quantity')
+                .eq('user_id', uid)
+
+            const totalStockValue = (products || []).reduce((sum: number, p: any) => sum + (p.price || 0) * (p.stock_quantity || 0), 0)
+            setStockValue(totalStockValue)
 
             // Dynamic Chart Data Grouping (Last 15 Days - DAILY)
             if (totalSalesData.data) {
@@ -133,12 +183,12 @@ export default function DashboardPage() {
             }
 
             // Top Products Aggregation
-            const { data: itemData } = await supabase.from('invoice_items').select('name, quantity, total')
+            const { data: itemData } = await supabase.from('invoice_items').select('name, quantity, total').eq('user_id', uid)
             if (itemData) {
                 const productMap: Record<string, TopProduct> = {}
                 itemData.forEach(item => {
                     if (!productMap[item.name]) {
-                        productMap[item.name] = { name: item.name, quantity: 0, total: 0, image_url: item.image_url }
+                        productMap[item.name] = { name: item.name, quantity: 0, total: 0 }
                     }
                     productMap[item.name].quantity += Number(item.quantity)
                     productMap[item.name].total += Number(item.total)
@@ -148,7 +198,7 @@ export default function DashboardPage() {
             }
 
             // Payment Mode Aggregation
-            const { data: allPayData } = await supabase.from('payments').select('amount, payment_mode').eq('type', 'payment_in')
+            const { data: allPayData } = await supabase.from('payments').select('amount, payment_mode').eq('type', 'payment_in').eq('user_id', uid)
             if (allPayData) {
                 const modeMap: Record<string, number> = {}
                 allPayData.forEach(p => {
@@ -269,6 +319,37 @@ export default function DashboardPage() {
                     trend="+8.2%"
                     trendColor="text-green-500"
                     iconBg="bg-slate-50 dark:bg-slate-800 text-slate-600"
+                    loading={loading}
+                />
+            </div>
+
+            {/* Additional Stats Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <MetricCard
+                    label="Pending Payments"
+                    value={`₹ ${(pendingPayments || 0).toLocaleString('en-IN')}`}
+                    icon="pending_actions"
+                    trend={pendingPayments > 0 ? 'Due' : 'Clear'}
+                    trendColor={pendingPayments > 0 ? 'text-amber-500' : 'text-green-500'}
+                    iconBg="bg-amber-50 dark:bg-amber-900/30 text-amber-600"
+                    loading={loading}
+                />
+                <MetricCard
+                    label="Top Customer"
+                    value={topCustomer ? topCustomer.name : 'No data'}
+                    icon="star"
+                    trend={topCustomer ? `₹${topCustomer.total.toLocaleString('en-IN')}` : '-'}
+                    trendColor="text-purple-500"
+                    iconBg="bg-purple-50 dark:bg-purple-900/30 text-purple-600"
+                    loading={loading}
+                />
+                <MetricCard
+                    label="Stock Value"
+                    value={`₹ ${(stockValue || 0).toLocaleString('en-IN')}`}
+                    icon="inventory_2"
+                    trend="Inventory"
+                    trendColor="text-cyan-500"
+                    iconBg="bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600"
                     loading={loading}
                 />
             </div>

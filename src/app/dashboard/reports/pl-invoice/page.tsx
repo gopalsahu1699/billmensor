@@ -37,6 +37,9 @@ export default function ProfitLossInvoiceReport() {
     const fetchPLData = React.useCallback(async () => {
         setLoading(true)
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // 1. Fetch Invoices
             const { data: invData, error: invError } = await supabase
                 .from('invoices')
@@ -48,6 +51,7 @@ export default function ProfitLossInvoiceReport() {
                         products (purchase_price)
                     )
                 `)
+                .eq('user_id', userData.user.id)
                 .gte('invoice_date', dateRange.start)
                 .lte('invoice_date', dateRange.end)
                 .not('status', 'in', '("void", "draft")')
@@ -59,6 +63,7 @@ export default function ProfitLossInvoiceReport() {
             const { data: retData } = await supabase
                 .from('returns')
                 .select('total_amount, subtotal')
+                .eq('user_id', userData.user.id)
                 .eq('type', 'sales_return')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)

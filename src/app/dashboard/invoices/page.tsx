@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useInvoices } from '@/hooks/useInvoice'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function InvoicesPage() {
     const router = useRouter()
@@ -73,7 +74,17 @@ export default function InvoicesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredInvoices.map((inv) => (
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-32" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-40" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-24" /></td>
+                                        <td className="px-8 py-5"><Skeleton className="h-10 w-20" /></td>
+                                        <td className="px-8 py-5 text-right"><Skeleton className="h-10 w-16 ml-auto" /></td>
+                                    </tr>
+                                ))
+                            ) : filteredInvoices.map((inv) => (
                                 <tr
                                     key={inv.id}
                                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"

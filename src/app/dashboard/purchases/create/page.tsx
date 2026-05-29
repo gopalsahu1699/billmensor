@@ -112,7 +112,7 @@ function CreatePurchaseForm() {
         let itemDiscount = 0
         
         if (item.discount_type === 'amount') {
-            itemDiscount = (item.per_unit_discount || 0) * quantity
+            itemDiscount = item.discount_rate || 0
         } else {
             itemDiscount = (basePrice * quantity * (item.discount_rate || 0)) / 100
         }
@@ -176,9 +176,12 @@ function CreatePurchaseForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const [suppRes, prodRes, profileRes] = await Promise.all([
-                supabase.from('customers').select('*').in('type', ['supplier', 'both']).order('name'),
-                supabase.from('products').select('*').order('name'),
+                supabase.from('customers').select('*').in('type', ['supplier', 'both']).eq('user_id', userData.user.id).order('name'),
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
                 supabase.from('profiles').select('*').single()
             ])
             setSuppliers((suppRes.data as Customer[]) || [])

@@ -23,9 +23,13 @@ export default function ExpenseSummaryReport() {
     const fetchExpenses = React.useCallback(async () => {
         setLoading(true)
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('expenses')
                 .select('*')
+                .eq('user_id', userData.user.id)
                 .gte('expense_date', dateRange.start)
                 .lte('expense_date', dateRange.end)
                 .order('expense_date', { ascending: false })

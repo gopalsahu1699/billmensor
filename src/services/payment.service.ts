@@ -3,9 +3,13 @@ import { Payment } from "@/types"
 
 export const paymentService = {
     async list(type?: "payment_in" | "payment_out") {
+        const { data: session } = await supabase.auth.getSession()
+        if (!session.session?.user) throw new Error("Unauthorized")
+
         let query = supabase
             .from("payments")
             .select("*, customers(*)")
+            .eq("user_id", session.session.user.id)
             .order("created_at", { ascending: false })
 
         if (type) {
@@ -55,7 +59,10 @@ export const paymentService = {
 
         const { data, error } = await supabase
             .from("payments")
-            .update(paymentData)
+            .update({
+                ...paymentData,
+                user_id: session.session.user.id,
+            })
             .eq("id", id)
             .select()
             .single()

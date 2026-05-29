@@ -16,6 +16,7 @@ export const quotationService = {
         customers (*)
       `)
             .order("created_at", { ascending: false })
+            .eq("user_id", session.session.user.id)
 
         if (error) {
             throw new Error(error.message)
@@ -39,6 +40,7 @@ export const quotationService = {
         items:quotation_items (*)
       `)
             .eq("id", id)
+            .eq("user_id", session.session.user.id)
             .single()
 
         if (error) {
@@ -104,6 +106,7 @@ export const quotationService = {
             .from("quotations")
             .update({
                 ...quotationData,
+                user_id: session.session.user.id,
             })
             .eq("id", id)
             .select()

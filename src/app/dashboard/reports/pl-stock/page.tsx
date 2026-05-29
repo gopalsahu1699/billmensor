@@ -30,10 +30,14 @@ export default function ProfitLossStockReport() {
         try {
             setLoading(true)
 
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // 1. Fetch all products for base opening stock and current unit costs
             const { data: products, error: prodError } = await supabase
                 .from('products')
                 .select('id, opening_stock_value, purchase_price, stock_quantity')
+                .eq('user_id', userData.user.id)
             if (prodError) throw prodError
 
             const unitCosts = new Map(products.map(p => [p.id, Number(p.purchase_price || 0)]))
@@ -41,10 +45,10 @@ export default function ProfitLossStockReport() {
 
             // 2. Fetch all movements to reconstruct history
             const [salesRes, purRes, retRes, adjRes] = await Promise.all([
-                supabase.from('invoice_items').select('product_id, quantity, invoices(invoice_date)').not('invoices.status', 'in', '("void", "draft", "cancelled")'),
-                supabase.from('purchase_items').select('product_id, quantity, unit_price, purchases(purchase_date)'),
-                supabase.from('return_items').select('product_id, quantity, returns(return_date, type)'),
-                supabase.from('stock_adjustments').select('product_id, quantity, adjustment_type, created_at')
+                supabase.from('invoice_items').select('product_id, quantity, invoices(invoice_date)').not('invoices.status', 'in', '("void", "draft", "cancelled")').eq('user_id', userData.user.id),
+                supabase.from('purchase_items').select('product_id, quantity, unit_price, purchases(purchase_date)').eq('user_id', userData.user.id),
+                supabase.from('return_items').select('product_id, quantity, returns(return_date, type)').eq('user_id', userData.user.id),
+                supabase.from('stock_adjustments').select('product_id, quantity, adjustment_type, created_at').eq('user_id', userData.user.id)
             ])
 
             const startDate = new Date(dateRange.start)
@@ -121,12 +125,12 @@ export default function ProfitLossStockReport() {
             // For P&L, we need Net Sales and Net Purchases (Taxable Value) during the period
             // Not just stock valuation, but the actual transaction revenue/cost
             const { data: invDuring } = await supabase.from('invoices')
-                .select('subtotal').gte('invoice_date', dateRange.start).lte('invoice_date', dateRange.end)
+                .select('subtotal').eq('user_id', userData.user.id).gte('invoice_date', dateRange.start).lte('invoice_date', dateRange.end)
                 .not('status', 'in', '("void", "draft", "cancelled")')
             const { data: purDuring } = await supabase.from('purchases')
-                .select('subtotal').gte('purchase_date', dateRange.start).lte('purchase_date', dateRange.end)
+                .select('subtotal').eq('user_id', userData.user.id).gte('purchase_date', dateRange.start).lte('purchase_date', dateRange.end)
             const { data: retDuring } = await supabase.from('returns')
-                .select('subtotal, type').gte('return_date', dateRange.start).lte('return_date', dateRange.end)
+                .select('subtotal, type').eq('user_id', userData.user.id).gte('return_date', dateRange.start).lte('return_date', dateRange.end)
 
             const netSales = (invDuring?.reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0) -
                 (retDuring?.filter(r => r.type === 'sales_return').reduce((a, b) => a + Number(b.subtotal || 0), 0) || 0)

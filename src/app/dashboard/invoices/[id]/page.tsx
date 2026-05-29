@@ -11,6 +11,10 @@ import Link from 'next/link'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
+import { ClassicTemplate } from '@/components/print/ClassicTemplate'
+import { ElegantTemplate } from '@/components/print/ElegantTemplate'
+import { ThermalTemplate } from '@/components/print/ThermalTemplate'
+import { GSTInvoiceTemplate } from '@/components/print/GSTInvoiceTemplate'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
@@ -286,7 +290,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         {isTemplateMenuOpen && (
                             <div className="absolute top-14 left-0 w-64 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="space-y-1">
-                                    {['modern', 'professional', 'compact'].map((t) => (
+                                    {['modern', 'professional', 'compact', 'classic', 'elegant', 'thermal', 'gst_invoice'].map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => {
@@ -298,7 +302,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
                                                 }`}
                                         >
-                                            {t} Template
+                                            {t === 'gst_invoice' ? 'GST Invoice' : t} Template
                                         </button>
                                     ))}
                                 </div>
@@ -394,7 +398,50 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                 settings={printSettings}
                                 type="invoice"
                             />
-
+                        </div>
+                    ) : printSettings.print_template === 'classic' ? (
+                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
+                            <ClassicTemplate
+                                data={invoice}
+                                profile={profile}
+                                bankDetails={bankDetails || undefined}
+                                items={items}
+                                settings={printSettings}
+                                type="invoice"
+                            />
+                        </div>
+                    ) : printSettings.print_template === 'elegant' ? (
+                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
+                            <ElegantTemplate
+                                data={invoice}
+                                profile={profile}
+                                bankDetails={bankDetails || undefined}
+                                items={items}
+                                settings={printSettings}
+                                type="invoice"
+                            />
+                        </div>
+                    ) : printSettings.print_template === 'thermal' ? (
+                        <div className="bg-white border border-slate-200 shadow-xl overflow-hidden print:border-none print:shadow-none">
+                            <ThermalTemplate
+                                data={invoice}
+                                profile={profile}
+                                bankDetails={bankDetails || undefined}
+                                items={items}
+                                settings={printSettings}
+                                type="invoice"
+                            />
+                        </div>
+                    ) : printSettings.print_template === 'gst_invoice' ? (
+                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
+                            <GSTInvoiceTemplate
+                                data={invoice}
+                                profile={profile}
+                                bankDetails={bankDetails || undefined}
+                                items={items}
+                                settings={printSettings}
+                                type="invoice"
+                            />
                         </div>
                     ) : (
                         <ModernTemplate

@@ -23,6 +23,9 @@ export default function ItemProfitSummary() {
     const fetchItemStats = React.useCallback(async () => {
         setLoading(true)
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('invoice_items')
                 .select(`
@@ -30,6 +33,7 @@ export default function ItemProfitSummary() {
                     products (name, purchase_price),
                     invoices!inner (invoice_date)
                 `)
+                .eq('user_id', userData.user.id)
                 .gte('invoices.invoice_date', dateRange.start)
                 .lte('invoices.invoice_date', dateRange.end)
 

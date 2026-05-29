@@ -77,6 +77,9 @@ export default function CAAuditReportPage() {
     try {
       setLoading(true);
 
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('Not authenticated')
+
       // 1. Fetch Profile
       const { data: profData } = await supabase
         .from("profiles")
@@ -88,6 +91,7 @@ export default function CAAuditReportPage() {
       const { data: invoices } = await supabase
         .from("invoices")
         .select("*, customers:customer_id(name)")
+        .eq("user_id", userData.user.id)
         .gte("invoice_date", dateRange.start)
         .lte("invoice_date", dateRange.end)
         .not("status", "in", '("void", "draft")');
@@ -133,6 +137,7 @@ export default function CAAuditReportPage() {
       const { data: purchases } = await supabase
         .from("purchases")
         .select("*, suppliers:supplier_id(name)")
+        .eq("user_id", userData.user.id)
         .gte("purchase_date", dateRange.start)
         .lte("purchase_date", dateRange.end);
 
@@ -165,6 +170,7 @@ export default function CAAuditReportPage() {
       const { data: expenses } = await supabase
         .from("expenses")
         .select("*")
+        .eq("user_id", userData.user.id)
         .gte("expense_date", dateRange.start)
         .lte("expense_date", dateRange.end);
 
@@ -188,6 +194,7 @@ export default function CAAuditReportPage() {
       const { data: returnsData } = await supabase
         .from("returns")
         .select("*, customers:customer_id(name)")
+        .eq("user_id", userData.user.id)
         .gte("return_date", dateRange.start)
         .lte("return_date", dateRange.end);
 

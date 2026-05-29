@@ -48,6 +48,9 @@ export default function GSTR1Report() {
     const fetchInvoices = useCallback(async () => {
         setLoading(true)
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('invoices')
                 .select(`
@@ -60,6 +63,7 @@ export default function GSTR1Report() {
                     ),
                     invoice_items (*)
                 `)
+                .eq('user_id', userData.user.id)
                 .gte('invoice_date', dateRange.start)
                 .lte('invoice_date', dateRange.end)
                 .order('invoice_date', { ascending: false })
@@ -118,9 +122,13 @@ export default function GSTR1Report() {
     const exportToJSON = async () => {
         try {
             // Fetch Sales Returns for CDNR/CDNUR
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data: returnsData } = await supabase
                 .from('returns')
                 .select('*, customers:customer_id(*), return_items(*)')
+                .eq('user_id', userData.user.id)
                 .eq('type', 'sales_return')
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)

@@ -17,7 +17,7 @@ export const invoiceService = {
         items:invoice_items (*)
       `)
             .eq("id", id)
-            // .eq("user_id", session.session.user.id) // Assuming multi-tenant
+            .eq("user_id", session.session.user.id)
             .single()
 
         if (error) {
@@ -41,7 +41,7 @@ export const invoiceService = {
         customers (*),
         items:invoice_items (*)
       `)
-            // .eq("user_id", session.session.user.id)
+            .eq("user_id", session.session.user.id)
             .order('created_at', { ascending: false })
 
         if (error) {

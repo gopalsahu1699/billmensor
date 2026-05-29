@@ -21,9 +21,14 @@ export default function StockSummaryReport() {
     const fetchStockData = React.useCallback(async () => {
         try {
             setLoading(true)
+
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
+                .eq('user_id', userData.user.id)
                 .order('stock_quantity', { ascending: false })
 
             if (error) throw error

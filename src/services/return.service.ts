@@ -16,7 +16,7 @@ export const returnService = {
         customers (*)
       `)
             .order("created_at", { ascending: false })
-        // .eq("user_id", session.session.user.id) // Assuming multi-tenant
+            .eq("user_id", session.session.user.id)
 
         if (error) {
             throw new Error(error.message)
@@ -40,7 +40,7 @@ export const returnService = {
         items:return_items (*)
       `)
             .eq("id", id)
-            // .eq("user_id", session.session.user.id)
+            .eq("user_id", session.session.user.id)
             .single()
 
         if (error) {
@@ -106,6 +106,7 @@ export const returnService = {
             .from("returns")
             .update({
                 ...returnData,
+                user_id: session.session.user.id,
             })
             .eq("id", id)
             .select()

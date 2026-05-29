@@ -115,10 +115,13 @@ function CreateReturnForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const partyType = type === 'sales_return' ? ['customer', 'both'] : ['supplier', 'both']
             const [partyRes, prodRes, profileRes] = await Promise.all([
-                supabase.from('customers').select('*').in('type', partyType).order('name'),
-                supabase.from('products').select('*').order('name'),
+                supabase.from('customers').select('*').in('type', partyType).eq('user_id', userData.user.id).order('name'),
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
                 supabase.from('profiles').select('*').single()
             ])
             setParties((partyRes.data as Customer[]) || [])

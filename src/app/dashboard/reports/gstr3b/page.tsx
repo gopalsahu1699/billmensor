@@ -37,10 +37,14 @@ export default function GSTR3BReport() {
         try {
             setLoading(true)
 
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // 1. Fetch Sales (Outward)
             const { data: sales, error: salesError } = await supabase
                 .from('invoices')
                 .select('subtotal, tax_total, total_amount, supply_place, cgst_total, sgst_total, igst_total')
+                .eq('user_id', userData.user.id)
                 .gte('invoice_date', dateRange.start)
                 .lte('invoice_date', dateRange.end)
                 .not('status', 'in', '("void", "draft", "cancelled")')
@@ -51,6 +55,7 @@ export default function GSTR3BReport() {
             const { data: purchases } = await supabase
                 .from('purchases')
                 .select('subtotal, tax_total, total_amount, supply_place, cgst_total, sgst_total, igst_total')
+                .eq('user_id', userData.user.id)
                 .gte('purchase_date', dateRange.start)
                 .lte('purchase_date', dateRange.end)
 
@@ -58,6 +63,7 @@ export default function GSTR3BReport() {
             const { data: returnsData } = await supabase
                 .from('returns')
                 .select('id, total_amount, type, supply_place, subtotal, tax_total, cgst_total, sgst_total, igst_total')
+                .eq('user_id', userData.user.id)
                 .gte('return_date', dateRange.start)
                 .lte('return_date', dateRange.end)
 

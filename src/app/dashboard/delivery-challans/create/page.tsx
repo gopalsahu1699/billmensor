@@ -112,9 +112,12 @@ function CreateChallanForm() {
 
     const fetchInitialData = React.useCallback(async () => {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const [custRes, prodRes, profileRes] = await Promise.all([
-                supabase.from('customers').select('*').order('name'),
-                supabase.from('products').select('*').order('name'),
+                supabase.from('customers').select('*').eq('user_id', userData.user.id).order('name'),
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
                 supabase.from('profiles').select('*').single()
             ])
             setCustomers((custRes.data as Customer[]) || [])

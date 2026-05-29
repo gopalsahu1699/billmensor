@@ -161,6 +161,7 @@ export interface PurchaseItem {
     discount?: number
     total: number
     description?: string
+    image_url?: string
 }
 
 export interface Purchase {
@@ -206,6 +207,7 @@ export interface ReturnItem {
     tax_amount: number
     total: number
     description?: string
+    image_url?: string
 }
 
 export interface Return {

@@ -39,9 +39,12 @@ export default function POSPage() {
 
     async function fetchData() {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const [prodRes, custRes] = await Promise.all([
-                supabase.from('products').select('*').order('name'),
-                supabase.from('customers').select('*').order('name')
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
+                supabase.from('customers').select('*').eq('user_id', userData.user.id).order('name')
             ])
 
             if (prodRes.error) throw prodRes.error
@@ -57,7 +60,8 @@ export default function POSPage() {
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase())
+        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(search.toLowerCase())
     )
 
     const addToCart = (product: Product) => {
@@ -85,9 +89,15 @@ export default function POSPage() {
         }))
     }
 
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const taxTotal = cart.reduce((sum, item) => sum + ((item.price * item.quantity * (item.tax_rate || 0)) / 100), 0)
-    const total = subtotal + taxTotal
+    const lineTotals = cart.map(item => {
+        const inclusiveTotal = item.price * item.quantity;
+        const baseAmount = item.tax_rate ? inclusiveTotal / (1 + item.tax_rate / 100) : inclusiveTotal;
+        const taxAmount = inclusiveTotal - baseAmount;
+        return { baseAmount, taxAmount, inclusiveTotal };
+    });
+    const subtotal = lineTotals.reduce((sum, l) => sum + l.baseAmount, 0);
+    const taxTotal = lineTotals.reduce((sum, l) => sum + l.taxAmount, 0);
+    const total = lineTotals.reduce((sum, l) => sum + l.inclusiveTotal, 0);
 
     const checkout = async () => {
         if (cart.length === 0) {
@@ -107,11 +117,11 @@ export default function POSPage() {
                     customer_id: selectedCustomer?.id || null,
                     invoice_number: `POS-${Date.now().toString().slice(-6)}`,
                     invoice_date: new Date().toISOString().split('T')[0],
-                    subtotal: subtotal,
-                    tax_total: taxTotal,
-                    gst_amount: taxTotal,
-                    total_amount: total,
-                    amount_paid: total,
+                    subtotal: Number(subtotal.toFixed(2)),
+                    tax_total: Number(taxTotal.toFixed(2)),
+                    gst_amount: Number(taxTotal.toFixed(2)),
+                    total_amount: Number(total.toFixed(2)),
+                    amount_paid: Number(total.toFixed(2)),
                     balance_amount: 0,
                     payment_status: 'paid',
                     is_pos: true,
@@ -134,7 +144,7 @@ export default function POSPage() {
                 quantity: item.quantity,
                 unit_price: item.price,
                 tax_rate: item.tax_rate || 0,
-                tax_amount: (item.price * item.quantity * (item.tax_rate || 0)) / 100,
+                tax_amount: item.tax_rate ? (item.price * item.quantity) - ((item.price * item.quantity) / (1 + item.tax_rate / 100)) : 0,
                 total: item.price * item.quantity
             }))
 

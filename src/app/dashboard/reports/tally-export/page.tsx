@@ -39,6 +39,9 @@ export default function TallyExportPage() {
             setLoading(true)
             const startDate = getDateFilter()
 
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // Fetch profile
             const { data: profile } = await supabase.from('profiles').select('company_name').single()
             if (profile?.company_name) setCompanyName(profile.company_name)
@@ -47,18 +50,21 @@ export default function TallyExportPage() {
             const { data: invoices } = await supabase
                 .from('invoices')
                 .select('id, total_amount')
+                .eq('user_id', userData.user.id)
                 .gte('invoice_date', startDate)
 
             // Fetch purchases count
             const { data: purchases } = await supabase
                 .from('purchases')
                 .select('id, total_amount')
+                .eq('user_id', userData.user.id)
                 .gte('purchase_date', startDate)
 
             // Fetch customers
             const { data: customers } = await supabase
                 .from('customers')
                 .select('id')
+                .eq('user_id', userData.user.id)
 
             const totalSales = invoices?.reduce((s, i) => s + (Number(i.total_amount) || 0), 0) || 0
             const totalPurchases = purchases?.reduce((s, p) => s + (Number(p.total_amount) || 0), 0) || 0
@@ -86,10 +92,14 @@ export default function TallyExportPage() {
             setExporting(true)
             const startDate = getDateFilter()
 
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // Fetch invoices with customer details
             const { data: invoices, error: invErr } = await supabase
                 .from('invoices')
                 .select('*, customers(name, gstin, state)')
+                .eq('user_id', userData.user.id)
                 .gte('invoice_date', startDate)
                 .order('invoice_date', { ascending: true })
 
@@ -99,6 +109,7 @@ export default function TallyExportPage() {
             const { data: purchases, error: purErr } = await supabase
                 .from('purchases')
                 .select('*, customers(name, gstin, state)')
+                .eq('user_id', userData.user.id)
                 .gte('purchase_date', startDate)
                 .order('purchase_date', { ascending: true })
 

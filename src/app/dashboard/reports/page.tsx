@@ -61,13 +61,16 @@ export default function ReportsDashboard() {
     const fetchStats = useCallback(async () => {
         try {
             setLoading(true)
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             // Fetch total sales
-            const { data: invoices, error: invError } = await supabase.from('invoices').select('total_amount')
+            const { data: invoices, error: invError } = await supabase.from('invoices').select('total_amount').eq('user_id', userData.user.id)
             if (invError) throw invError
             const totalSales = invoices?.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0) || 0
 
             // Fetch total expenses
-            const { data: expenses, error: expError } = await supabase.from('expenses').select('amount')
+            const { data: expenses, error: expError } = await supabase.from('expenses').select('amount').eq('user_id', userData.user.id)
             if (expError) throw expError
             const totalExpenses = expenses?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0
 

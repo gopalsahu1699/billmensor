@@ -37,6 +37,30 @@ const templates = [
         name: 'Compact Template',
         description: 'Dense layout designed to save paper for large orders.',
         preview: 'bg-slate-100 border-slate-300'
+    },
+    {
+        id: 'classic',
+        name: 'Classic (Vyapar Style)',
+        description: 'Traditional Indian invoice format with detailed borders.',
+        preview: 'bg-white border-slate-400'
+    },
+    {
+        id: 'elegant',
+        name: 'Elegant (Zoho Style)',
+        description: 'Minimalist modern design with accent colors.',
+        preview: 'bg-slate-50 border-purple-300'
+    },
+    {
+        id: 'thermal',
+        name: 'Thermal Receipt',
+        description: 'Compact layout for 80mm thermal printers.',
+        preview: 'bg-slate-200 border-slate-500'
+    },
+    {
+        id: 'gst_invoice',
+        name: 'GST Tax Invoice',
+        description: 'Official GST-compliant format with all mandatory fields.',
+        preview: 'bg-white border-emerald-400'
     }
 ]
 
@@ -204,7 +228,7 @@ export default function PrintSettingsPage() {
                             Select Print Template
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             {templates.map((template) => (
                                 <button
                                     key={template.id}

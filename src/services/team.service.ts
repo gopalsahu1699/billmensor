@@ -79,18 +79,17 @@ export const teamService = {
             const userId = user.id
 
             // 1. Try WEXO Hierarchy first (staff_members)
-            // We use a try-catch for the query itself to handle missing table
             try {
                 const { data: staff, error: staffError } = await supabase
                     .from("staff_members")
-                    .select("*") // Get all columns and check them manually
+                    .select("*")
                     .eq("user_id", userId)
                     .eq("status", "active")
-                    .maybeSingle()
+                    .limit(1)
 
-                if (staff && !staffError) {
-                    return { 
-                        role: staff.hierarchy_role || staff.role || 'staff',
+                if (!staffError && staff && staff.length > 0) {
+                    return {
+                        role: staff[0].hierarchy_role || staff[0].role || 'staff',
                         permissions: {
                             invoices: true,
                             quotations: true,
@@ -101,7 +100,7 @@ export const teamService = {
                     }
                 }
             } catch (e) {
-                console.warn('staff_members table not found or inaccessible')
+                // staff_members table may not exist
             }
 
             // 2. Fallback to BillMensor Legacy (team_members)
@@ -111,16 +110,16 @@ export const teamService = {
                     .select("*")
                     .eq("user_id", userId)
                     .eq("status", "active")
-                    .maybeSingle()
+                    .limit(1)
 
-                if (team && !teamError) {
+                if (!teamError && team && team.length > 0) {
                     return {
-                        role: team.role || 'staff',
-                        permissions: team.permissions
+                        role: team[0].role || 'staff',
+                        permissions: team[0].permissions
                     }
                 }
             } catch (e) {
-                console.warn('team_members table not found or inaccessible')
+                // team_members table may not exist
             }
 
             // Default: if we are authenticated but not in any team table, 

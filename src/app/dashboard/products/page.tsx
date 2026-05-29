@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
+import { generateEAN13 } from '@/lib/barcode'
 
 import { Product } from '@/types'
 
@@ -21,9 +22,13 @@ export default function ProductsPage() {
 
     async function fetchProducts() {
         try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
+                .eq('user_id', userData.user.id)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -54,9 +59,27 @@ export default function ProductsPage() {
         }
     }
 
+    async function handleGenerateBarcode(productId: string) {
+        try {
+            const barcode = generateEAN13()
+            const { error } = await supabase
+                .from('products')
+                .update({ barcode })
+                .eq('id', productId)
+
+            if (error) throw error
+            toast.success('Barcode generated successfully')
+            fetchProducts()
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Failed to generate barcode'
+            toast.error(msg)
+        }
+    }
+
     const filteredProducts = products.filter(p =>
         (p.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (p.sku?.toLowerCase() || '').includes(search.toLowerCase())
+        (p.sku?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (p.barcode?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
     const totalValue = products.reduce((s, p) => s + (p.price || 0) * (p.stock_quantity || 0), 0)
@@ -134,6 +157,7 @@ export default function ProductsPage() {
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50">
                                 <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Product</th>
+                                <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Barcode</th>
                                 <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">SKU / HSN</th>
                                 <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Price</th>
                                 <th className="px-8 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Stock</th>
@@ -173,6 +197,20 @@ export default function ProductsPage() {
                                                 )}
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <p className="text-sm font-mono text-slate-600 dark:text-slate-400">{product.barcode || '-'}</p>
+                                        {!product.barcode && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleGenerateBarcode(product.id);
+                                                }}
+                                                className="text-[10px] text-primary font-bold uppercase tracking-widest hover:text-primary/80 transition-colors"
+                                            >
+                                                Generate
+                                            </button>
+                                        )}
                                     </td>
                                     <td className="px-8 py-5">
                                         <p className="text-sm font-mono text-slate-600 dark:text-slate-400">{product.sku || '-'}</p>

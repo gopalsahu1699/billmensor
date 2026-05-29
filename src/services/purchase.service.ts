@@ -94,6 +94,7 @@ export const purchaseService = {
             .from("purchases")
             .update({
                 ...purchaseData,
+                user_id: session.session.user.id,
             })
             .eq("id", id)
             .select()
