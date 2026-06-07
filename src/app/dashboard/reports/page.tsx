@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { MdBarChart, MdLock, MdStar } from 'react-icons/md'
 
 const reportGroups = [
     {
@@ -48,6 +50,10 @@ const reportGroups = [
     }
 ]
 
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return inputs.filter(Boolean).join(' ')
+}
+
 export default function ReportsDashboard() {
     const [searchQuery, setSearchQuery] = useState('')
     const [stats, setStats] = useState({
@@ -57,12 +63,26 @@ export default function ReportsDashboard() {
         count: 0
     })
     const [loading, setLoading] = useState(true)
+    const [isPremium, setIsPremium] = useState(false)
 
     const fetchStats = useCallback(async () => {
         try {
             setLoading(true)
             const { data: userData } = await supabase.auth.getUser()
             if (!userData.user) throw new Error('Not authenticated')
+
+            // Check premium status
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('plan_type, plan_expiry, plan_status')
+                .eq('id', userData.user.id)
+                .limit(1)
+
+            const prof = profile?.[0]
+            const hasActivePlan = prof?.plan_type && prof.plan_type !== 'free'
+                && prof.plan_status === 'active'
+                && (!prof.plan_expiry || new Date(prof.plan_expiry) >= new Date())
+            setIsPremium(!!hasActivePlan)
 
             // Fetch total sales
             const { data: invoices, error: invError } = await supabase.from('invoices').select('total_amount').eq('user_id', userData.user.id)
@@ -217,6 +237,11 @@ export default function ReportsDashboard() {
     )
 }
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return inputs.filter(Boolean).join(' ')
+// Small check icon used in the upgrade CTA
+function IoCheckM({ className }: { className?: string }) {
+    return (
+        <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    )
 }

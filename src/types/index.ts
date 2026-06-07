@@ -340,10 +340,12 @@ export interface Profile {
     brand_color?: string;
     accent_color?: string;
     font_family?: string;
-    plan_type?: 'free' | 'monthly' | 'yearly';
+    plan_type?: 'free' | 'monthly' | 'yearly' | 'lifetime';
     plan_status?: 'active' | 'expired' | 'canceled';
     plan_expiry?: string;
     last_payment_id?: string;
+    data_retention_days?: number;
+    last_backup_at?: string;
     created_at: string;
 }
 
@@ -552,4 +554,74 @@ export interface CashFlow {
     reference_id?: string
     notes?: string
     created_at: string
+}
+
+// ============================================================
+// COUPON SYSTEM TYPES
+// ============================================================
+
+export interface Coupon {
+    id: string
+    code: string
+    description?: string
+    plan_type: 'free' | 'monthly' | 'yearly' | 'lifetime'
+    discount_percent: number
+    max_uses: number
+    used_count: number
+    per_user_limit: number
+    valid_from: string
+    valid_until?: string | null
+    is_active: boolean
+    created_by?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface CouponRedemption {
+    id: string
+    coupon_id: string
+    user_id: string
+    redeemed_at: string
+    plan_granted: string
+    payment_amount: number
+}
+
+export interface CouponValidationResult {
+    valid: boolean
+    coupon?: Coupon
+    error?: string
+    plan_type?: string
+    discount_percent?: number
+}
+
+// ============================================================
+// ADMIN PANEL TYPES
+// ============================================================
+
+export interface AdminStats {
+    totalUsers: number;
+    premiumUsers: number;
+    activePremium: number;
+    expiringSoon: number;
+    totalCoupons: number;
+    totalRedemptions: number;
+}
+
+export interface Notification {
+    id: string;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'promotional' | 'urgent';
+    target_audience?: string;
+    target_user_ids?: string[];
+    sent_by?: string;
+    created_at: string;
+}
+
+export interface UserFilter {
+    search?: string;
+    plan_type?: string;
+    plan_status?: string;
+    page?: number;
+    limit?: number;
 }

@@ -201,7 +201,8 @@ export default function TallyExportPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700">
+
+<div className="max-w-5xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -319,5 +320,6 @@ export default function TallyExportPage() {
                 </div>
             </div>
         </div>
-    )
+
+        )
 }

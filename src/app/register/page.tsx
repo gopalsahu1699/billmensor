@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,44 @@ import { toast } from 'sonner'
 
 export default function RegisterPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
     })
+
+    // Coupon state
+    const [couponCode, setCouponCode] = useState<string | null>(null)
+    const [couponValid, setCouponValid] = useState(false)
+    const [couponPlanType, setCouponPlanType] = useState<string | null>(null)
+    const [couponChecking, setCouponChecking] = useState(false)
+
+    // Read coupon from URL and validate
+    useEffect(() => {
+        const code = searchParams.get('coupon')
+        if (code) {
+            setCouponCode(code)
+            setCouponChecking(true)
+            fetch('/api/coupons/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.valid) {
+                        setCouponValid(true)
+                        setCouponPlanType(data.plan_type)
+                    } else {
+                        setCouponValid(false)
+                    }
+                })
+                .catch(() => setCouponValid(false))
+                .finally(() => setCouponChecking(false))
+        }
+    }, [searchParams])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -35,7 +67,27 @@ export default function RegisterPage() {
 
             if (error) throw error
 
-            toast.success('Account created! Please check your email for verification.')
+            // If coupon was applied, redeem it after successful signup
+            if (couponCode && couponValid && data.user) {
+                try {
+                    const redeemRes = await fetch('/api/coupons/redeem', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: couponCode }),
+                    })
+                    const redeemData = await redeemRes.json()
+                    if (redeemRes.ok && redeemData.success) {
+                        toast.success(`Account created! Coupon redeemed — you have the ${redeemData.plan_type} plan.`)
+                    } else {
+                        toast.success('Account created! Please check your email for verification.')
+                    }
+                } catch {
+                    toast.success('Account created! Please check your email for verification.')
+                }
+            } else {
+                toast.success('Account created! Please check your email for verification.')
+            }
             router.push('/login')
         } catch (error: any) {
             toast.error(error.message || 'Failed to create account')
@@ -58,6 +110,35 @@ export default function RegisterPage() {
 
                 <h1 className="text-2xl font-bold text-slate-900 mb-2 text-center">Create an account</h1>
                 <p className="text-slate-500 mb-6 text-center font-medium">Start managing your business inventory and billing today.</p>
+
+                {/* Coupon Banner */}
+                {couponCode && (
+                    <div className={`mb-6 p-4 rounded-xl text-sm flex items-center gap-2 ${
+                        couponChecking
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : couponValid
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                        {couponChecking ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 shrink-0"></div>
+                                <span>Checking coupon <span className="font-mono font-bold">{couponCode}</span>...</span>
+                            </>
+                        ) : couponValid ? (
+                            <>
+                                <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
+                                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span>Coupon <span className="font-mono font-bold">{couponCode}</span> applied! You&apos;ll get <span className="font-bold">{couponPlanType}</span> after registration.</span>
+                            </>
+                        ) : (
+                            <span>Coupon <span className="font-mono font-bold">{couponCode}</span> is invalid or expired.</span>
+                        )}
+                    </div>
+                )}
 
                 {/* Google Sign Up Button — appears first */}
                 <div className="mt-4">

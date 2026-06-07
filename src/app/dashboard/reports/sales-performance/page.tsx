@@ -120,7 +120,8 @@ export default function ItemProfitSummary() {
     const totalProfit = itemStats.reduce((acc, curr) => acc + curr.profit, 0)
 
     return (
-        <div id="report-content" className="space-y-6 print:space-y-4">
+
+<div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-purple-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Item Profit & Sales Summary</h1>
                 <p className="text-slate-500">Generated on: {new Date().toLocaleDateString()}</p>
@@ -252,5 +253,6 @@ export default function ItemProfitSummary() {
                 </CardContent>
             </Card>
         </div>
-    )
+
+        )
 }

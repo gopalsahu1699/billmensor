@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { MdSearch, MdNotifications, MdMessage, MdMenu, MdPerson } from 'react-icons/md'
-import { ThemeToggle } from './theme-toggle'
-import { cn } from "../../lib/utils"
+import Link from 'next/link'
+import { MdSearch, MdNotifications, MdMenu } from 'react-icons/md'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
     const [user, setUser] = useState<any | null>(null)
+    const [notificationCount, setNotificationCount] = useState(0)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {
@@ -19,6 +19,22 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
         })
 
         return () => subscription.unsubscribe()
+    }, [])
+
+    useEffect(() => {
+        const fetchCount = async () => {
+            try {
+                const res = await fetch('/api/notifications')
+                if (!res.ok) return
+                const data = await res.json()
+                setNotificationCount(data.notifications?.length || 0)
+            } catch {
+                // silently fail
+            }
+        }
+        fetchCount()
+        const interval = setInterval(fetchCount, 60000)
+        return () => clearInterval(interval)
     }, [])
 
     const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
@@ -45,16 +61,15 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-5">
-                <ThemeToggle variant="icon" />
 
-                <button className="hidden md:flex p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl relative transition-all group active:scale-95">
+                <Link href="/dashboard/notifications" className="hidden md:flex p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl relative transition-all group active:scale-95">
                     <MdNotifications size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-                </button>
-
-                <button className="hidden md:flex p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl transition-all group active:scale-95">
-                    <MdMessage size={22} strokeWidth={2} className="group-hover:text-blue-500 transition-colors" />
-                </button>
+                    {notificationCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                            {notificationCount}
+                        </span>
+                    )}
+                </Link>
 
                 <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden sm:block"></div>
 

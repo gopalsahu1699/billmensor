@@ -319,7 +319,7 @@ export default function PartyLedgerReport() {
                 {ledger.map((row, idx) => {
                   // Local variable to show simple balance running if needed
                   return (
-                    <tr key={idx} className="hover:bg-slate-50/50">
+            <tr key={idx} className="hover:bg-slate-50/50">
                       <td className="py-3 px-2 text-slate-500">
                         {new Date(row.date).toLocaleDateString()}
                       </td>
@@ -347,7 +347,7 @@ export default function PartyLedgerReport() {
                         {(row.amount - row.paid).toLocaleString("en-IN")}
                       </td>
                     </tr>
-                  );
+        );
                 })}
                 {ledger.length === 0 && !loading && (
                   <tr>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { MdAccountBalance, MdArrowForward, MdMoreVert, MdAddCircle, MdPersonAdd, MdReceipt, MdBarChart, MdDescription, MdDashboard, MdError } from 'react-icons/md'
+import { MdAccountBalance, MdArrowForward, MdMoreVert, MdAddCircle, MdPersonAdd, MdReceipt, MdBarChart, MdDescription, MdDashboard, MdError, MdDownload, MdComputer, MdCloud } from 'react-icons/md'
 
 interface Customer {
     name: string;
@@ -264,6 +264,59 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Download / Cloud Backup Banner */}
+            {(!profile?.plan_type || profile.plan_type === 'free') ? (
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 flex items-center justify-center">
+                            <MdComputer className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                Download Billmensor for Windows
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Get the desktop app for offline access + local data storage. Free forever.</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-3">
+                        <Link href="/download">
+                            <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">
+                                <MdDownload size={14} />
+                                Download for Windows
+                            </button>
+                        </Link>
+                        <Link href="/dashboard/settings/billing">
+                            <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                                <MdCloud size={14} />
+                                Enable Cloud Backup
+                            </button>
+                        </Link>
+                    </div>
+                </div>
+            ) : (
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-green-600/10 to-emerald-600/10 border border-green-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-green-600/20 flex items-center justify-center">
+                            <MdCloud className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                Cloud Backup Active — Protected
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Your data is backed up daily. Plan: {profile.plan_type === 'monthly' ? 'Monthly' : 'Yearly'} | Expires: {profile.plan_expiry ? new Date(profile.plan_expiry).toLocaleDateString() : 'N/A'}
+                            </p>
+                        </div>
+                    </div>
+                    <Link href="/download">
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">
+                            <MdDownload size={14} />
+                            Download for Windows
+                        </button>
+                    </Link>
+                </div>
+            )}
 
             {/* Plan Expiry / Warning Banner */}
             {profile?.plan_expiry && new Date(profile.plan_expiry) < new Date() && (

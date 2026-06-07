@@ -88,7 +88,8 @@ export default function ExpenseSummaryReport() {
     const sortedCategories = Object.entries(categoryTotals).sort((a: [string, number], b: [string, number]) => b[1] - a[1])
 
     return (
-        <div id="report-content" className="space-y-6 print:space-y-4">
+
+<div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-red-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Expense Analysis Report</h1>
                 <p className="text-slate-500">Period: {dateRange.start} onwards</p>
@@ -231,5 +232,6 @@ export default function ExpenseSummaryReport() {
                 </Card>
             </div>
         </div>
-    )
+
+        )
 }

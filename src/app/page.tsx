@@ -5,11 +5,39 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { MdArrowForward, MdCheckCircle, MdBolt, MdShield, MdBarChart } from "react-icons/md";
+import { MdArrowForward, MdCheckCircle, MdBolt, MdShield, MdBarChart, MdDownload, MdComputer, MdCloud, MdStorage, MdCancel } from "react-icons/md";
 import { User } from "@supabase/supabase-js";
 
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponResult, setCouponResult] = useState<null | { valid: boolean; plan_type?: string; error?: string }>(null);
+
+  const handleLandingCouponValidate = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponResult(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setCouponResult({ valid: true, plan_type: data.plan_type });
+      } else {
+        setCouponResult({ valid: false, error: data.error || "Invalid coupon code" });
+      }
+    } catch {
+      setCouponResult({ valid: false, error: "Failed to validate coupon" });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,6 +64,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
             <a href="#pricing" className="hover:text-blue-400 transition-colors">Pricing</a>
             <Link href="/about" className="hover:text-blue-400 transition-colors">About</Link>
+            <Link href="/download" className="hover:text-blue-400 transition-colors">Download</Link>
           </div>
           <div className="flex items-center gap-4">
             {user ? (
@@ -118,9 +147,10 @@ export default function LandingPage() {
                     <MdArrowForward className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Link href="/demo">
+                <Link href="/download">
                   <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-2xl border-white/10 hover:bg-white/5 hover:text-white">
-                    View Live Demo
+                    <MdDownload className="mr-2 w-5 h-5" />
+                    Download Windows App
                   </Button>
                 </Link>
               </>
@@ -224,12 +254,128 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Choose Your Setup */}
+      <section className="py-20 bg-slate-950/30">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Choose Your Setup</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">Use Billmensor online or download the desktop app. Both are free forever.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <motion.div
+              whileHover={{ y: -5 }}
+              className="p-10 rounded-[40px] border border-white/10 bg-slate-900/50 hover:bg-slate-900/70 transition-colors text-center"
+            >
+              <div className="mb-6 p-4 w-fit mx-auto rounded-2xl bg-blue-600/10 border border-blue-500/20">
+                <MdCloud className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Online (Web)</h3>
+              <p className="text-blue-400 font-bold text-sm mb-4">FREE FOREVER</p>
+              <p className="text-slate-400 leading-relaxed">Access from any device with a browser. Data stored securely in the cloud.</p>
+            </motion.div>
+            <motion.div
+              whileHover={{ y: -5 }}
+              className="p-10 rounded-[40px] border border-white/10 bg-slate-900/50 hover:bg-slate-900/70 transition-colors text-center"
+            >
+              <div className="mb-6 p-4 w-fit mx-auto rounded-2xl bg-purple-600/10 border border-purple-500/20">
+                <MdComputer className="w-8 h-8 text-purple-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Desktop (.exe)</h3>
+              <p className="text-purple-400 font-bold text-sm mb-4">FREE FOREVER</p>
+              <p className="text-slate-400 leading-relaxed">Windows app with data stored locally. Optional cloud backup add-on available.</p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Download Section */}
+      <section className="py-32">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto"
+          >
+            <div className="mb-8 p-6 w-fit mx-auto rounded-3xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10">
+              <MdComputer className="w-16 h-16 text-blue-400" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">Download Billmensor for Windows</h2>
+            <p className="text-xl text-slate-400 mb-8 leading-relaxed">
+              Full-featured desktop app. Works offline. Data stored on YOUR machine.
+            </p>
+            <Link href="/download">
+              <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-500 rounded-2xl group shadow-2xl shadow-blue-500/20">
+                <MdDownload className="mr-2 w-5 h-5" />
+                Download for Windows
+              </Button>
+            </Link>
+            <p className="text-sm text-slate-500 mt-6 italic">Cloud backup available as add-on premium feature</p>
+            <div className="flex items-center justify-center gap-6 mt-8 text-xs text-slate-500">
+              <span>Windows 10+</span>
+              <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
+              <span>200MB disk space</span>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="py-32 bg-slate-950/30">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
             <h2 className="text-4xl font-bold mb-4 italic uppercase tracking-tight">Transparent Pricing</h2>
             <p className="text-slate-400 max-w-xl mx-auto">No hidden costs. No monthly subscriptions for billing. Pay only for the security of your data.</p>
+          </div>
+
+          {/* Coupon Input */}
+          <div className="max-w-md mx-auto mb-12">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Have a promo code?"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  if (couponResult) setCouponResult(null);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleLandingCouponValidate(); }}
+                disabled={couponLoading}
+                className="flex-1 h-12 px-4 rounded-xl bg-slate-900/50 border border-white/10 text-white placeholder-slate-500 text-sm font-medium uppercase tracking-widest focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50"
+              />
+              <button
+                onClick={handleLandingCouponValidate}
+                disabled={couponLoading || !couponCode.trim()}
+                className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold text-sm uppercase tracking-widest transition-colors shrink-0"
+              >
+                {couponLoading ? '...' : 'Apply'}
+              </button>
+            </div>
+            {couponResult && (
+              <div className={`mt-3 p-4 rounded-xl text-sm flex items-start gap-2 ${
+                couponResult.valid
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              }`}>
+                {couponResult.valid ? (
+                  <MdCheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                ) : (
+                  <MdCancel className="w-4 h-4 shrink-0 mt-0.5" />
+                )}
+                <span>
+                  {couponResult.valid ? (
+                    <>
+                      Coupon valid! <span className="font-bold">{couponResult.plan_type}</span> plan —{' '}
+                      <Link href={`/register?coupon=${encodeURIComponent(couponCode)}`} className="underline font-semibold hover:text-emerald-300 transition-colors">
+                        Sign up to claim
+                      </Link>
+                    </>
+                  ) : (
+                    couponResult.error || 'Invalid coupon code'
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -258,6 +404,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              <p className="text-xs text-slate-500 mb-6 italic">Works fully online + offline with Windows app</p>
               <Link href="/register">
                 <Button className="w-full h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10">Start Billing Now</Button>
               </Link>
@@ -270,7 +417,7 @@ export default function LandingPage() {
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                   <MdBolt size={60} />
                 </div>
-                <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Monthly Backup</h3>
+                <h3 className="text-2xl font-black uppercase tracking-widest italic mb-2">Cloud Backup — Monthly</h3>
                 <div className="flex items-baseline gap-2 mb-4">
                   <span className="text-4xl font-black italic">₹199</span>
                   <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">/ Month</span>
@@ -287,7 +434,7 @@ export default function LandingPage() {
                   <MdShield size={60} />
                 </div>
                 <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[8px] font-black uppercase tracking-widest mb-4">Best Value (2 Months Free)</div>
-                <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Yearly Backup</h3>
+                <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Cloud Backup — Yearly</h3>
                 <div className="flex items-baseline gap-2 mb-4">
                   <span className="text-4xl font-black italic">₹1,999</span>
                   <span className="text-blue-200 font-bold uppercase text-[10px] tracking-widest">/ Year</span>

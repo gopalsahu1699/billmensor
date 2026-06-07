@@ -278,7 +278,7 @@ export default function CAAuditReportPage() {
     );
 
   return (
-    <div
+<div
       id="report-content"
       className="max-w-5xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700"
     >
@@ -960,5 +960,5 @@ export default function CAAuditReportPage() {
         }
       `}</style>
     </div>
-  );
+        );
 }

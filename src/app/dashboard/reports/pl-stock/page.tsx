@@ -203,7 +203,8 @@ export default function ProfitLossStockReport() {
 
 
     return (
-        <div id="report-content" className="space-y-8 pb-20">
+
+<div id="report-content" className="space-y-8 pb-20">
             <div className="flex items-center gap-4 no-print">
                 <Link href="/dashboard/reports">
                     <Button variant="outline" size="sm" className="rounded-full w-10 px-0">
@@ -331,5 +332,6 @@ export default function ProfitLossStockReport() {
                 </div>
             </div>
         </div>
-    )
+
+        )
 }

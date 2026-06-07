@@ -236,7 +236,8 @@ export default function GSTR1Report() {
 
 
     return (
-        <div id="report-content" className="space-y-6 print:space-y-4">
+
+<div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-blue-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">GSTR-1 Sales Report</h1>
                 <p className="text-slate-500">Filing Period: {dateRange.start} to {dateRange.end}</p>
@@ -367,5 +368,6 @@ export default function GSTR1Report() {
                 </CardContent>
             </Card>
         </div>
-    )
+
+        )
 }

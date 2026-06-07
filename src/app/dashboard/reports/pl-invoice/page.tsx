@@ -148,7 +148,8 @@ export default function ProfitLossInvoiceReport() {
 
 
     return (
-        <div id="report-content" className="space-y-6 print:space-y-4">
+
+<div id="report-content" className="space-y-6 print:space-y-4">
             <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
                 <h1 className="text-2xl font-bold">Profit & Loss Statement (Invoice Wise)</h1>
                 <p className="text-slate-500">Analysis Period: {dateRange.start} to {dateRange.end}</p>
@@ -295,7 +296,8 @@ export default function ProfitLossInvoiceReport() {
                 </CardContent>
             </Card>
         </div>
-    )
+
+        )
 }
 
 function cn(...inputs: (string | undefined | null | false)[]) {

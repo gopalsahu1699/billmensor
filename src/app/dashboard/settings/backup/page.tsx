@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Backup } from '@/types/index'
+import { Profile, Backup } from '@/types/index'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { IoAdd, IoServer, IoDownload, IoTrash, IoRefresh, IoCloud, IoTime, IoCheckmarkCircle, IoAlertCircle, IoSearch } from 'react-icons/io5'
+import { IoAdd, IoServer, IoDownload, IoTrash, IoRefresh, IoCloud, IoTime, IoCheckmarkCircle, IoAlertCircle, IoSearch, IoCloudUpload, IoCloudDownload } from 'react-icons/io5'
+import { MdCloudOff } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa'
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -19,10 +20,32 @@ export default function BackupSettingsPage() {
     const [loading, setLoading] = useState(true)
     const [creating, setCreating] = useState(false)
     const [search, setSearch] = useState('')
+    const [profile, setProfile] = useState<Pick<Profile, 'plan_type' | 'plan_status' | 'plan_expiry'> | null>(null)
+    const [exporting, setExporting] = useState(false)
+    const [importing, setImporting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const isPremium = profile?.plan_type && profile.plan_type !== 'free' && profile.plan_status === 'active'
 
     useEffect(() => {
+        fetchProfile()
         fetchBackups()
     }, [])
+
+    async function fetchProfile() {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            const { data } = await supabase
+                .from('profiles')
+                .select('plan_type, plan_status, plan_expiry')
+                .eq('id', user.id)
+                .single()
+            if (data) setProfile(data) as any
+        } catch (error: any) {
+            console.error('Failed to fetch profile:', error)
+        }
+    }
 
     async function fetchBackups() {
         try {
@@ -155,7 +178,116 @@ export default function BackupSettingsPage() {
         }
     }
 
-    const filteredBackups = backups.filter(b => 
+    // ---- Local backup functions for free users ----
+
+    async function exportLocalData() {
+        setExporting(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Not authenticated')
+
+            const [invoices, customers, products, purchases, quotations] = await Promise.all([
+                supabase.from('invoices').select('*').eq('user_id', user.id),
+                supabase.from('customers').select('*').eq('user_id', user.id),
+                supabase.from('products').select('*').eq('user_id', user.id),
+                supabase.from('purchases').select('*').eq('user_id', user.id),
+                supabase.from('quotations').select('*').eq('user_id', user.id)
+            ])
+
+            const backupData = {
+                version: '2.0-local',
+                created_at: new Date().toISOString(),
+                data: {
+                    invoices: invoices.data,
+                    customers: customers.data,
+                    products: products.data,
+                    purchases: purchases.data,
+                    quotations: quotations.data
+                }
+            }
+
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `billmensor-backup-${new Date().toISOString().slice(0, 10)}.json`
+            a.click()
+            URL.revokeObjectURL(url)
+            toast.success('Data exported successfully')
+        } catch (error: any) {
+            toast.error('Failed to export data: ' + error.message)
+        } finally {
+            setExporting(false)
+        }
+    }
+
+    async function importLocalData(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        setImporting(true)
+        try {
+            const text = await file.text()
+            const jsonData = JSON.parse(text)
+
+            if (!jsonData.data) {
+                throw new Error('Invalid backup file format')
+            }
+
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Not authenticated')
+
+            const data = jsonData.data
+            let imported = 0
+
+            if (data.invoices && Array.isArray(data.invoices)) {
+                for (const inv of data.invoices) {
+                    const { id: _id, created_at: _ca, ...rest } = inv
+                    await supabase.from('invoices').insert({ ...rest, user_id: user.id })
+                    imported++
+                }
+            }
+            if (data.customers && Array.isArray(data.customers)) {
+                for (const cust of data.customers) {
+                    const { id: _id, created_at: _ca, ...rest } = cust
+                    await supabase.from('customers').insert({ ...rest, user_id: user.id })
+                    imported++
+                }
+            }
+            if (data.products && Array.isArray(data.products)) {
+                for (const prod of data.products) {
+                    const { id: _id, created_at: _ca, ...rest } = prod
+                    await supabase.from('products').insert({ ...rest, user_id: user.id })
+                    imported++
+                }
+            }
+            if (data.purchases && Array.isArray(data.purchases)) {
+                for (const pur of data.purchases) {
+                    const { id: _id, created_at: _ca, ...rest } = pur
+                    await supabase.from('purchases').insert({ ...rest, user_id: user.id })
+                    imported++
+                }
+            }
+            if (data.quotations && Array.isArray(data.quotations)) {
+                for (const quot of data.quotations) {
+                    const { id: _id, created_at: _ca, ...rest } = quot
+                    await supabase.from('quotations').insert({ ...rest, user_id: user.id })
+                    imported++
+                }
+            }
+
+            toast.success(`Imported ${imported} records successfully`)
+            // Reset file input
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        } catch (error: any) {
+            toast.error('Failed to import data: ' + error.message)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        } finally {
+            setImporting(false)
+        }
+    }
+
+    const filteredBackups = backups.filter(b =>
         b.file_name?.toLowerCase().includes(search.toLowerCase()) ||
         b.backup_type?.toLowerCase().includes(search.toLowerCase())
     )
@@ -181,127 +313,171 @@ export default function BackupSettingsPage() {
                         <p className="text-slate-500 dark:text-slate-400 mt-1">Create and manage data backups</p>
                     </div>
                 </div>
-                <button 
-                    onClick={createBackup}
-                    disabled={creating}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-purple-600/20 disabled:opacity-50"
-                >
-                    {creating ? (
-                        <>
-                            <IoRefresh size={20} className="animate-spin" />
-                            Creating...
-                        </>
-                    ) : (
-                        <>
-                            <FaPlus size={20} />
-                            Create Backup
-                        </>
-                    )}
-                </button>
-            </div>
-
-            {/* Info Card */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                    <IoCloud className="text-blue-600 mt-1" size={24} />
-                    <div>
-                        <h3 className="font-bold text-blue-900 dark:text-blue-100">Automatic Backups</h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                            Your data is automatically backed up daily. You can also create manual backups anytime.
-                            Backups are stored securely in your private storage bucket.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative max-w-md">
-                <IoSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input
-                    type="text"
-                    placeholder="Search backups..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-purple-600/20 outline-none"
-                />
-            </div>
-
-            {/* Backups List */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {filteredBackups.length === 0 ? (
-                    <div className="py-20 text-center">
-                        <IoServer size={48} className="mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">No backups yet</h3>
-                        <p className="text-slate-500 mt-1">Create your first backup to protect your data</p>
-                    </div>
-                ) : (
-                    <table className="w-full">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                            <tr>
-                                <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Type</th>
-                                <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">File Name</th>
-                                <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Date</th>
-                                <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Status</th>
-                                <th className="text-right px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredBackups.map((backup) => {
-                                const status = statusConfig[backup.status] || statusConfig.pending
-                                const StatusIcon = status.icon
-
-                                return (
-                                    <tr key={backup.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                                                backup.backup_type === 'auto' 
-                                                    ? 'bg-blue-100 text-blue-700' 
-                                                    : 'bg-purple-100 text-purple-700'
-                                            }`}>
-                                                {backup.backup_type === 'auto' ? 'Auto' : 'Manual'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="font-mono text-sm text-slate-600 dark:text-slate-300">
-                                                {backup.file_name || 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-slate-500">
-                                                {format(new Date(backup.created_at), 'dd MMM yyyy, hh:mm a')}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${status.color}`}>
-                                                <StatusIcon size={14} />
-                                                {status.label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button 
-                                                    onClick={() => downloadBackup(backup)}
-                                                    disabled={backup.status !== 'completed'}
-                                                    className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50"
-                                                >
-                                                    <IoDownload size={14} />
-                                                    Download
-                                                </button>
-                                                <button 
-                                                    onClick={() => deleteBackup(backup.id)}
-                                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                                                >
-                                                    <IoTrash size={18} className="text-red-400" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
+                {isPremium && (
+                    <button
+                        onClick={createBackup}
+                        disabled={creating}
+                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-purple-600/20 disabled:opacity-50"
+                    >
+                        {creating ? (
+                            <>
+                                <IoRefresh size={20} className="animate-spin" />
+                                Creating...
+                            </>
+                        ) : (
+                            <>
+                                <FaPlus size={20} />
+                                Create Backup
+                            </>
+                        )}
+                    </button>
                 )}
             </div>
+
+            {/* Local Backup Section for Free Users */}
+            {!isPremium && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
+                    <div className="flex items-start gap-4">
+                        <MdCloudOff className="text-amber-600 dark:text-amber-400 mt-1" size={24} />
+                        <div className="flex-1">
+                            <h3 className="font-bold text-amber-900 dark:text-amber-100">Local Backup (Free Plan)</h3>
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1 mb-4">
+                                Your data is stored locally. Export a JSON backup anytime or import data from a previous backup.
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    onClick={exportLocalData}
+                                    disabled={exporting}
+                                    className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
+                                >
+                                    <IoCloudDownload size={18} />
+                                    {exporting ? 'Exporting...' : 'Export Data'}
+                                </button>
+                                <label className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/30">
+                                    <IoCloudUpload size={18} />
+                                    {importing ? 'Importing...' : 'Import Data'}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".json"
+                                        onChange={importLocalData}
+                                        className="hidden"
+                                        disabled={importing}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cloud Backup Section for Premium Users */}
+            {isPremium && (
+                <>
+                    {/* Info Card */}
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
+                        <div className="flex items-start gap-4">
+                            <IoCloud className="text-blue-600 mt-1" size={24} />
+                            <div>
+                                <h3 className="font-bold text-blue-900 dark:text-blue-100">Automatic Backups</h3>
+                                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                    Your data is automatically backed up daily. You can also create manual backups anytime.
+                                    Backups are stored securely in your private storage bucket.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative max-w-md">
+                        <IoSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search backups..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-purple-600/20 outline-none"
+                        />
+                    </div>
+
+                    {/* Backups List */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                        {filteredBackups.length === 0 ? (
+                            <div className="py-20 text-center">
+                                <IoServer size={48} className="mx-auto text-slate-300 mb-4" />
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">No backups yet</h3>
+                                <p className="text-slate-500 mt-1">Create your first backup to protect your data</p>
+                            </div>
+                        ) : (
+                            <table className="w-full">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Type</th>
+                                        <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">File Name</th>
+                                        <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Date</th>
+                                        <th className="text-left px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Status</th>
+                                        <th className="text-right px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {filteredBackups.map((backup) => {
+                                        const status = statusConfig[backup.status] || statusConfig.pending
+                                        const StatusIcon = status.icon
+
+                                        return (
+                                            <tr key={backup.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                                                        backup.backup_type === 'auto'
+                                                            ? 'bg-blue-100 text-blue-700'
+                                                            : 'bg-purple-100 text-purple-700'
+                                                    }`}>
+                                                        {backup.backup_type === 'auto' ? 'Auto' : 'Manual'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="font-mono text-sm text-slate-600 dark:text-slate-300">
+                                                        {backup.file_name || 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-slate-500">
+                                                        {format(new Date(backup.created_at), 'dd MMM yyyy, hh:mm a')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${status.color}`}>
+                                                        <StatusIcon size={14} />
+                                                        {status.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => downloadBackup(backup)}
+                                                            disabled={backup.status !== 'completed'}
+                                                            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50"
+                                                        >
+                                                            <IoDownload size={14} />
+                                                            Download
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteBackup(backup.id)}
+                                                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                                                        >
+                                                            <IoTrash size={18} className="text-red-400" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     )
 }
