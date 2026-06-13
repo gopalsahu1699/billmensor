@@ -16,6 +16,7 @@ export function CompactTemplate({
     const isInvoice = type === 'invoice'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
     const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
+    const hasPercentDiscount = items.some(item => item.discount_type === 'percent' && (item.discount || 0) > 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -111,7 +112,7 @@ export function CompactTemplate({
                         <th className="py-2 text-center">HSN</th>
                         <th className="py-2 text-center">Qty</th>
                         <th className="py-2 text-center">Rate</th>
-                        {hasAnyDiscount && <th className="py-2 text-center">Disc</th>}
+                        {hasAnyDiscount && <th className="py-2 text-center">{hasPercentDiscount ? 'Disc%' : 'Disc'}</th>}
                         {!allGstIsZero && <th className="py-2 text-center">GST%</th>}
                         <th className="py-2 text-right">Total</th>
                     </tr>
@@ -150,7 +151,9 @@ export function CompactTemplate({
                             </td>
                             {hasAnyDiscount && (
                                 <td className="py-2 text-center">
-                                    ₹{(item.discount || 0).toLocaleString('en-IN')}
+                                    {item.discount_type === 'percent'
+                                    ? `${(item.discount_rate ?? item.discount ?? 0)}%`
+                                    : `₹${(item.discount || 0).toLocaleString('en-IN')}`}
                                 </td>
                             )}
                             {!allGstIsZero && (
@@ -263,7 +266,7 @@ export function CompactTemplate({
                     {data.discount > 0 && (
                         <div className="flex justify-between text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded text-[12px]">
                             <span>Additional Disc:</span>
-                            <span>-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
+                            <span>{data.general_discount_type === 'percent' ? `-${data.discount}%` : `-₹${(data.discount || 0).toLocaleString('en-IN')}`}</span>
                         </div>
                     )}
                     {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (

@@ -44,6 +44,8 @@ export interface Item {
     tax_rate?: number
     tax_amount?: number
     discount?: number
+    discount_type?: 'amount' | 'percent'
+    discount_rate?: number
     total: number
     image_url?: string
     product_id?: string
@@ -64,6 +66,7 @@ export interface InvoiceData {
     gst_amount?: number
     round_off?: number
     discount: number
+    general_discount_type?: 'amount' | 'percent'
     total_amount: number
     status?: string
     amount_paid?: number
@@ -110,6 +113,7 @@ export interface Settings {
     show_upi_qr?: boolean
     show_transport?: boolean
     show_installation?: boolean
+    show_discount_as?: 'amount' | 'percentage'
 }
 
 export interface PrintTemplateProps {

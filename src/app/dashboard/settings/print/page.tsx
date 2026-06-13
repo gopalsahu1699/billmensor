@@ -39,28 +39,10 @@ const templates = [
         preview: 'bg-slate-100 border-slate-300'
     },
     {
-        id: 'classic',
-        name: 'Classic (Vyapar Style)',
-        description: 'Traditional Indian invoice format with detailed borders.',
-        preview: 'bg-white border-slate-400'
-    },
-    {
-        id: 'elegant',
-        name: 'Elegant (Zoho Style)',
-        description: 'Minimalist modern design with accent colors.',
-        preview: 'bg-slate-50 border-purple-300'
-    },
-    {
         id: 'thermal',
         name: 'Thermal Receipt',
         description: 'Compact layout for 80mm thermal printers.',
         preview: 'bg-slate-200 border-slate-500'
-    },
-    {
-        id: 'gst_invoice',
-        name: 'GST Tax Invoice',
-        description: 'Official GST-compliant format with all mandatory fields.',
-        preview: 'bg-white border-emerald-400'
     }
 ]
 
@@ -84,6 +66,7 @@ export default function PrintSettingsPage() {
         show_terms: true,
         show_signature: true,
         show_custom_fields: true,
+        show_discount_as: 'amount' as 'amount' | 'percentage',
     })
 
     useEffect(() => {
@@ -97,26 +80,28 @@ export default function PrintSettingsPage() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('print_template, paper_size, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields')
+                .select('print_template, paper_size, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields, show_discount_as')
                 .eq('id', user.id)
-                .single()
+                .limit(1)
 
-            if (error && error.code !== 'PGRST116') throw error
-            if (data) {
+            if (error) throw error
+            if (data && data.length > 0) {
+                console.log('Fetched settings from DB:', data[0])
                 setSettings({
-                    print_template: data.print_template || 'modern',
-                    paper_size: data.paper_size || 'a4',
-                    show_transport: data.show_transport ?? true,
-                    show_installation: data.show_installation ?? true,
-                    show_bank_details: data.show_bank_details ?? true,
-                    show_upi_qr: data.show_upi_qr ?? true,
-                    show_terms: data.show_terms ?? true,
-                    show_signature: data.show_signature ?? true,
-                    show_custom_fields: data.show_custom_fields ?? true,
+                    print_template: data[0].print_template || 'modern',
+                    paper_size: data[0].paper_size || 'a4',
+                    show_transport: data[0].show_transport ?? true,
+                    show_installation: data[0].show_installation ?? true,
+                    show_bank_details: data[0].show_bank_details ?? true,
+                    show_upi_qr: data[0].show_upi_qr ?? true,
+                    show_terms: data[0].show_terms ?? true,
+                    show_signature: data[0].show_signature ?? true,
+                    show_custom_fields: data[0].show_custom_fields ?? true,
+                    show_discount_as: data[0].show_discount_as ?? 'amount',
                 })
             }
         } catch (error: unknown) {
-            console.error('Error loading settings:', error);
+            console.error('Error loading settings:', error)
             if (error instanceof Error) {
                 toast.error(error.message)
             } else {
@@ -133,12 +118,28 @@ export default function PrintSettingsPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('Not authenticated')
 
+            const updatePayload = {
+                print_template: settings.print_template,
+                paper_size: settings.paper_size,
+                show_transport: settings.show_transport,
+                show_installation: settings.show_installation,
+                show_bank_details: settings.show_bank_details,
+                show_upi_qr: settings.show_upi_qr,
+                show_terms: settings.show_terms,
+                show_signature: settings.show_signature,
+                show_custom_fields: settings.show_custom_fields,
+                show_discount_as: settings.show_discount_as,
+            }
+
+            console.log('Saving settings payload:', updatePayload)
+
             const { error } = await supabase
                 .from('profiles')
-                .update(settings)
+                .update(updatePayload)
                 .eq('id', user.id)
 
             if (error) {
+                console.error('Supabase update error:', error)
                 if (error.code === '42703') {
                     throw new Error('Database schema update required. Please run the print settings migration SQL.')
                 }
@@ -146,6 +147,7 @@ export default function PrintSettingsPage() {
             }
             toast.success('Print settings saved successfully')
         } catch (error: unknown) {
+            console.error('Save settings error:', error)
             if (error instanceof Error) {
                 toast.error(error.message)
             } else {
@@ -305,6 +307,12 @@ export default function PrintSettingsPage() {
                                 label="Custom Fields"
                                 active={settings.show_custom_fields}
                                 onChange={(v) => setSettings({ ...settings, show_custom_fields: v })}
+                            />
+                            <ToggleField
+                                icon={<IoCheckmark size={16} />}
+                                label={`Discount as ${settings.show_discount_as === 'percentage' ? '%' : '₹'}`}
+                                active={settings.show_discount_as === 'percentage'}
+                                onChange={(v) => setSettings({ ...settings, show_discount_as: v ? 'percentage' : 'amount' as 'amount' | 'percentage' })}
                             />
                         </div>
                     </div>

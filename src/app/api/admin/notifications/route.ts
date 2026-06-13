@@ -36,19 +36,16 @@ export async function POST(req: NextRequest) {
 
         const supabase = createAdminSupabaseClient();
         const body = await req.json();
-        const { title, message, type, target_audience } = body;
+        const { title, message, type } = body;
 
         if (!title || !message) {
             return NextResponse.json({ error: 'Title and message are required' }, { status: 400 });
         }
 
-        // Insert notification with correct DB columns
-        const insertData: Record<string, unknown> = {
+        const insertData = {
             title,
             message,
             type: type || 'info',
-            target_audience: target_audience || 'all',
-            sent_by: 'admin',
         };
 
         const { data, error } = await supabase

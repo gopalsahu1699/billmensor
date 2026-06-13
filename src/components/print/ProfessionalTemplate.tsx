@@ -1,8 +1,8 @@
 import React from 'react'
-import { MdEdit } from 'react-icons/md'
+
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
-import QRCode from 'react-qr-code'
+
 
 export function ProfessionalTemplate({
     data,
@@ -15,7 +15,8 @@ export function ProfessionalTemplate({
 
     const isInvoice = type === 'invoice'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
-    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
+    const hasAnyDiscount = items.some(item => (item.discount || 0) > 0 || (item.discount_rate || 0) > 0)
+    const hasPercentDiscount = items.some(item => item.discount_type === 'percent' && (item.discount || 0) > 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -123,11 +124,12 @@ export function ProfessionalTemplate({
                         <th className="border px-3 py-2 text-center">Image</th>
                         <th className="border px-3 py-2 text-left">Description</th>
                         <th className="border px-3 py-2 text-center">HSN</th>
+                        <th className="border px-3 py-2 text-center">MRP</th>
                         <th className="border px-3 py-2 text-center">Qty</th>
-                        <th className="border px-3 py-2 text-center">Rate</th>
-                        {hasAnyDiscount && <th className="border px-3 py-2 text-center">Disc</th>}
-                        {!allGstIsZero && <th className="border px-3 py-2 text-center">GST%</th>}
-                        <th className="border px-3 py-2 text-right">Amount</th>
+                        <th className="border px-3 py-2 text-right">Amount   <span className="block text-[10px] font-normal text-gray-400">MRP × Qty</span></th>
+                        {hasAnyDiscount && <th className="border px-3 py-2 text-center">Discount (%)</th>}
+                        <th className="border px-3 py-2 text-right">Total</th>
+                      
                     </tr>
                 </thead>
                 <tbody>
@@ -148,22 +150,31 @@ export function ProfessionalTemplate({
                                 )}
                             </td>
                             <td className="border px-3 py-2 text-center">{item.hsn_code || '-'}</td>
-                            <td className="border px-3 py-2 text-center">{item.quantity}</td>
                             <td className="border px-3 py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            {hasAnyDiscount && (
-                                <td className="border px-3 py-2 text-center">
-                                    ₹{(item.discount || 0).toLocaleString('en-IN')}
-                                </td>
-                            )}
-                            {!allGstIsZero && (
-                                <td className="border px-3 py-2 text-center">
-                                    {item.tax_rate ?? 18}%
-                                </td>
-                            )}
+                            <td className="border px-3 py-2 text-center">{item.quantity}</td>
+                            <td className="border px-3 py-2 text-center">
+                                ₹{((item.unit_price || item.rate || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+{hasAnyDiscount && (
+    <td className="border px-3 py-2 text-center">
+        {(() => {
+            if (item.discount_type === 'percent') {
+                return `${(item.discount_rate ?? item.discount ?? 0)}%`;
+            }
+            const lineAmount = (item.unit_price || item.rate || 0) * (item.quantity || 0);
+            const discAmt = item.discount || 0;
+            if (lineAmount > 0 && discAmt > 0) {
+                return `${((discAmt / lineAmount) * 100).toFixed(2)}%`;
+            }
+            return `${discAmt}%`;
+        })()}
+    </td>
+)}
+                        
                             <td className="border px-3 py-2 text-right font-medium">
-                                ₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{(item.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                         </tr>
                     ))}
@@ -254,6 +265,7 @@ export function ProfessionalTemplate({
 
                 {/* RIGHT TOTALS: Simplified and clear */}
                 <div className="space-y-3 pt-4 pr-2">
+                    <h1 className="text-xl font-bold text-slate-900">Summary </h1>
                     <div className="flex justify-between text-gray-600">
                         <span className="font-bold">Subtotal (Net Value)</span>
                         <span className="font-black text-slate-900">₹{(data.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -282,8 +294,10 @@ export function ProfessionalTemplate({
 
                     {data.discount > 0 && (
                         <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded-lg">
-                            <span className="font-bold uppercase text-[11px]">Addl. Cash Discount {data.discount > 0 && data.discount < 100 && data.discount % 1 !== 0 ? `(${data.discount}%)` : ''}</span>
-                            <span className="font-black">-₹{(data.discount || 0).toLocaleString('en-IN')}</span>
+                            <span className="font-bold uppercase text-[11px]">Addl. Cash Discount{data.general_discount_type === 'percent' ? ` (${data.discount}%)` : ''}</span>
+                            <span className="font-black">{data.general_discount_type === 'percent'
+                            ? `-${data.discount}%`
+                            : `-₹${(data.discount || 0).toLocaleString('en-IN')}`}</span>
                         </div>
                     )}
 

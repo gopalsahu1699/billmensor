@@ -1,78 +1,74 @@
-# Admin Notification Fix Brief
+# Notification API Fix Brief — FINAL
 
 ## Problem
-Admin cannot send notifications to users. The notification system has a **schema mismatch** between the actual database columns and what the code uses.
+Both admin POST and user GET for notifications are failing with 500 errors. The live DB schema is uncertain — migration 002 creates the table with `target_audience, target_user_ids, sent_by` but seed file 004 references `user_id, target_user_id, is_read, metadata`. We need to work with whatever schema exists.
 
-## Actual DB Schema (from migrations/002_create_notifications.sql)
-The `notifications` table has these columns:
-- `id` UUID PRIMARY KEY DEFAULT gen_random_uuid()
-- `title` TEXT NOT NULL
-- `message` TEXT NOT NULL
-- `type` TEXT DEFAULT 'info' CHECK (type IN ('info', 'warning', 'promotional', 'urgent'))
-- `target_audience` TEXT DEFAULT 'all' CHECK (target_audience IN ('all', 'premium', 'free', 'selected'))
-- `target_user_ids` UUID[] DEFAULT '{}'
-- `sent_by` TEXT DEFAULT 'admin'
-- `created_at` TIMESTAMPTZ DEFAULT NOW()
+## Key Insight
+The ONLY columns guaranteed to exist in the `notifications` table across all schema versions are:
+`id, title, message, type, created_at`
 
-## What Code Currently Uses (WRONG)
-The code uses columns that DON'T EXIST: `user_id`, `target_user_id` (singular), `is_read`, `metadata`
+ALL other columns (`user_id, target_user_id, is_read, metadata, target_audience, target_user_ids, sent_by`) may or may not exist depending on which migrations were applied.
 
-## Files to Fix
+## Fix Plan
 
-### 1. src/app/api/admin/notifications/route.ts
-**GET**: Currently works (selects all columns with `*`), but the data shape is wrong for the frontend. No changes needed to the query itself.
+### 1. src/app/api/admin/notifications/route.ts — POST method
+Insert using ONLY the safe columns:
+```typescript
+const insertData = {
+    title,
+    message,
+    type: type || 'info',
+};
+```
+That's it. No `user_id`, no `target_user_id`, no `is_read`, no `target_audience`, no `sent_by`. Just the 3 columns that are always safe.
 
-**POST**: Currently inserts `{ title, message, type, target_user_id: null, is_read: false, user_id: senderId }` — ALL these extra columns don't exist. Fix to:
-- Insert `{ title, message, type, target_audience, sent_by: 'admin' }`
-- `target_audience` comes from the request body (already sent as `target_audience` from the form)
-- Remove the code that fetches profiles for senderId — not needed
-- Remove `user_id`, `target_user_id`, `is_read`, `metadata` from insert data
-- Keep `.select()` and return the created notification
+Remove the profiles query entirely — it's not needed.
 
-**DELETE**: No changes needed.
+Keep GET and DELETE as-is (GET uses `*`, DELETE uses `neq` on `id` — both fine).
 
-### 2. src/app/api/notifications/route.ts (user-facing API)
-Currently queries with `.or('user_id.eq.${user.id},target_user_id.is.null')` using non-existent columns. Fix to:
-- Get user from Supabase auth (already done)
-- Get user's `plan_type` from the `profiles` table using `.select('plan_type').limit(1)` (use limit(1)+[0], NOT .maybeSingle())
-- Build query: select from notifications where:
-  - `target_audience = 'all'` — always show
-  - OR `target_audience = 'premium'` AND user's plan_type != 'free'
-  - OR `target_audience = 'free'` AND user's plan_type = 'free'
-- Use `.or()` with the correct column name `target_audience`
-- Order by `created_at` desc, limit 50
-- Return `{ notifications: data || [] }`
+### 2. src/app/api/notifications/route.ts — user-facing GET
+Simplify drastically:
+- Select `*` from notifications, order by created_at desc, limit 50
+- NO filtering by user_id, target_user_id, or target_audience
+- NO profiles table query
+- Just return ALL notifications to everyone
+- This works regardless of which columns exist
 
-### 3. src/app/admin/notifications/page.tsx
-- The form already sends `target_audience` correctly — no change needed there
-- The `Notification` type import uses `user_id` and `target_user_id` which don't exist — the page renders `n.user_id` and `n.type` etc. 
-- Update the history table: instead of checking `n.user_id` to show "User Specific" vs "Broadcast", check `n.target_audience` to show the target audience label
-- Remove references to `n.user_id` in the JSX (line 316, 333)
-- The `type` field exists in the DB so that's fine
+```typescript
+const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+```
 
-### 4. src/types/index.ts
-Update the `Notification` interface (around line 610) to match actual DB:
+### 3. src/types/index.ts
+Keep the Notification interface minimal with optional fields:
 ```typescript
 export interface Notification {
     id: string;
     title: string;
     message: string;
     type: 'info' | 'warning' | 'promotional' | 'urgent';
+    is_read?: boolean;
+    user_id?: string;
+    target_user_id?: string | null;
     target_audience?: string;
-    target_user_ids?: string[];
-    sent_by?: string;
+    metadata?: Record<string, unknown>;
     created_at: string;
 }
 ```
-Remove `user_id`, `target_user_id`, `is_read`, `metadata` from the interface.
+All optional fields — the code only uses `id, title, message, type, created_at` for display.
+
+### 4. src/app/admin/notifications/page.tsx
+The page displays `n.user_id` to determine "Broadcast" vs "User Specific". Since admin now inserts without `user_id`, all notifications will show as "Broadcast" — that's correct behavior. No changes needed to the page.
+
+The form sends `target_audience` in the body but the API ignores it — that's fine, the dropdown can stay.
 
 ### 5. src/app/dashboard/notifications/page.tsx
-- The user-side page fetches from `/api/notifications` which will now return correct data
-- The `Notification` type will be updated, so remove any references to `n.user_id`, `n.is_read`, `n.target_user_id`
-- The page currently only uses `id, title, message, type, created_at` which is fine
+No changes needed — it only uses `id, title, message, type, created_at`.
 
 ## Important Rules
 - NEVER run git push
-- Use `.limit(1)` + array indexing `[0]`, NOT `.maybeSingle()`
-- After ALL changes, run `npx tsc --noEmit` and fix any errors
+- After ALL changes, run `npx tsc --noEmit` and fix errors
 - After tsc passes, run `git log --oneline -3`

@@ -11,10 +11,7 @@ import Link from 'next/link'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
-import { ClassicTemplate } from '@/components/print/ClassicTemplate'
-import { ElegantTemplate } from '@/components/print/ElegantTemplate'
 import { ThermalTemplate } from '@/components/print/ThermalTemplate'
-import { GSTInvoiceTemplate } from '@/components/print/GSTInvoiceTemplate'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
@@ -89,6 +86,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                     show_upi_qr: profileData.show_upi_qr ?? true,
                     show_transport: profileData.show_transport ?? true,
                     show_installation: profileData.show_installation ?? true,
+                    show_discount_as: profileData.show_discount_as ?? 'amount',
                 })
 
 
@@ -109,7 +107,9 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
             
             const mappedItems = (itemsData || []).map(item => ({
                 ...item,
-                image_url: item.image_url || (item.products as any)?.image_url
+                image_url: item.image_url || (item.products as any)?.image_url,
+                discount_type: item.discount_type || 'amount',
+                discount_rate: item.discount_rate || 0,
             }))
             
             setItems(mappedItems)
@@ -290,7 +290,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         {isTemplateMenuOpen && (
                             <div className="absolute top-14 left-0 w-64 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="space-y-1">
-                                    {['modern', 'professional', 'compact', 'classic', 'elegant', 'thermal', 'gst_invoice'].map((t) => (
+                                    {['modern', 'professional', 'compact', 'thermal'].map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => {
@@ -302,7 +302,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
                                                 }`}
                                         >
-                                            {t === 'gst_invoice' ? 'GST Invoice' : t} Template
+                                            {t} Template
                                         </button>
                                     ))}
                                 </div>
@@ -399,42 +399,9 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                 type="invoice"
                             />
                         </div>
-                    ) : printSettings.print_template === 'classic' ? (
-                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
-                            <ClassicTemplate
-                                data={invoice}
-                                profile={profile}
-                                bankDetails={bankDetails || undefined}
-                                items={items}
-                                settings={printSettings}
-                                type="invoice"
-                            />
-                        </div>
-                    ) : printSettings.print_template === 'elegant' ? (
-                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
-                            <ElegantTemplate
-                                data={invoice}
-                                profile={profile}
-                                bankDetails={bankDetails || undefined}
-                                items={items}
-                                settings={printSettings}
-                                type="invoice"
-                            />
-                        </div>
                     ) : printSettings.print_template === 'thermal' ? (
                         <div className="bg-white border border-slate-200 shadow-xl overflow-hidden print:border-none print:shadow-none">
                             <ThermalTemplate
-                                data={invoice}
-                                profile={profile}
-                                bankDetails={bankDetails || undefined}
-                                items={items}
-                                settings={printSettings}
-                                type="invoice"
-                            />
-                        </div>
-                    ) : printSettings.print_template === 'gst_invoice' ? (
-                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
-                            <GSTInvoiceTemplate
                                 data={invoice}
                                 profile={profile}
                                 bankDetails={bankDetails || undefined}

@@ -222,6 +222,7 @@ function CreateQuotationForm() {
             setValidUntil(quo.expiry_date || '')
             setNotes(quo.notes || '')
             setDiscount(quo.discount || 0)
+            setGeneralDiscountType(quo.general_discount_type || 'amount')
             setTransportCharges(quo.transport_charges || 0)
             setInstallationCharges(quo.installation_charges || 0)
             setCustomCharges(quo.custom_charges || [])
@@ -468,6 +469,7 @@ function CreateQuotationForm() {
                 supply_place: supplyPlace,
                 total_amount: grandTotal,
                 discount: discount,
+                general_discount_type: generalDiscountType,
                 transport_charges: transportCharges,
                 installation_charges: installationCharges,
                 custom_charges: customCharges,
@@ -486,6 +488,9 @@ function CreateQuotationForm() {
                     igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount,
+                    per_unit_discount: item.per_unit_discount || 0,
+                    discount_rate: item.discount_rate || 0,
+                    discount_type: item.discount_type,
                     total: item.total,
                     image_url: item.image_url || null,
                     description: item.description || null,

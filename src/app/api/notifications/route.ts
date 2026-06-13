@@ -22,43 +22,11 @@ export async function GET() {
             }
         );
 
-        // Try to get the current user (may not be logged in via API)
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // Get user's plan_type from profiles table
-        let planType = 'free';
-        if (user?.id) {
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('plan_type')
-                .limit(1);
-            if (profileData && profileData.length > 0) {
-                planType = profileData[0].plan_type || 'free';
-            }
-        }
-
-        // Build query with correct target_audience filtering
-        let query = supabase
+        const { data, error } = await supabase
             .from('notifications')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(50);
-
-        if (user?.id) {
-            // Show notifications based on target_audience and user's plan type
-            if (planType === 'free') {
-                // Free users see: all + free-targeted notifications
-                query = query.or('target_audience.eq.all,target_audience.eq.free');
-            } else {
-                // Premium users see: all + premium-targeted + free-targeted notifications
-                query = query.or('target_audience.eq.all,target_audience.eq.premium,target_audience.eq.free');
-            }
-        } else {
-            // Not logged in: show only broadcast notifications
-            query = query.eq('target_audience', 'all');
-        }
-
-        const { data, error } = await query;
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });

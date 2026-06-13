@@ -60,7 +60,7 @@ export async function generateClientSidePDF({
         });
 
         // 3. Capture
-        const pixelRatio = 2;
+        const pixelRatio = 1.5;
         const dataUrl = await toPng(element, {
             cacheBust: true,
             pixelRatio,
@@ -112,12 +112,12 @@ export async function generateClientSidePDF({
                 0, 0, imgWidthPx, sourceH
             );
 
-            const sliceDataUrl = sliceCanvas.toDataURL("image/png");
+            const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.85);
             const sliceScaledHeight = (sourceH * CONTENT_WIDTH_MM) / imgWidthPx;
 
             pdf.addImage(
                 sliceDataUrl,
-                "PNG",
+                "JPEG",
                 MARGIN_MM,
                 MARGIN_MM,
                 CONTENT_WIDTH_MM,

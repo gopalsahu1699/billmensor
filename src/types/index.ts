@@ -612,9 +612,11 @@ export interface Notification {
     title: string;
     message: string;
     type: 'info' | 'warning' | 'promotional' | 'urgent';
+    is_read?: boolean;
+    user_id?: string;
+    target_user_id?: string | null;
     target_audience?: string;
-    target_user_ids?: string[];
-    sent_by?: string;
+    metadata?: Record<string, unknown>;
     created_at: string;
 }
 

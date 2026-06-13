@@ -223,6 +223,7 @@ function CreateInvoiceForm() {
             setInvoiceNumber(inv.invoice_number)
             setInvoiceDate(inv.invoice_date)
             setGeneralDiscount(inv.discount || 0)
+            setGeneralDiscountType(inv.general_discount_type || 'amount')
             setRoundOff(inv.round_off || 0)
             setTransportCharges(inv.transport_charges || 0)
             setInstallationCharges(inv.installation_charges || 0)
@@ -482,6 +483,7 @@ function CreateInvoiceForm() {
                 sgst_total: sgstTotal,
                 igst_total: igstTotal,
                 discount: generalDiscount,
+                general_discount_type: generalDiscountType,
                 round_off: roundOff,
                 transport_charges: transportCharges,
                 installation_charges: installationCharges,
@@ -511,6 +513,9 @@ function CreateInvoiceForm() {
                     igst: item.igst || 0,
                     tax_amount: item.tax_amount,
                     discount: item.discount,
+                    per_unit_discount: item.per_unit_discount || 0,
+                    discount_rate: item.discount_rate || 0,
+                    discount_type: item.discount_type,
                     total: item.total,
                     image_url: item.image_url || null,
                     description: item.description || null,

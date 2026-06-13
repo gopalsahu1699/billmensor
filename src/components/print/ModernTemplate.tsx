@@ -19,6 +19,7 @@ export function ModernTemplate({
     const fontFamily = profile?.font_family || 'Inter'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
     const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
+    const hasPercentDiscount = items.some(item => item.discount_type === 'percent' && (item.discount || 0) > 0)
 
     const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
     const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
@@ -153,7 +154,7 @@ export function ModernTemplate({
                                 <th className="px-2 pb-2 text-left">Description</th>
                                 <th className="px-2 pb-2 text-center">Qty</th>
                                 <th className="px-2 pb-2 text-center">Rate</th>
-                                {hasAnyDiscount && <th className="px-2 pb-2 text-center">Disc</th>}
+                                {hasAnyDiscount && <th className="px-2 pb-2 text-center">{hasPercentDiscount ? 'Disc%' : 'Disc'}</th>}
                                 {!allGstIsZero && <th className="px-2 pb-2 text-center">GST%</th>}
                                 <th className="px-2 pb-2 text-right">Amount</th>
                             </tr>
@@ -183,7 +184,9 @@ export function ModernTemplate({
                                     </td>
                                     {hasAnyDiscount && (
                                         <td className="px-2 py-2 text-center text-slate-600">
-                                            ₹{(item.discount || 0).toLocaleString('en-IN')}
+                                            {item.discount_type === 'percent'
+                                            ? `${(item.discount_rate ?? item.discount ?? 0)}%`
+                                            : `₹${(item.discount || 0).toLocaleString('en-IN')}`}
                                         </td>
                                     )}
                                     {!allGstIsZero && (
@@ -327,9 +330,11 @@ export function ModernTemplate({
 
                         {data.discount > 0 && (
                             <div className="flex justify-between text-[12px] text-red-600 font-bold">
-                                <span>Addl. Discount</span>
+                                <span>Addl. Discount{data.general_discount_type === 'percent' ? ` (${data.discount}%)` : ''}</span>
                                 <span className="font-semibold">
-                                    -₹{data.discount.toLocaleString('en-IN')}
+                                    {data.general_discount_type === 'percent'
+                                    ? `-${data.discount}%`
+                                    : `-₹${data.discount.toLocaleString('en-IN')}`}
                                 </span>
                             </div>
                         )}

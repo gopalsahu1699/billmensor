@@ -107,8 +107,8 @@ export function ThermalTemplate({
                 </div>
                 {data.discount > 0 && (
                     <div className="flex justify-between">
-                        <span>DISCOUNT</span>
-                        <span>-₹{(data.discount || 0).toFixed(2)}</span>
+                        <span>DISC {data.general_discount_type === 'percent' ? `(${data.discount}%)` : ''}</span>
+                        <span>{data.general_discount_type === 'percent' ? `-${data.discount}%` : `-₹${(data.discount || 0).toFixed(2)}`}</span>
                     </div>
                 )}
                 {(data.tax_total || data.gst_amount || 0) > 0 && (
