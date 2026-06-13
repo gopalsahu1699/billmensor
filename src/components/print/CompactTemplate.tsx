@@ -72,7 +72,7 @@ export function CompactTemplate({
                         ).toLocaleDateString('en-IN')}
                     </p>
                     {isInvoice && (
-                        <div className={`mt-2 inline-block px-3 py-0.5 border rounded-full text-[11px] font-bold uppercase ${data.payment_status?.toLowerCase() === 'paid'
+                        <div className={`mt-2 inline-block px-3 py-0.5 border rounded-none text-[11px] font-bold uppercase ${data.payment_status?.toLowerCase() === 'paid'
                             ? 'bg-green-50 border-green-200 text-green-700'
                             : 'bg-orange-50 border-orange-200 text-orange-700'
                             }`}>
@@ -133,7 +133,7 @@ export function CompactTemplate({
                                         />
                                     </div>
                                 ) : (
-                                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mx-auto">
+                                    <div className="w-10 h-10 bg-gray-100 rounded-none flex items-center justify-center mx-auto">
                                         <span className="text-[8px] text-gray-400">No img</span>
                                     </div>
                                 )}
@@ -264,7 +264,7 @@ export function CompactTemplate({
                         </div>
                     )}
                     {data.discount > 0 && (
-                        <div className="flex justify-between text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded text-[12px]">
+                        <div className="flex justify-between text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-none text-[12px]">
                             <span>Additional Disc:</span>
                             <span>{data.general_discount_type === 'percent' ? `-${data.discount}%` : `-₹${(data.discount || 0).toLocaleString('en-IN')}`}</span>
                         </div>

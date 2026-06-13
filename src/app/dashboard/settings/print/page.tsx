@@ -67,6 +67,7 @@ export default function PrintSettingsPage() {
         show_signature: true,
         show_custom_fields: true,
         show_discount_as: 'amount' as 'amount' | 'percentage',
+        terms_and_conditions: '',
     })
 
     useEffect(() => {
@@ -80,7 +81,7 @@ export default function PrintSettingsPage() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('print_template, paper_size, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields, show_discount_as')
+                .select('print_template, paper_size, show_transport, show_installation, show_bank_details, show_upi_qr, show_terms, show_signature, show_custom_fields, show_discount_as, terms_and_conditions')
                 .eq('id', user.id)
                 .limit(1)
 
@@ -98,6 +99,7 @@ export default function PrintSettingsPage() {
                     show_signature: data[0].show_signature ?? true,
                     show_custom_fields: data[0].show_custom_fields ?? true,
                     show_discount_as: data[0].show_discount_as ?? 'amount',
+                    terms_and_conditions: data[0].terms_and_conditions || '',
                 })
             }
         } catch (error: unknown) {
@@ -129,6 +131,7 @@ export default function PrintSettingsPage() {
                 show_signature: settings.show_signature,
                 show_custom_fields: settings.show_custom_fields,
                 show_discount_as: settings.show_discount_as,
+                terms_and_conditions: settings.terms_and_conditions,
             }
 
             console.log('Saving settings payload:', updatePayload)
@@ -314,10 +317,29 @@ export default function PrintSettingsPage() {
                                 active={settings.show_discount_as === 'percentage'}
                                 onChange={(v) => setSettings({ ...settings, show_discount_as: v ? 'percentage' : 'amount' as 'amount' | 'percentage' })}
                             />
-                        </div>
                     </div>
 
-                    <div className="bg-blue-600 dark:bg-blue-700 rounded-3xl p-6 text-white shadow-xl shadow-blue-600/20">
+                    {/* Terms & Conditions */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden p-6">
+                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                            <IoDocument size={16} className="text-blue-500" />
+                            Terms & Conditions
+                        </h2>
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Terms & Conditions (for Invoices & Quotations)</label>
+                            <textarea
+                                value={settings.terms_and_conditions}
+                                onChange={(e) => setSettings({ ...settings, terms_and_conditions: e.target.value })}
+                                placeholder="Enter terms and conditions (one per line)..."
+                                rows={6}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-y"
+                            />
+                            <p className="text-[9px] text-slate-400 mt-2">Each line will appear as a separate bullet point on your invoices and quotations.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-blue-600 dark:bg-blue-700 rounded-3xl p-6 text-white shadow-xl shadow-blue-600/20">
                         <div className="flex items-center gap-3 mb-3">
                             <IoEye size={20} className="text-blue-200" />
                             <h3 className="font-bold uppercase tracking-widest text-[10px]">Live Preview</h3>

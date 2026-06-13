@@ -79,7 +79,7 @@ export function ProfessionalTemplate({
 
                     {/* PAYMENT STATUS TAG */}
                     {isInvoice && (
-                        <div className={`inline-block px-4 py-1 border rounded-full text-[12px] font-bold `}>
+                        <div className={`inline-block px-4 py-1 border rounded-none text-[12px] font-bold `}>
                             {paymentStatus}
                         </div>
                     )}
@@ -190,7 +190,7 @@ export function ProfessionalTemplate({
                     
                     {/* Tax Summary on Left as requested */}
                     {!allGstIsZero && (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 break-inside-avoid">
+                        <div className="bg-gray-50 p-4 rounded-none border border-gray-100 break-inside-avoid">
                             <p className="font-bold text-[14px] mb-3 border-b pb-1">Tax Analysis Sum:</p>
                             <table className="w-full text-[11px] border-collapse">
                                 <thead>
@@ -233,7 +233,7 @@ export function ProfessionalTemplate({
 
 
                     {settings.show_bank_details && bankDetails && (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 break-inside-avoid">
+                        <div className="bg-gray-50 p-4 rounded-none border border-gray-100 break-inside-avoid">
                             <p className="font-bold text-[14px] mb-3 border-b pb-1">Bank Account Info:</p>
                             <div className="grid grid-cols-2 gap-y-1 text-[12px]">
                                 <span className="text-gray-500 font-medium">Account No:</span> <span className="font-bold">{bankDetails.account_number}</span>
@@ -245,22 +245,7 @@ export function ProfessionalTemplate({
                         </div>
                     )}
 
-                    {settings.show_terms && (
-                        <div>
-                            <p className="font-bold text-[14px] mb-2 uppercase tracking-tighter italic">Terms & Conditions:</p>
-                            <div className="text-[11px] leading-relaxed text-gray-600">
-                                {profile?.terms_and_conditions ? (
-                                    <ul className="list-decimal pl-4 space-y-1">
-                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
-                                            <li key={i}>{term.trim()}</li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p>1. Goods once sold will not be taken back.</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                   
                 </div>
 
                 {/* RIGHT TOTALS: Simplified and clear */}
@@ -293,7 +278,7 @@ export function ProfessionalTemplate({
                     )}
 
                     {data.discount > 0 && (
-                        <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded-lg">
+                        <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded-none">
                             <span className="font-bold uppercase text-[11px]">Addl. Cash Discount{data.general_discount_type === 'percent' ? ` (${data.discount}%)` : ''}</span>
                             <span className="font-black">{data.general_discount_type === 'percent'
                             ? `-${data.discount}%`
@@ -339,7 +324,22 @@ export function ProfessionalTemplate({
                     )}
                 </div>
             </div>
-
+ {settings.show_terms && (
+                        <div>
+                            <p className="font-bold text-[14px] mb-2 uppercase tracking-tighter italic">Terms & Conditions:</p>
+                            <div className="text-[11px] leading-relaxed text-gray-600">
+                                {profile?.terms_and_conditions ? (
+                                    <ul className="list-decimal pl-4 space-y-1">
+                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                            <li key={i}>{term.trim()}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p>1. Goods once sold will not be taken back.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
             {/* PROMO FOOTER */}
             <div className="mt-12 text-center border-t border-gray-100 pt-8">
                 <p className="text-[10px] text-gray-400 font-medium">

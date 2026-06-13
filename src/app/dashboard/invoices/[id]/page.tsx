@@ -378,7 +378,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                 <div id="invoice-render-area" className="w-198.5 shrink-0 space-y-8 print:w-full">
                     {/* Template Rendering */}
                     {printSettings.print_template === 'professional' ? (
-                        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
+                        <div className="bg-white border border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none">
                             <ProfessionalTemplate
                                 data={invoice}
                                 profile={profile}
@@ -389,7 +389,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                             />
                         </div>
                     ) : printSettings.print_template === 'compact' ? (
-                        <div className="bg-white rounded-4xl border border-slate-100 shadow-xl overflow-hidden print:border-none print:shadow-none">
+                        <div className="bg-white border border-slate-100 shadow-xl overflow-hidden print:border-none print:shadow-none">
                             <CompactTemplate
                                 data={invoice}
                                 profile={profile}

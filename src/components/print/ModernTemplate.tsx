@@ -26,7 +26,7 @@ export function ModernTemplate({
 
     return (
         <Card
-            className="rounded-4xl border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0"
+            className="rounded-none border-slate-100 shadow-2xl overflow-hidden print:border-none print:shadow-none print:p-0"
             style={{ fontFamily }}
         >
             <div className="p-6 lg:p-8 space-y-6 print:p-0 text-[12px] leading-snug text-slate-900 bg-white">
@@ -44,7 +44,7 @@ export function ModernTemplate({
                             </div>
                         ) : (
                             <div
-                                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
+                                className="w-10 h-10 rounded-none flex items-center justify-center text-white"
                                 style={{ backgroundColor: brandColor }}
                             >
                                 <span className="material-symbols-outlined text-[20px]">analytics</span>
@@ -62,11 +62,11 @@ export function ModernTemplate({
                     </div>
 
                     <div className="text-right">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-none text-[11px] font-semibold uppercase
               ${data.payment_status === 'paid'
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-orange-100 text-orange-700'}`}>
-                            <span className={`w-2 h-2 rounded-full
+                            <span className={`w-2 h-2 rounded-none
                 ${data.payment_status === 'paid'
                                     ? 'bg-green-500'
                                     : 'bg-orange-500'}`}></span>
@@ -87,7 +87,7 @@ export function ModernTemplate({
                 </div>
 
                 {/* VENDOR + CLIENT */}
-                <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-3xl border border-slate-200">
+                <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-none border border-slate-200">
 
                     <div>
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-2">
@@ -210,7 +210,7 @@ export function ModernTemplate({
                     <div className="flex-1 space-y-6">
 
                         {!allGstIsZero && (
-                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 break-inside-avoid">
+                            <div className="bg-slate-50 p-5 rounded-none border border-slate-100 break-inside-avoid">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 border-b border-slate-100 pb-2">Tax analysis summary</p>
                                 <table className="w-full text-[11px] border-collapse">
                                     <thead>
@@ -243,7 +243,7 @@ export function ModernTemplate({
                         )}
 
                         {settings.show_bank_details && bankDetails && (
-                            <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 break-inside-avoid">
+                            <div className="bg-slate-50 p-5 rounded-none border border-slate-100 break-inside-avoid">
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2 mb-4 italic">
                                     Bank Account Settlement
                                 </p>
