@@ -11,7 +11,7 @@ export const partySchema = z.object({
 
 const itemBaseSchema = z.object({
     id: z.string().optional(),
-    product_id: z.string().uuid().optional(),
+    product_id: z.string().uuid().optional().nullable(),
     name: z.string().min(1, "Product name is required"),
     hsn_code: z.string().optional().nullable(),
     quantity: z.number().min(1, "Quantity must be at least 1"),

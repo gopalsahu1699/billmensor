@@ -101,6 +101,10 @@ function CreateInvoiceForm() {
     const [shippingGST, setShippingGST] = useState('')
     const [billingGST, setBillingGST] = useState('') // New
     const [supplyPlace, setSupplyPlace] = useState('')
+    const [existingPaymentStatus, setExistingPaymentStatus] = useState<string | null>(null)
+    const [existingStatus, setExistingStatus] = useState<string | null>(null)
+    const [existingAmountPaid, setExistingAmountPaid] = useState<number>(0)
+    const [existingBalanceAmount, setExistingBalanceAmount] = useState<number>(0)
 
     // Subtotals
     const [subtotal, setSubtotal] = useState(0)
@@ -221,7 +225,12 @@ function CreateInvoiceForm() {
 
             setSelectedCustomerId(inv.customer_id)
             setInvoiceNumber(inv.invoice_number)
-            setInvoiceDate(inv.invoice_date)
+            // Convert date to YYYY-MM-DD for <input type="date">
+            setInvoiceDate(inv.invoice_date?.split('T')[0] || inv.invoice_date || new Date().toISOString().split('T')[0])
+            setExistingPaymentStatus(inv.payment_status || 'draft')
+            setExistingStatus(inv.status || 'draft')
+            setExistingAmountPaid(inv.amount_paid || 0)
+            setExistingBalanceAmount(inv.balance_amount || inv.total_amount || 0)
             setGeneralDiscount(inv.discount || 0)
             setGeneralDiscountType(inv.general_discount_type || 'amount')
             setRoundOff(inv.round_off || 0)
@@ -496,11 +505,11 @@ function CreateInvoiceForm() {
                 billing_gstin: billingGST,
                 supply_place: supplyPlace,
                 total_amount: grandTotal,
-                amount_paid: editId ? undefined : 0,
-                balance_amount: grandTotal,
+                amount_paid: editId ? existingAmountPaid : 0,
+                balance_amount: editId ? grandTotal - (existingAmountPaid || 0) : grandTotal,
                 notes,
-                payment_status: 'draft',
-                status: 'draft',
+                payment_status: editId ? existingPaymentStatus : 'draft',
+                status: editId ? existingStatus : 'draft',
                 items: items.map(item => ({
                     product_id: item.product_id || null,
                     name: item.name,
