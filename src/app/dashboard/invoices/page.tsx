@@ -26,7 +26,8 @@ export default function InvoicesPage() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'paid': return 'bg-green-50 text-green-700 border-green-100'
-            case 'partial': return 'bg-blue-50 text-blue-700 border-blue-100'
+            case 'partial':
+            case 'partially_paid': return 'bg-blue-50 text-blue-700 border-blue-100'
             default: return 'bg-yellow-50 text-yellow-700 border-yellow-100'
         }
     }
@@ -109,7 +110,7 @@ export default function InvoicesPage() {
                                     </td>
                                     <td className="px-8 py-5">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${getStatusColor(inv.payment_status || 'unpaid')}`}>
-                                            {inv.payment_status}
+                                            {inv.payment_status === 'draft' ? 'unpaid' : inv.payment_status === 'partially_paid' ? 'partially paid' : inv.payment_status}
                                         </span>
                                     </td>
                                     <td className="px-8 py-5 text-right space-x-2" onClick={(e) => e.stopPropagation()}>

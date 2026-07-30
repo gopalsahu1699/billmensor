@@ -1012,15 +1012,15 @@ function CreateQuotationForm() {
                     </div>
                 </div>
 
-                {/* Bottom Section: Observations & Valuation */}
+                {/* Bottom Section: Terms & Valuation */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 h-full">
-                            <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest px-2">Observations</h3>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest px-2">Terms and Condition</h3>
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
-                                placeholder="Add specific terms or follow-up notes..."
+                                placeholder="Enter terms and conditions..."
                                 className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-3xl p-6 text-sm focus:ring-2 focus:ring-primary/10 outline-none text-slate-900 dark:text-slate-100 min-h-[250px] font-medium placeholder:text-slate-400"
                             />
                         </div>

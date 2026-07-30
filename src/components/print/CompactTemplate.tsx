@@ -21,6 +21,7 @@ export function CompactTemplate({
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
 
+    const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
     const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
     const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
@@ -72,11 +73,13 @@ export function CompactTemplate({
                         ).toLocaleDateString('en-IN')}
                     </p>
                     {isInvoice && (
-                        <div className={`mt-2 inline-block px-3 py-0.5 border rounded-none text-[11px] font-bold uppercase ${data.payment_status?.toLowerCase() === 'paid'
+                        <div className={`mt-2 inline-block px-3 py-0.5 border rounded-none text-[11px] font-bold uppercase ${data.payment_status === 'paid'
                             ? 'bg-green-50 border-green-200 text-green-700'
+                            : data.payment_status === 'partially_paid'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
                             : 'bg-orange-50 border-orange-200 text-orange-700'
                             }`}>
-                            {data.payment_status || 'Unpaid'}
+                            {data.payment_status === 'draft' ? 'Unpaid' : data.payment_status === 'partially_paid' ? 'Partially Paid' : data.payment_status || 'Unpaid'}
                         </div>
                     )}
                 </div>
@@ -111,7 +114,7 @@ export function CompactTemplate({
                         <th className="py-2 text-left">Description</th>
                         <th className="py-2 text-center">HSN</th>
                         <th className="py-2 text-center">Qty</th>
-                        <th className="py-2 text-center">Rate</th>
+                        <th className="py-2 text-center">{priceLabel}</th>
                         {hasAnyDiscount && <th className="py-2 text-center">{hasPercentDiscount ? 'Disc%' : 'Disc'}</th>}
                         {!allGstIsZero && <th className="py-2 text-center">GST%</th>}
                         <th className="py-2 text-right">Total</th>

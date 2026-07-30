@@ -262,8 +262,8 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         </div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Invoice Details</h1>
-                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${invoice.payment_status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                {invoice.payment_status}
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${invoice.payment_status === 'paid' ? 'bg-green-100 text-green-600' : invoice.payment_status === 'partially_paid' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                {invoice.payment_status === 'draft' ? 'unpaid' : invoice.payment_status === 'partially_paid' ? 'partially paid' : invoice.payment_status}
                             </div>
                         </div>
                     </div>

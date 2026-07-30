@@ -58,7 +58,7 @@ export function ThermalTemplate({
                 {isInvoice && (
                     <div className="flex justify-between">
                         <span>STATUS:</span>
-                        <span className="font-bold">{(data.payment_status || 'UNPAID').toUpperCase()}</span>
+                        <span className="font-bold">{((data.payment_status === 'draft' ? 'unpaid' : data.payment_status === 'partially_paid' ? 'partially paid' : data.payment_status) || 'UNPAID').toUpperCase()}</span>
                     </div>
                 )}
             </div>

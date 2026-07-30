@@ -59,6 +59,7 @@ export interface InvoiceItem {
     total: number
     image_url?: string
     description?: string
+    price_type?: string
 }
 
 export interface Invoice {

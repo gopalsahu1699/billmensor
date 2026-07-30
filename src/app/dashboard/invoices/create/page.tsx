@@ -525,6 +525,7 @@ function CreateInvoiceForm() {
                     per_unit_discount: item.per_unit_discount || 0,
                     discount_rate: item.discount_rate || 0,
                     discount_type: item.discount_type,
+                    price_type: item.price_type,
                     total: item.total,
                     image_url: item.image_url || null,
                     description: item.description || null,
@@ -1040,20 +1041,20 @@ function CreateInvoiceForm() {
                 </div>
             </div>
 
-            {/* Bottom Grid: Observations & Valuation */}
+            {/* Bottom Grid: Terms & Valuation */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                {/* Observations Hub (2 Cols) */}
+                {/* Terms and Condition */}
                 <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 h-full">
                         <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
                             <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">draw</span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Observations</h2>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Terms and Condition</h2>
                         </div>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-3xl p-6 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none min-h-[250px] text-slate-900 dark:text-slate-100 placeholder:text-slate-300 shadow-inner font-medium"
-                            placeholder="Add specific terms, notes, or payment instructions..."
+                            placeholder="Enter terms and conditions..."
                         />
                     </div>
                 </div>

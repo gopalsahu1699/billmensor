@@ -21,6 +21,7 @@ export function ModernTemplate({
     const hasAnyDiscount = items.some(item => (item.discount || 0) > 0)
     const hasPercentDiscount = items.some(item => item.discount_type === 'percent' && (item.discount || 0) > 0)
 
+    const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
     const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
     const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
@@ -65,12 +66,16 @@ export function ModernTemplate({
                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-none text-[11px] font-semibold uppercase
               ${data.payment_status === 'paid'
                                 ? 'bg-green-100 text-green-700'
+                                : data.payment_status === 'partially_paid'
+                                ? 'bg-blue-100 text-blue-700'
                                 : 'bg-orange-100 text-orange-700'}`}>
                             <span className={`w-2 h-2 rounded-none
                 ${data.payment_status === 'paid'
                                     ? 'bg-green-500'
+                                    : data.payment_status === 'partially_paid'
+                                    ? 'bg-blue-500'
                                     : 'bg-orange-500'}`}></span>
-                            {data.payment_status}
+                            {data.payment_status === 'draft' ? 'unpaid' : data.payment_status === 'partially_paid' ? 'partially paid' : data.payment_status}
                         </div>
 
                         <div className="mt-3 text-sm font-medium text-slate-800">
@@ -153,7 +158,7 @@ export function ModernTemplate({
                                 <th className="px-2 pb-2 text-center w-12">Image</th>
                                 <th className="px-2 pb-2 text-left">Description</th>
                                 <th className="px-2 pb-2 text-center">Qty</th>
-                                <th className="px-2 pb-2 text-center">Rate</th>
+                                <th className="px-2 pb-2 text-center">{priceLabel}</th>
                                 {hasAnyDiscount && <th className="px-2 pb-2 text-center">{hasPercentDiscount ? 'Disc%' : 'Disc'}</th>}
                                 {!allGstIsZero && <th className="px-2 pb-2 text-center">GST%</th>}
                                 <th className="px-2 pb-2 text-right">Amount</th>

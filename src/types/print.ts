@@ -50,6 +50,7 @@ export interface Item {
     image_url?: string
     product_id?: string
     description?: string
+    price_type?: 'selling' | 'mrp' | 'wholesale'
 }
 
 

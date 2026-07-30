@@ -60,7 +60,7 @@ export async function generateClientSidePDF({
         });
 
         // 3. Capture
-        const pixelRatio = 1.5;
+        const pixelRatio = 4; // High DPI for better quality
         const dataUrl = await toPng(element, {
             cacheBust: true,
             pixelRatio,
@@ -112,7 +112,7 @@ export async function generateClientSidePDF({
                 0, 0, imgWidthPx, sourceH
             );
 
-            const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.85);
+            const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.98);
             const sliceScaledHeight = (sourceH * CONTENT_WIDTH_MM) / imgWidthPx;
 
             pdf.addImage(
