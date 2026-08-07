@@ -1,12 +1,72 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { INDIAN_STATES } from '@/lib/constants'
-import { MdArrowBack, MdSave, MdVerified, MdPerson, MdAlternateEmail, MdPhoneIphone, MdReceiptLong, MdPinDrop, MdLocationOn, MdLocalShipping, MdPhoneInTalk } from 'react-icons/md'
+import { MdArrowBack, MdPerson, MdAlternateEmail, MdPhoneIphone, MdLocationOn, MdLocalShipping, MdReceiptLong, MdStorefront } from 'react-icons/md'
+import { FormField } from '@/components/ui/form/FormField'
+import { FormSection } from '@/components/ui/form/FormSection'
+import { FormActions } from '@/components/ui/form/FormActions'
+import { SmartInput, SmartTextarea, SmartSelect, EmailInput, PhoneInput, GSTInput } from '@/components/ui/form/smart-inputs'
+import { validateEmail, validatePhone, validateGSTIN } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+
+interface CustomerForm {
+    name: string
+    email: string
+    phone: string
+    billing_address: string
+    shipping_address: string
+    supply_place: string
+    gstin: string
+    billing_phone: string
+    shipping_phone: string
+    shipping_gstin: string
+    billing_gstin: string
+    type: 'customer' | 'supplier' | 'both'
+}
+
+const DEFAULT_FORM: CustomerForm = {
+    name: '',
+    email: '',
+    phone: '',
+    billing_address: '',
+    shipping_address: '',
+    supply_place: '',
+    gstin: '',
+    billing_phone: '',
+    shipping_phone: '',
+    shipping_gstin: '',
+    billing_gstin: '',
+    type: 'customer',
+}
+
+function fieldError(key: keyof CustomerForm, f: CustomerForm): string | undefined {
+    switch (key) {
+        case 'name':
+            return f.name.trim() ? undefined : 'Please enter the customer name.'
+        case 'email':
+            return validateEmail(f.email) ?? undefined
+        case 'phone':
+            return validatePhone(f.phone) ?? undefined
+        case 'billing_phone':
+            return f.billing_phone.trim() ? validatePhone(f.billing_phone) ?? undefined : undefined
+        case 'shipping_phone':
+            return f.shipping_phone.trim() ? validatePhone(f.shipping_phone) ?? undefined : undefined
+        case 'gstin':
+            return f.gstin.trim() ? validateGSTIN(f.gstin) ?? undefined : undefined
+        case 'billing_gstin':
+            return f.billing_gstin.trim() ? validateGSTIN(f.billing_gstin) ?? undefined : undefined
+        case 'shipping_gstin':
+            return f.shipping_gstin.trim() ? validateGSTIN(f.shipping_gstin) ?? undefined : undefined
+        default:
+            return undefined
+    }
+}
 
 export default function CreateCustomerPage() {
     const router = useRouter()
@@ -14,23 +74,25 @@ export default function CreateCustomerPage() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
+    const [saved, setSaved] = useState(false)
     const [fetching, setFetching] = useState(!!editId)
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        billing_address: '',
-        shipping_address: '',
-        supply_place: '',
-        gstin: '',
-        billing_phone: '',
-        shipping_phone: '',
-        shipping_gstin: '',
-        billing_gstin: '',
-        type: 'customer',
-    })
+    const [form, setForm] = useState<CustomerForm>(DEFAULT_FORM)
+    const [errors, setErrors] = useState<Partial<Record<keyof CustomerForm, string>>>({})
+    const [dirty, setDirty] = useState(false)
+    const { confirmLeave } = useUnsavedChanges(dirty)
 
-    const fetchCustomer = React.useCallback(async () => {
+    const update = (key: keyof CustomerForm, value: string) => {
+        setForm((f) => ({ ...f, [key]: value }))
+        setDirty(true)
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: keyof CustomerForm) => {
+        const msg = fieldError(key, form)
+        setErrors((e) => ({ ...e, [key]: msg ?? '' }))
+    }
+
+    const fetchCustomer = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('customers')
@@ -54,7 +116,7 @@ export default function CreateCustomerPage() {
                 type: data.type || 'customer',
             })
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'An error occurred')
+            toast.error(friendlyError(error))
             router.push('/dashboard/customers')
         } finally {
             setFetching(false)
@@ -67,6 +129,17 @@ export default function CreateCustomerPage() {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        const validationErrors: Partial<Record<keyof CustomerForm, string>> = {}
+        ;(Object.keys(DEFAULT_FORM) as (keyof CustomerForm)[]).forEach((key) => {
+            const msg = fieldError(key, form)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -75,7 +148,7 @@ export default function CreateCustomerPage() {
             if (editId) {
                 const { error } = await supabase
                     .from('customers')
-                    .update({ ...form })
+                    .update({ ...form, name: form.name.trim() })
                     .eq('id', editId)
 
                 if (error) throw error
@@ -83,84 +156,92 @@ export default function CreateCustomerPage() {
             } else {
                 const { error } = await supabase
                     .from('customers')
-                    .insert([{ ...form, user_id: userData.user.id }])
+                    .insert([{ ...form, name: form.name.trim(), user_id: userData.user.id }])
 
                 if (error) throw error
                 toast.success('Customer added successfully')
             }
-            router.push('/dashboard/customers')
+            setSaved(true)
+            setDirty(false)
+            setTimeout(() => router.push('/dashboard/customers'), 500)
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'An error occurred')
+            toast.error(friendlyError(error))
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleCancel = () => {
+        if (!confirmLeave()) return
+        router.push('/dashboard/customers')
     }
 
     if (fetching) {
         return (
             <div className="max-w-4xl mx-auto py-20 flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Accessing Client Vault...</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading customer...</p>
             </div>
         )
     }
 
+    const options = ['customer', 'supplier', 'both'] as const
+
     return (
-        <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
-            {/* Premium Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-primary/5 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
-                <div className="relative z-10 flex items-center gap-6">
-                    <Link href="/dashboard/customers">
-                        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95 group" type="button">
-                            <MdArrowBack size={24} className="text-white group-hover:-translate-x-1 transition-transform" />
+        <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-32 px-4 md:px-6 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 bg-slate-900 dark:bg-primary/5 p-6 md:p-10 rounded-[32px] text-white shadow-xl border border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" aria-hidden="true"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                    <Link href="/dashboard/customers" aria-label="Back to customers">
+                        <button
+                            type="button"
+                            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95"
+                        >
+                            <MdArrowBack size={22} className="text-white" aria-hidden="true" />
                         </button>
                     </Link>
-                    <div className="space-y-2">
-                        <h1 className="text-4xl font-black tracking-tight italic uppercase leading-none">
-                            {editId ? 'Modify' : 'Onboard'} <span className="text-primary">Client</span>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight uppercase leading-tight">
+                            {editId ? 'Edit' : 'Add'} <span className="text-primary">Customer</span>
                         </h1>
-                        <p className="text-slate-400 font-medium tracking-tight">
-                            {editId ? 'Update business profile and logistics.' : 'Establish a new business partnership.'}
+                        <p className="text-slate-400 font-medium text-sm mt-0.5">
+                            {editId ? 'Update the business profile and logistics.' : 'Create a new business partnership.'}
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-4 relative z-10 w-full md:w-auto">
-                    <button
-                        type="submit"
-                        form="customer-form"
-                        disabled={loading}
-                        className="w-full md:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
-                    >
-                        {loading ? <span className="animate-spin">⌛</span> : (editId ? <MdVerified size={20} /> : <MdSave size={20} />)}
-                        {loading ? 'PROCESSING...' : (editId ? 'UPDATE RECORD' : 'SAVE PARTNER')}
-                    </button>
+                <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                    Required fields are marked with *
                 </div>
             </div>
 
-            <form id="customer-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Side: General Info */}
-                <div className="lg:col-span-2 space-y-8">
-                    {/* Primary Identity Card */}
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
-                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
-                            <span className="p-3 bg-primary/10 text-primary rounded-2xl">
-                                <MdPerson size={24} />
-                            </span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Global Identity</h2>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Engagement Type</label>
-                                <div className="flex gap-3">
-                                    {['customer', 'supplier', 'both'].map((t) => (
+            <form id="customer-form" onSubmit={handleSubmit} noValidate className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column */}
+                <div className="lg:col-span-2 space-y-6">
+                    <FormSection
+                        title="General Information"
+                        description="Core identity and contact details for this party."
+                        icon={<MdPerson size={22} aria-hidden="true" />}
+                    >
+                        <FormField
+                            label="Engagement type"
+                            description="How this party interacts with your business."
+                        >
+                            {({ labelId }) => (
+                                <div role="radiogroup" aria-labelledby={labelId} className="flex gap-2 md:gap-3">
+                                    {options.map((t) => (
                                         <button
                                             key={t}
                                             type="button"
-                                            onClick={() => setForm({ ...form, type: t })}
-                                            className={`flex-1 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${form.type === t
-                                                ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-100'
+                                            role="radio"
+                                            aria-checked={form.type === t}
+                                            onClick={() => {
+                                                setForm((f) => ({ ...f, type: t }))
+                                                setDirty(true)
+                                            }}
+                                            className={`flex-1 px-4 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${form.type === t
+                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
                                                 : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                                                 }`}
                                         >
@@ -168,236 +249,275 @@ export default function CreateCustomerPage() {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            )}
+                        </FormField>
 
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Enterprise / Individual Name *</label>
-                                <div className="relative">
-                                    <MdPerson className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                    <input
-                                        required
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormField
+                                label="Customer name"
+                                required
+                                error={errors.name}
+                            >
+                                {({ id, describedBy, invalid }) => (
+                                    <SmartInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
+                                        icon={<MdPerson size={18} aria-hidden="true" />}
+                                        placeholder="e.g. Sharma Traders"
+                                        maxLength={120}
+                                        transform="words"
+                                        trimOnBlur
                                         value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl py-5 pl-12 pr-6 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold placeholder:text-slate-300"
-                                        placeholder="Enter legal name"
+                                        onChange={(e) => update('name', e.target.value)}
+                                        onBlur={() => blurValidate('name')}
                                     />
-                                </div>
-                            </div>
+                                )}
+                            </FormField>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Corridor</label>
-                                    <div className="relative">
-                                        <MdAlternateEmail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                        <input
-                                            type="email"
-                                            value={form.email}
-                                            onChange={(e) => setForm({ ...form, email: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl py-4 pl-12 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-medium placeholder:text-slate-300"
-                                            placeholder="contact@enterprise.com"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Primary Mobile</label>
-                                    <div className="relative">
-                                        <MdPhoneIphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                        <input
-                                            value={form.phone}
-                                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl py-4 pl-12 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-black placeholder:text-slate-300"
-                                            placeholder="+91 00000 00000"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            <FormField
+                                label="Email"
+                                error={errors.email}
+                                hint={form.email ? undefined : 'Optional'}
+                            >
+                                {({ id, describedBy, invalid }) => (
+                                    <EmailInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
+                                        icon={<MdAlternateEmail size={18} aria-hidden="true" />}
+                                        placeholder="contact@enterprise.com"
+                                        maxLength={120}
+                                        value={form.email}
+                                        onChange={(e) => update('email', e.target.value)}
+                                        onBlur={() => blurValidate('email')}
+                                    />
+                                )}
+                            </FormField>
+
+                            <FormField
+                                label="Phone"
+                                error={errors.phone}
+                            >
+                                {({ id, describedBy, invalid }) => (
+                                    <PhoneInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
+                                        icon={<MdPhoneIphone size={18} aria-hidden="true" />}
+                                        placeholder="+91 00000 00000"
+                                        maxLength={15}
+                                        value={form.phone}
+                                        onChange={(e) => update('phone', e.target.value)}
+                                        onBlur={() => blurValidate('phone')}
+                                    />
+                                )}
+                            </FormField>
                         </div>
-                    </div>
+                    </FormSection>
 
-                    {/* Logistics Hub (Billing & Shipping) */}
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
-                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
-                            <span className="p-3 bg-primary/10 text-primary rounded-2xl">
-                                <MdLocalShipping size={24} />
-                            </span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Logistics & Targets</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Billing Block */}
-                            <div className="space-y-6 p-6 rounded-[32px] bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 transition-all hover:border-primary/20">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <FormSection
+                        title="Logistics & Delivery"
+                        description="Billing and shipping details used on documents."
+                        icon={<MdLocalShipping size={22} aria-hidden="true" />}
+                    >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-5 p-5 rounded-[24px] bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
                                         <MdLocationOn size={16} />
                                     </div>
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Billing Logic</h3>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Billing</h4>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
-                                        <textarea
+                                <FormField label="Address">
+                                    {({ id, describedBy }) => (
+                                        <SmartTextarea
+                                            id={id}
+                                            aria-describedby={describedBy}
                                             rows={2}
-                                            value={form.billing_address}
-                                            onChange={(e) => setForm({ ...form, billing_address: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
                                             placeholder="Registered office address..."
+                                            value={form.billing_address}
+                                            onChange={(e) => update('billing_address', e.target.value)}
                                         />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                                        <div className="relative">
-                                            <MdPhoneInTalk className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                                            <input
-                                                value={form.billing_phone}
-                                                onChange={(e) => setForm({ ...form, billing_phone: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl h-10 pl-9 pr-4 text-xs focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-bold"
-                                                placeholder="+91..."
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GSTIN</label>
-                                        <div className="relative">
-                                            <MdReceiptLong className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                                            <input
-                                                value={form.billing_gstin}
-                                                onChange={(e) => setForm({ ...form, billing_gstin: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl h-10 pl-9 pr-4 text-xs font-mono focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 uppercase"
-                                                placeholder="Billing GST"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                    )}
+                                </FormField>
+                                <FormField label="Phone" error={errors.billing_phone}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <PhoneInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            placeholder="+91..."
+                                            value={form.billing_phone}
+                                            onChange={(e) => update('billing_phone', e.target.value)}
+                                            onBlur={() => blurValidate('billing_phone')}
+                                        />
+                                    )}
+                                </FormField>
+                                <FormField label="GSTIN" error={errors.billing_gstin} hint={form.billing_gstin ? `${form.billing_gstin.length}/15` : 'Optional'}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <GSTInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            icon={<MdReceiptLong size={16} aria-hidden="true" />}
+                                            placeholder="Billing GSTIN"
+                                            maxLength={15}
+                                            value={form.billing_gstin}
+                                            onChange={(e) => update('billing_gstin', e.target.value)}
+                                            onBlur={() => blurValidate('billing_gstin')}
+                                        />
+                                    )}
+                                </FormField>
                             </div>
 
-                            {/* Shipping Block */}
-                            <div className="space-y-6 p-6 rounded-[32px] bg-primary/5 border border-primary/10 transition-all hover:border-primary/30">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                            <div className="space-y-5 p-5 rounded-[24px] bg-primary/5 border border-primary/10">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary" aria-hidden="true">
                                         <MdLocalShipping size={16} />
                                     </div>
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Shipping Logic</h3>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">Shipping</h4>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Address</label>
-                                        <textarea
+                                <FormField label="Address">
+                                    {({ id, describedBy }) => (
+                                        <SmartTextarea
+                                            id={id}
+                                            aria-describedby={describedBy}
                                             rows={2}
-                                            value={form.shipping_address}
-                                            onChange={(e) => setForm({ ...form, shipping_address: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl p-4 text-xs focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
                                             placeholder="Point of delivery..."
+                                            value={form.shipping_address}
+                                            onChange={(e) => update('shipping_address', e.target.value)}
                                         />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Phone</label>
-                                        <div className="relative">
-                                            <MdPhoneInTalk className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
-                                            <input
-                                                value={form.shipping_phone}
-                                                onChange={(e) => setForm({ ...form, shipping_phone: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-xl h-10 pl-9 pr-4 text-xs focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-bold"
-                                                placeholder="Alt shipping contact"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">GSTIN</label>
-                                        <div className="relative">
-                                            <MdReceiptLong className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
-                                            <input
-                                                value={form.shipping_gstin}
-                                                onChange={(e) => setForm({ ...form, shipping_gstin: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-xl h-10 pl-9 pr-4 text-xs font-mono focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 uppercase"
-                                                placeholder="Shipping GSTIN"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="pt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm({
-                                                ...form,
-                                                shipping_address: form.billing_address,
-                                                shipping_phone: form.billing_phone,
-                                                shipping_gstin: form.billing_gstin
-                                            })}
-                                            className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 underline underline-offset-4"
-                                        >
-                                            Duplicate Billing
-                                        </button>
-                                    </div>
-                                </div>
+                                    )}
+                                </FormField>
+                                <FormField label="Phone" error={errors.shipping_phone}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <PhoneInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            placeholder="Alt shipping contact"
+                                            value={form.shipping_phone}
+                                            onChange={(e) => update('shipping_phone', e.target.value)}
+                                            onBlur={() => blurValidate('shipping_phone')}
+                                        />
+                                    )}
+                                </FormField>
+                                <FormField label="GSTIN" error={errors.shipping_gstin} hint={form.shipping_gstin ? `${form.shipping_gstin.length}/15` : 'Optional'}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <GSTInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            icon={<MdReceiptLong size={16} aria-hidden="true" />}
+                                            placeholder="Shipping GSTIN"
+                                            maxLength={15}
+                                            value={form.shipping_gstin}
+                                            onChange={(e) => update('shipping_gstin', e.target.value)}
+                                            onBlur={() => blurValidate('shipping_gstin')}
+                                        />
+                                    )}
+                                </FormField>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        update('shipping_address', form.billing_address)
+                                        update('shipping_phone', form.billing_phone)
+                                        update('shipping_gstin', form.billing_gstin)
+                                    }}
+                                    className="text-xs font-black uppercase tracking-widest text-primary hover:text-primary/70 underline underline-offset-4"
+                                >
+                                    Copy from billing
+                                </button>
                             </div>
                         </div>
-                    </div>
+                    </FormSection>
                 </div>
 
-                {/* Right Side: Compliance & Tax */}
-                <div className="space-y-8">
-                    <div className="bg-slate-900 p-10 rounded-[40px] text-white shadow-2xl border border-slate-800 relative overflow-hidden">
-                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] pointer-events-none"></div>
-
-                        <div className="flex items-center gap-4 mb-10 pb-6 border-b border-white/5">
-                            <span className="p-3 bg-white/5 text-primary rounded-2xl">
-                                <MdReceiptLong size={24} />
-                            </span>
-                            <h2 className="text-xl font-black italic uppercase">Compliance</h2>
-                        </div>
-
-                        <div className="space-y-8">
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Primary GSTIN</label>
-                                <div className="relative">
-                                    <MdReceiptLong className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                                    <input
+                {/* Right Column: Compliance */}
+                <div className="space-y-6">
+                    <FormSection
+                        title="Compliance & Tax"
+                        description="GST details used for invoices and returns."
+                        icon={<MdReceiptLong size={22} aria-hidden="true" />}
+                        className="bg-slate-900 dark:bg-slate-900 border-slate-800 text-white shadow-2xl relative overflow-hidden"
+                    >
+                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] pointer-events-none" aria-hidden="true"></div>
+                        <div className="relative space-y-5">
+                            <FormField label="Primary GSTIN" error={errors.gstin} hint={form.gstin ? `${form.gstin.length}/15` : 'Optional'}>
+                                {({ id, describedBy, invalid }) => (
+                                    <GSTInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
+                                        icon={<MdReceiptLong size={18} aria-hidden="true" />}
+                                        placeholder="15-character GSTIN"
+                                        maxLength={15}
                                         value={form.gstin}
-                                        onChange={(e) => setForm({ ...form, gstin: e.target.value })}
-                                        className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-5 text-sm font-mono focus:ring-2 focus:ring-primary/40 outline-none text-white uppercase placeholder:text-slate-600 shadow-inner"
-                                        placeholder="Global GSTIN"
+                                        onChange={(e) => update('gstin', e.target.value)}
+                                        onBlur={() => blurValidate('gstin')}
                                     />
-                                </div>
-                            </div>
+                                )}
+                            </FormField>
 
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Place of Supply</label>
-                                <div className="relative">
-                                    <MdPinDrop className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                                    <select
+                            <FormField label="Place of supply" description="Used to determine GST applicability.">
+                                {({ id, describedBy }) => (
+                                    <SmartSelect
+                                        id={id}
+                                        aria-describedby={describedBy}
                                         value={form.supply_place}
-                                        onChange={(e) => setForm({ ...form, supply_place: e.target.value })}
-                                        className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-10 text-sm focus:ring-2 focus:ring-primary/40 outline-none text-white appearance-none font-black shadow-inner"
+                                        onChange={(e) => update('supply_place', e.target.value)}
+                                        placeholderOption="Select state"
+                                        className="bg-slate-800/50 dark:bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-600"
                                     >
-                                        <option value="" className="bg-slate-900">Select State</option>
-                                        {INDIAN_STATES.map(s => (
-                                            <option key={s.code} value={s.name} className="bg-slate-900">{s.name}</option>
+                                        {INDIAN_STATES.map((s) => (
+                                            <option key={s.code} value={s.name} className="bg-slate-900 text-white">
+                                                {s.name}
+                                            </option>
                                         ))}
-                                    </select>
-                                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
-                                </div>
+                                    </SmartSelect>
+                                )}
+                            </FormField>
+
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                                <p className="text-xs text-slate-400 leading-relaxed">
+                                    <span className="text-primary font-black uppercase mr-1.5">Note:</span>
+                                    Accurate GST and logistics details ensure smooth tax filing and professional documents.
+                                </p>
                             </div>
                         </div>
+                    </FormSection>
 
-                        <div className="mt-12 p-6 rounded-3xl bg-white/5 border border-white/10 italic">
-                            <p className="text-[10px] text-slate-400 leading-relaxed">
-                                <span className="text-primary font-black uppercase mr-2">Note:</span>
-                                Accurate logistics and compliance data ensures seamless tax filing and professional document generation across all modules.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-50 dark:border-slate-800 shadow-sm">
-                        <div className="flex flex-col items-center text-center gap-4">
-                            <div className="w-16 h-16 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300">
-                                <MdPerson size={32} />
+                    <FormSection title="Status">
+                        <div className="flex flex-col items-center text-center gap-3 py-2">
+                            <div className="w-14 h-14 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300" aria-hidden="true">
+                                <MdStorefront size={28} />
                             </div>
                             <div>
-                                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight italic">Partner Status</h3>
-                                <p className="text-xs text-slate-500 mt-1">Status: <span className="text-primary font-black uppercase">Active</span></p>
+                                <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">Active</h4>
+                                <p className="text-xs text-slate-500 mt-1">This party is available for new transactions.</p>
                             </div>
                         </div>
-                    </div>
+                    </FormSection>
                 </div>
+
+                <FormActions
+                    formId="customer-form"
+                    onCancel={handleCancel}
+                    saving={loading}
+                    success={saved}
+                    dirty={dirty}
+                    saveLabel={editId ? 'Update customer' : 'Save customer'}
+                    className="lg:col-span-3"
+                />
             </form>
         </div>
     )

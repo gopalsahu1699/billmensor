@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/button'
 import { MdArrowBack, MdDownload, MdSync, MdDelete, MdEdit, MdLocalShipping, MdRefresh, MdShare } from 'react-icons/md'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
-import Image from 'next/image'
-
 interface ChallanItem {
     id: string
     product_id: string
@@ -73,7 +71,7 @@ export default function DeliveryChallanDetailPage({ params }: { params: Promise<
 
             if (error) throw error
 
-            const mappedItems = (data.items || []).map((item: any) => ({
+            const mappedItems = (data.items || []).map((item: ChallanItem & { products?: { image_url?: string } }) => ({
                 ...item,
                 image_url: item.image_url || item.products?.image_url || ''
             }))

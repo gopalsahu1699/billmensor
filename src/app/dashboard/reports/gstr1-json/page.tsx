@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { IoMdDocument, IoMdCalendar, IoMdArrowBack, IoMdDownload } from 'react-icons/io'
+import { IoMdCalendar, IoMdArrowBack } from 'react-icons/io'
 import { IoDocumentText, IoGrid, IoShare } from "react-icons/io5"
 import { toast } from 'sonner'
 import Link from 'next/link'

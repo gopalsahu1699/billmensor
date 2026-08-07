@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { IoTrendingUp, IoTrendingDown, IoCalendar, IoChevronBack, IoDownload, IoDocument, IoShare } from "react-icons/io5"
+import { IoCalendar, IoChevronBack, IoDownload, IoDocument, IoShare } from "react-icons/io5"
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'

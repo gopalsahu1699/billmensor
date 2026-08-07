@@ -2,7 +2,6 @@
 
 import { PrintTemplateProps } from '@/types/print'
 import { BILLMENSOR_PROMO } from '@/lib/marketing'
-import QRCode from 'react-qr-code'
 
 export function CompactTemplate({
     data,
@@ -22,8 +21,6 @@ export function CompactTemplate({
     const fontFamily = profile?.font_family || 'Inter'
 
     const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
-    const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
-    const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
     return (
         <div
@@ -50,14 +47,16 @@ export function CompactTemplate({
                         </div>
                     )}
 
-                    <h1
-                        className="text-lg font-bold mt-2"
-                        style={{ color: brandColor }}
-                    >
-                        {profile?.company_name}
-                    </h1>
+                    {!allGstIsZero && (
+                        <h1
+                            className="text-lg font-bold mt-2"
+                            style={{ color: brandColor }}
+                        >
+                            {profile?.company_name}
+                        </h1>
+                    )}
                     <p>{profile?.address}</p>
-                    <p>GSTIN: {profile?.gstin}</p>
+                    {!allGstIsZero && <p>GSTIN: {profile?.gstin}</p>}
                     <p>Phone: {profile?.phone}</p>
                     <p>Email: {profile?.email}</p>
                 </div>
@@ -72,7 +71,7 @@ export function CompactTemplate({
                             (isInvoice ? data.invoice_date : data.quotation_date) || new Date()
                         ).toLocaleDateString('en-IN')}
                     </p>
-                    {isInvoice && (
+                    {isInvoice && data.payment_status !== 'hide' && (
                         <div className={`mt-2 inline-block px-3 py-0.5 border rounded-none text-[11px] font-bold uppercase ${data.payment_status === 'paid'
                             ? 'bg-green-50 border-green-200 text-green-700'
                             : data.payment_status === 'partially_paid'
@@ -91,7 +90,7 @@ export function CompactTemplate({
                     <p className="font-semibold text-[14px]">{data.customers?.name}</p>
                     <p className="whitespace-pre-line text-xs">{data.billing_address || data.customers?.billing_address}</p>
                     <p className="text-xs mt-1">Phone: {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
-                    <p className="text-xs">GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>
+                    {!allGstIsZero && <p className="text-xs">GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>}
                 </div>
 
                 {(data.shipping_address || data.customers?.shipping_address) && (
@@ -100,7 +99,7 @@ export function CompactTemplate({
                         <p className="font-semibold text-[14px]">{data.customers?.name}</p>
                         <p className="whitespace-pre-line text-xs">{data.shipping_address || data.customers?.shipping_address}</p>
                         <p className="text-xs mt-1">Phone: {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
-                        <p className="text-xs">GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>
+                        {!allGstIsZero && <p className="text-xs">GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>}
                     </div>
                 )}
             </div>
@@ -148,7 +147,9 @@ export function CompactTemplate({
                                 )}
                             </td>
                             <td className="py-2 text-center">{item.hsn_code || '-'}</td>
-                            <td className="py-2 text-center">{item.quantity}</td>
+                            <td className="py-2 text-center">
+                                {item.quantity} {item.unit && <span className="text-[11px] text-gray-500">{item.unit}</span>}
+                            </td>
                             <td className="py-2 text-center">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
@@ -199,7 +200,7 @@ export function CompactTemplate({
                                         acc[key].taxable += taxable;
                                         acc[key].tax += tax;
                                         return acc;
-                                    }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                    }, {} as Record<string, { rate: number; taxable: number; tax: number }>)).map((t: { rate: number; taxable: number; tax: number }, i: number) => (
                                         <tr key={i} className="border-b border-gray-50">
                                             <td className="py-1">GST ({t.rate}%)</td>
                                             <td className="text-right py-1 italic">₹{t.taxable.toLocaleString('en-IN')}</td>
@@ -210,7 +211,7 @@ export function CompactTemplate({
                             </table>
                         </div>
                     )}
-                    {settings.show_bank_details && bankDetails && (
+                    {!allGstIsZero && settings.show_bank_details && bankDetails && (
                         <div className="break-inside-avoid">
                             <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Bank Info</h4>
                             <div className="grid grid-cols-2 text-[11px] gap-x-2 bg-gray-50/50 p-2 border border-gray-100 italic">
@@ -272,7 +273,7 @@ export function CompactTemplate({
                             <span>{data.general_discount_type === 'percent' ? `-${data.discount}%` : `-₹${(data.discount || 0).toLocaleString('en-IN')}`}</span>
                         </div>
                     )}
-                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: { name: string; amount: number }, idx: number) => (
                         <div key={idx} className="flex justify-between text-[12px] text-gray-600">
                             <span>{charge.name || 'Custom'}:</span>
                             <span>₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>

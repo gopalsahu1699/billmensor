@@ -135,7 +135,7 @@ export const backupService = {
 
         if (backupContent.data.customers) {
             for (const customer of backupContent.data.customers) {
-                const { id, ...customerData } = customer
+                const { ...customerData } = customer
                 await supabase.from('customers').upsert({
                     ...customerData,
                     user_id: userId
@@ -145,7 +145,7 @@ export const backupService = {
 
         if (backupContent.data.products) {
             for (const product of backupContent.data.products) {
-                const { id, ...productData } = product
+                const { ...productData } = product
                 await supabase.from('products').upsert({
                     ...productData,
                     user_id: userId

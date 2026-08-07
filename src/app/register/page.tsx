@@ -5,9 +5,30 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { EmailInput, SmartInput } from '@/components/ui/form/smart-inputs'
+import { validateEmail } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+
+type RegisterFormKey = 'name' | 'email' | 'password'
+
+function fieldError(key: RegisterFormKey, f: { name: string; email: string; password: string }): string | undefined {
+    switch (key) {
+        case 'name':
+            return f.name.trim() ? undefined : 'Please enter your name.'
+        case 'email':
+            if (!f.email.trim()) return 'Please enter your email address.'
+            return validateEmail(f.email) ?? undefined
+        case 'password':
+            if (!f.password) return 'Please enter a password.'
+            if (f.password.length < 8) return 'Password must be at least 8 characters.'
+            return undefined
+        default:
+            return undefined
+    }
+}
 
 export default function RegisterPage() {
     const router = useRouter()
@@ -18,6 +39,7 @@ export default function RegisterPage() {
         email: '',
         password: '',
     })
+    const [errors, setErrors] = useState<Partial<Record<RegisterFormKey, string>>>({})
 
     // Coupon state
     const [couponCode, setCouponCode] = useState<string | null>(null)
@@ -50,8 +72,28 @@ export default function RegisterPage() {
         }
     }, [searchParams])
 
+    const update = (key: RegisterFormKey, value: string) => {
+        setFormData((f) => ({ ...f, [key]: value }))
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: RegisterFormKey) => {
+        setErrors((e) => ({ ...e, [key]: fieldError(key, formData) ?? '' }))
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        const validationErrors: Partial<Record<RegisterFormKey, string>> = {}
+        ;(['name', 'email', 'password'] as RegisterFormKey[]).forEach((key) => {
+            const msg = fieldError(key, formData)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -89,8 +131,8 @@ export default function RegisterPage() {
                 toast.success('Account created! Please check your email for verification.')
             }
             router.push('/login')
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to create account')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to create account'))
         } finally {
             setLoading(false)
         }
@@ -154,39 +196,59 @@ export default function RegisterPage() {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                        <Input
-                            type="text"
-                            placeholder="John Doe"
-                            required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                        <Input
-                            type="email"
-                            placeholder="name@company.com"
-                            required
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                        <Input
-                            type="password"
-                            placeholder="••••••••"
-                            required
-                            minLength={8}
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        />
-                        <p className="mt-1 text-xs text-slate-400">Must be at least 8 characters long.</p>
-                    </div>
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                    <FormField label="Full Name" required error={errors.name}>
+                        {({ id, describedBy, invalid }) => (
+                            <SmartInput
+                                id={id}
+                                aria-describedby={describedBy}
+                                aria-invalid={invalid}
+                                invalid={invalid}
+                                placeholder="John Doe"
+                                transform="words"
+                                trimOnBlur
+                                required
+                                autoComplete="name"
+                                value={formData.name}
+                                onChange={(e) => update('name', e.target.value)}
+                                onBlur={() => blurValidate('name')}
+                            />
+                        )}
+                    </FormField>
+
+                    <FormField label="Email Address" required error={errors.email}>
+                        {({ id, describedBy, invalid }) => (
+                            <EmailInput
+                                id={id}
+                                aria-describedby={describedBy}
+                                aria-invalid={invalid}
+                                invalid={invalid}
+                                placeholder="name@company.com"
+                                required
+                                value={formData.email}
+                                onChange={(e) => update('email', e.target.value)}
+                                onBlur={() => blurValidate('email')}
+                            />
+                        )}
+                    </FormField>
+
+                    <FormField label="Password" required error={errors.password} hint="Must be at least 8 characters">
+                        {({ id, describedBy, invalid }) => (
+                            <SmartInput
+                                id={id}
+                                aria-describedby={describedBy}
+                                aria-invalid={invalid}
+                                invalid={invalid}
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder="••••••••"
+                                required
+                                value={formData.password}
+                                onChange={(e) => update('password', e.target.value)}
+                                onBlur={() => blurValidate('password')}
+                            />
+                        )}
+                    </FormField>
 
                     <Button type="submit" className="w-full" isLoading={loading}>
                         Create Account

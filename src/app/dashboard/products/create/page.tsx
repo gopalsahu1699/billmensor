@@ -1,10 +1,101 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { FormSection } from '@/components/ui/form/FormSection'
+import { FormActions } from '@/components/ui/form/FormActions'
+import { SmartInput, SmartTextarea, SmartSelect, SmartNumberInput } from '@/components/ui/form/smart-inputs'
+import { validateRequired, validatePositiveNumber } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import { generateEAN13, validateEAN13 } from '@/lib/barcode'
+import { UNIT_GROUPS, ALL_UNITS } from '@/lib/constants'
+
+interface ProductForm {
+    name: string
+    description: string
+    warranty: string
+    sku: string
+    hsn_code: string
+    item_type: string
+    mrp: string
+    price: string
+    purchase_price: string
+    wholesale_price: string
+    stock_quantity: string
+    opening_stock_value: string
+    tax_rate: string
+    unit: string
+    image_url: string
+    barcode: string
+    batch_number: string
+    expiry_date: string
+    mfg_date: string
+    reorder_point: string
+    is_low_stock_alert: boolean
+}
+
+const DEFAULT_FORM: ProductForm = {
+    name: '',
+    description: '',
+    warranty: '',
+    sku: '',
+    hsn_code: '',
+    item_type: 'product',
+    mrp: '',
+    price: '',
+    purchase_price: '',
+    wholesale_price: '',
+    stock_quantity: '',
+    opening_stock_value: '',
+    tax_rate: '18',
+    unit: 'pcs',
+    image_url: '',
+    barcode: '',
+    batch_number: '',
+    expiry_date: '',
+    mfg_date: '',
+    reorder_point: '5',
+    is_low_stock_alert: true,
+}
+
+const STRING_KEYS = Object.keys(DEFAULT_FORM).filter(
+    (k) => k !== 'is_low_stock_alert'
+) as (keyof ProductForm)[]
+
+function fieldError(key: keyof ProductForm, f: ProductForm): string | undefined {
+    switch (key) {
+        case 'name':
+            return f.name.trim() ? undefined : 'Please enter the product name.'
+        case 'price':
+            return validateRequired(f.price, 'price') ?? validatePositiveNumber(f.price, 'Price') ?? undefined
+        case 'mrp':
+            return validatePositiveNumber(f.mrp, 'MRP') ?? undefined
+        case 'purchase_price':
+            return validatePositiveNumber(f.purchase_price, 'purchase price') ?? undefined
+        case 'wholesale_price':
+            return validatePositiveNumber(f.wholesale_price, 'wholesale price') ?? undefined
+        case 'stock_quantity':
+            return validatePositiveNumber(f.stock_quantity, 'stock quantity') ?? undefined
+        case 'opening_stock_value':
+            return validatePositiveNumber(f.opening_stock_value, 'opening stock value') ?? undefined
+        case 'reorder_point':
+            return validatePositiveNumber(f.reorder_point, 'reorder point') ?? undefined
+        case 'barcode':
+            return f.barcode.trim()
+                ? validateEAN13(f.barcode.trim())
+                    ? undefined
+                    : 'Enter a valid 13-digit EAN-13 barcode.'
+                : undefined
+        default:
+            return undefined
+    }
+}
 
 export default function CreateProductPage() {
     const router = useRouter()
@@ -12,37 +103,32 @@ export default function CreateProductPage() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
+    const [saved, setSaved] = useState(false)
     const [fetching, setFetching] = useState(!!editId)
     const [uploading, setUploading] = useState(false)
-    const [form, setForm] = useState({
-        name: '',
-        description: '',
-        sku: '',
-        hsn_code: '',
-        item_type: 'product',
-        mrp: '',
-        price: '',             // selling price
-        purchase_price: '',
-        wholesale_price: '',
-        stock_quantity: '',
-        opening_stock_value: '',
-        tax_rate: '18',
-        unit: 'pcs',
-        image_url: '',
-        // New fields for upgrade
-        barcode: '',
-        batch_number: '',
-        expiry_date: '',
-        mfg_date: '',
-        reorder_point: '5',
-        is_low_stock_alert: true,
-    })
+    const [form, setForm] = useState<ProductForm>(DEFAULT_FORM)
+    const [errors, setErrors] = useState<Partial<Record<keyof ProductForm, string>>>({})
+    const [dirty, setDirty] = useState(false)
+    const { confirmLeave } = useUnsavedChanges(dirty)
 
-    useEffect(() => {
-        if (editId) fetchProduct()
-    }, [editId])
+    const update = (key: (typeof STRING_KEYS)[number], value: string) => {
+        setForm((f) => ({ ...f, [key]: value }))
+        setDirty(true)
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
 
-    async function fetchProduct() {
+    const updateNumber = (key: (typeof STRING_KEYS)[number], value: number | undefined) => {
+        setForm((f) => ({ ...f, [key]: value === undefined ? '' : String(value) }))
+        setDirty(true)
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: keyof ProductForm) => {
+        const msg = fieldError(key, form)
+        setErrors((e) => ({ ...e, [key]: msg ?? '' }))
+    }
+
+    const fetchProduct = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('products')
@@ -54,6 +140,7 @@ export default function CreateProductPage() {
             setForm({
                 name: data.name || '',
                 description: data.description || '',
+                warranty: data.warranty || '',
                 sku: data.sku || '',
                 hsn_code: data.hsn_code || '',
                 item_type: data.item_type || 'product',
@@ -73,13 +160,17 @@ export default function CreateProductPage() {
                 reorder_point: String(data.reorder_point || ''),
                 is_low_stock_alert: data.is_low_stock_alert !== false,
             })
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error))
             router.push('/dashboard/products')
         } finally {
             setFetching(false)
         }
-    }
+    }, [editId, router])
+
+    useEffect(() => {
+        if (editId) fetchProduct()
+    }, [editId, fetchProduct])
 
     async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
@@ -104,16 +195,56 @@ export default function CreateProductPage() {
                 .getPublicUrl(fileName)
 
             setForm(prev => ({ ...prev, image_url: urlData.publicUrl }))
+            setDirty(true)
             toast.success('Image uploaded')
-        } catch (error: any) {
-            toast.error('Upload failed: ' + error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Upload failed. Please try again.'))
         } finally {
             setUploading(false)
         }
     }
 
+    const handleRemoveImage = () => {
+        setForm((f) => ({ ...f, image_url: '' }))
+        setDirty(true)
+    }
+
+    const selectItemType = (value: string) => {
+        setForm((f) => ({ ...f, item_type: value }))
+        setDirty(true)
+    }
+
+    const selectUnit = (value: string) => {
+        setForm((f) => ({ ...f, unit: value }))
+        setDirty(true)
+    }
+
+    const toggleLowStockAlert = () => {
+        setForm((f) => ({ ...f, is_low_stock_alert: !f.is_low_stock_alert }))
+        setDirty(true)
+    }
+
+    const handleGenerateBarcode = () => {
+        const code = generateEAN13('890')
+        setForm((f) => ({ ...f, barcode: code }))
+        setDirty(true)
+        setErrors((e) => (e.barcode ? { ...e, barcode: '' } : e))
+        toast.success('EAN-13 barcode generated')
+    }
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        const validationErrors: Partial<Record<keyof ProductForm, string>> = {}
+        STRING_KEYS.forEach((key) => {
+            const msg = fieldError(key, form)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -122,6 +253,7 @@ export default function CreateProductPage() {
             const productData = {
                 name: form.name,
                 description: form.description,
+                warranty: form.warranty || null,
                 sku: form.sku,
                 hsn_code: form.hsn_code,
                 item_type: form.item_type,
@@ -135,7 +267,6 @@ export default function CreateProductPage() {
                 unit: form.unit,
                 image_url: form.image_url,
                 user_id: userData.user.id,
-                // New fields
                 barcode: form.barcode || null,
                 batch_number: form.batch_number || null,
                 expiry_date: form.expiry_date || null,
@@ -158,335 +289,441 @@ export default function CreateProductPage() {
                 if (error) throw error
                 toast.success('Product added successfully')
             }
-            router.push('/dashboard/products')
-        } catch (error: any) {
-            toast.error(error.message)
+            setSaved(true)
+            setDirty(false)
+            setTimeout(() => router.push('/dashboard/products'), 500)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error))
         } finally {
             setLoading(false)
         }
     }
 
+    const handleCancel = () => {
+        if (!confirmLeave()) return
+        router.push('/dashboard/products')
+    }
+
     if (fetching) {
         return (
-            <div className="max-w-3xl mx-auto py-20 flex flex-col items-center gap-4">
+            <div className="max-w-5xl mx-auto py-20 flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                <p className="text-slate-500 font-medium">Loading product details...</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading product details...</p>
             </div>
         )
     }
 
+    const itemTypes = [
+        { value: 'product', icon: 'inventory', label: 'Product' },
+        { value: 'service', icon: 'handyman', label: 'Service' },
+    ]
+    const CUSTOM_UNIT = '__custom__'
+    const isCustomUnit = !ALL_UNITS.includes(form.unit)
+    const unitSelectValue = isCustomUnit ? CUSTOM_UNIT : form.unit
+    const taxRates = [
+        { value: '0', label: '0% (Exempt)' },
+        { value: '5', label: '5% GST' },
+        { value: '12', label: '12% GST' },
+        { value: '18', label: '18% GST' },
+        { value: '28', label: '28% GST' },
+    ]
+
     return (
-        <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-32 px-4 md:px-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/products">
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-                        <span className="material-symbols-outlined text-slate-400">arrow_back</span>
-                    </button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight italic uppercase">
-                        {editId ? 'Update Product' : 'Register New Product'}
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        {editId ? 'Modify product pricing, stock, and details.' : 'Add a new item to your inventory catalog.'}
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 bg-slate-900 dark:bg-primary/5 p-6 md:p-10 rounded-[32px] text-white shadow-xl border border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" aria-hidden="true"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                    <Link href="/dashboard/products" aria-label="Back to products">
+                        <button
+                            type="button"
+                            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-white">arrow_back</span>
+                        </button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight uppercase leading-tight">
+                            {editId ? 'Update' : 'Register'} <span className="text-primary">Product</span>
+                        </h1>
+                        <p className="text-slate-400 font-medium text-sm mt-0.5">
+                            {editId ? 'Modify product pricing, stock, and details.' : 'Add a new item to your inventory catalog.'}
+                        </p>
+                    </div>
+                </div>
+                <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                    Required fields are marked with *
                 </div>
             </div>
 
-            {/* Form Card */}
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="p-8 space-y-7">
-
-                    {/* Image Upload + Item Type Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Image Upload */}
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Product Image</label>
-                            <div className="flex items-center gap-4">
-                                <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-                                    {form.image_url ? (
-                                        <img src={form.image_url} alt="Product" className="w-full h-full object-cover rounded-2xl" />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-[32px] text-slate-300">image</span>
-                                    )}
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
-                                        <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
-                                        {uploading ? 'Uploading...' : 'Choose File'}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="hidden"
-                                            disabled={uploading}
-                                        />
-                                    </label>
-                                    {form.image_url && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm({ ...form, image_url: '' })}
-                                            className="text-[10px] text-red-500 font-bold hover:underline text-left"
-                                        >
-                                            Remove Image
-                                        </button>
-                                    )}
-                                    <p className="text-[10px] text-slate-400">JPG, PNG. Max 2MB.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Item Type */}
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Item Type *</label>
-                            <div className="flex gap-3 mt-2">
-                                {[
-                                    { value: 'product', icon: 'inventory', label: 'Product' },
-                                    { value: 'service', icon: 'handyman', label: 'Service' },
-                                ].map((t) => (
-                                    <button
-                                        key={t.value}
-                                        type="button"
-                                        onClick={() => setForm({ ...form, item_type: t.value })}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${form.item_type === t.value
-                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                            }`}
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Product Name */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Product / Service Name *</label>
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">inventory</span>
-                            <input
-                                required
-                                value={form.name}
-                                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                placeholder="e.g. Wireless Mouse, IT Consulting"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-3 text-slate-400 text-[18px]">description</span>
-                            <textarea
-                                rows={2}
-                                value={form.description}
-                                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                placeholder="Short product description..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* SKU and HSN / SAC Code */}
+            <form id="product-form" onSubmit={handleSubmit} noValidate className="space-y-6">
+                <FormSection
+                    title="Product identity"
+                    description="Core details, image, and classification of this item."
+                    icon={<span className="material-symbols-outlined text-[22px]" aria-hidden="true">inventory_2</span>}
+                >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">SKU Code</label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">qr_code_2</span>
-                                <input
-                                    value={form.sku}
-                                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 font-mono"
-                                    placeholder="SKU-001"
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">HSN / SAC Code</label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">tag</span>
-                                <input
-                                    value={form.hsn_code}
-                                    onChange={(e) => setForm({ ...form, hsn_code: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 font-mono"
-                                    placeholder={form.item_type === 'service' ? 'SAC: 998314' : 'HSN: 8471'}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Divider: Pricing Section */}
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
-                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-5 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[18px]">payments</span>
-                            Pricing Details
-                        </h3>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                            {/* MRP */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">MRP (₹)</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">sell</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.mrp}
-                                        onChange={(e) => setForm({ ...form, mrp: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="999.00"
-                                    />
+                        <FormField label="Product image" description="Upload a photo of the product for quick identification.">
+                            {() => (
+                                <div className="flex items-center gap-4">
+                                    <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                                        {form.image_url ? (
+                                            <Image
+                                                src={form.image_url}
+                                                alt="Product image preview"
+                                                width={96}
+                                                height={96}
+                                                className="w-full h-full object-cover rounded-2xl"
+                                            />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-[32px] text-slate-300" aria-hidden="true">image</span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                                            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">cloud_upload</span>
+                                            {uploading ? 'Uploading...' : 'Choose File'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                                disabled={uploading}
+                                                aria-label="Choose product image"
+                                            />
+                                        </label>
+                                        {form.image_url && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveImage}
+                                                className="text-[10px] text-red-500 font-bold hover:underline text-left"
+                                            >
+                                                Remove Image
+                                            </button>
+                                        )}
+                                        <p className="text-[10px] text-slate-400">JPG, PNG. Max 2MB.</p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+                        </FormField>
 
-                            {/* Selling Price */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Selling Price (₹) * <span className="text-green-600 normal-case">(incl. GST)</span></label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">storefront</span>
-                                    <input
-                                        required
-                                        type="number"
-                                        step="0.01"
-                                        value={form.price}
-                                        onChange={(e) => setForm({ ...form, price: e.target.value })}
-                                        className="w-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-green-500/20 transition-all outline-none text-green-800 dark:text-green-200 placeholder:text-green-400 font-bold"
-                                        placeholder="749.00"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Purchase Price */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Purchase Price (₹)</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">shopping_cart</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.purchase_price}
-                                        onChange={(e) => setForm({ ...form, purchase_price: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="500.00"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Wholesale Price */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Wholesale (₹)</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">warehouse</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.wholesale_price}
-                                        onChange={(e) => setForm({ ...form, wholesale_price: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="650.00"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Stock & Tax */}
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
-                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-5 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[18px]">shelves</span>
-                            Stock & Tax
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Stock Quantity</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">shelves</span>
-                                    <input
-                                        type="number"
-                                        value={form.stock_quantity}
-                                        onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="50"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Opening Stock Value (₹)</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">account_balance_wallet</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.opening_stock_value}
-                                        onChange={(e) => setForm({ ...form, opening_stock_value: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="5000.00"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">GST Rate (%)</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">percent</span>
-                                    <select
-                                        value={form.tax_rate}
-                                        onChange={(e) => setForm({ ...form, tax_rate: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 appearance-none"
-                                    >
-                                        <option value="0">0% (Exempt)</option>
-                                        <option value="5">5% GST</option>
-                                        <option value="12">12% GST</option>
-                                        <option value="18">18% GST</option>
-                                        <option value="28">28% GST</option>
-                                    </select>
-                                </div>
-                            </div>
-                            {/* Unit */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Unit</label>
-                                <div className="flex gap-2 flex-wrap mt-1">
-                                    {['pcs', 'kg', 'ltr', 'mtr', 'box', 'set', 'nos', 'hrs'].map((u) => (
+                        <FormField label="Item type" required>
+                            {({ labelId }) => (
+                                <div role="radiogroup" aria-labelledby={labelId} className="flex gap-3 mt-1">
+                                    {itemTypes.map((t) => (
                                         <button
-                                            key={u}
+                                            key={t.value}
                                             type="button"
-                                            onClick={() => setForm({ ...form, unit: u })}
-                                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${form.unit === u
-                                                ? 'bg-primary text-white shadow-sm'
-                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100'
+                                            role="radio"
+                                            aria-checked={form.item_type === t.value}
+                                            onClick={() => selectItemType(t.value)}
+                                            className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${form.item_type === t.value
+                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                 }`}
                                         >
-                                            {u}
+                                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{t.icon}</span>
+                                            {t.label}
                                         </button>
                                     ))}
                                 </div>
-                            </div>
-                            {/* Reorder Point */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Reorder Point</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">notification_important</span>
-                                    <input
-                                        type="number"
-                                        value={form.reorder_point}
-                                        onChange={(e) => setForm({ ...form, reorder_point: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="5"
-                                    />
+                            )}
+                        </FormField>
+                    </div>
+
+                    <FormField label="Product / service name" required error={errors.name}>
+                        {({ id, describedBy, invalid }) => (
+                            <SmartInput
+                                id={id}
+                                aria-describedby={describedBy}
+                                aria-invalid={invalid}
+                                invalid={invalid}
+                                icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">inventory</span>}
+                                placeholder="e.g. Wireless Mouse, IT Consulting"
+                                maxLength={120}
+                                transform="words"
+                                trimOnBlur
+                                value={form.name}
+                                onChange={(e) => update('name', e.target.value)}
+                                onBlur={() => blurValidate('name')}
+                            />
+                        )}
+                    </FormField>
+
+                    <FormField label="Description">
+                        {({ id, describedBy }) => (
+                            <SmartTextarea
+                                id={id}
+                                aria-describedby={describedBy}
+                                rows={2}
+                                placeholder="Short product description..."
+                                maxLength={500}
+                                value={form.description}
+                                onChange={(e) => update('description', e.target.value)}
+                            />
+                        )}
+                    </FormField>
+
+                    <FormField label="Warranty details">
+                        {({ id, describedBy }) => (
+                            <SmartTextarea
+                                id={id}
+                                aria-describedby={describedBy}
+                                rows={2}
+                                placeholder="e.g. 1 year manufacturer warranty, replacement within 7 days..."
+                                maxLength={300}
+                                value={form.warranty}
+                                onChange={(e) => update('warranty', e.target.value)}
+                            />
+                        )}
+                    </FormField>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <FormField label="SKU code" hint={form.sku ? `${form.sku.length}/40` : 'Optional'}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">qr_code_2</span>}
+                                    placeholder="SKU-001"
+                                    maxLength={40}
+                                    trimOnBlur
+                                    className="font-mono"
+                                    value={form.sku}
+                                    onChange={(e) => update('sku', e.target.value)}
+                                    onBlur={() => blurValidate('sku')}
+                                />
+                            )}
+                        </FormField>
+                        <FormField label="HSN / SAC code">
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">tag</span>}
+                                    placeholder={form.item_type === 'service' ? 'SAC: 998314' : 'HSN: 8471'}
+                                    maxLength={12}
+                                    trimOnBlur
+                                    className="font-mono"
+                                    value={form.hsn_code}
+                                    onChange={(e) => update('hsn_code', e.target.value)}
+                                    onBlur={() => blurValidate('hsn_code')}
+                                />
+                            )}
+                        </FormField>
+                    </div>
+                </FormSection>
+
+                <FormSection
+                    title="Pricing details"
+                    description="Prices displayed on invoices, quotations, and the point of sale."
+                    icon={<span className="material-symbols-outlined text-[22px]" aria-hidden="true">payments</span>}
+                >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <FormField label="MRP" error={errors.mrp}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="999.00"
+                                    value={form.mrp}
+                                    onValueChange={(v) => updateNumber('mrp', v)}
+                                    onBlur={() => blurValidate('mrp')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField
+                            label="Selling price"
+                            required
+                            description="Including GST. The price shown to customers."
+                            error={errors.price}
+                        >
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="749.00"
+                                    value={form.price}
+                                    onValueChange={(v) => updateNumber('price', v)}
+                                    onBlur={() => blurValidate('price')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Purchase price" error={errors.purchase_price}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="500.00"
+                                    value={form.purchase_price}
+                                    onValueChange={(v) => updateNumber('purchase_price', v)}
+                                    onBlur={() => blurValidate('purchase_price')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Wholesale price" error={errors.wholesale_price}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="650.00"
+                                    value={form.wholesale_price}
+                                    onValueChange={(v) => updateNumber('wholesale_price', v)}
+                                    onBlur={() => blurValidate('wholesale_price')}
+                                />
+                            )}
+                        </FormField>
+                    </div>
+                </FormSection>
+
+                <FormSection
+                    title="Stock & tax"
+                    description="Inventory levels, GST rate, and reorder alerts."
+                    icon={<span className="material-symbols-outlined text-[22px]" aria-hidden="true">shelves</span>}
+                >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <FormField label="Stock quantity" error={errors.stock_quantity} hint="Units currently in inventory.">
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">shelves</span>}
+                                    decimals={0}
+                                    min={0}
+                                    showSteppers
+                                    placeholder="50"
+                                    value={form.stock_quantity}
+                                    onValueChange={(v) => updateNumber('stock_quantity', v)}
+                                    onBlur={() => blurValidate('stock_quantity')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Opening stock value" error={errors.opening_stock_value}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="5000.00"
+                                    value={form.opening_stock_value}
+                                    onValueChange={(v) => updateNumber('opening_stock_value', v)}
+                                    onBlur={() => blurValidate('opening_stock_value')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="GST rate (%)">
+                            {({ id, describedBy }) => (
+                                <SmartSelect
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    value={form.tax_rate}
+                                    onChange={(e) => update('tax_rate', e.target.value)}
+                                >
+                                    {taxRates.map((r) => (
+                                        <option key={r.value} value={r.value}>{r.label}</option>
+                                    ))}
+                                </SmartSelect>
+                            )}
+                        </FormField>
+
+                        <FormField label="Unit">
+                            {({ id, describedBy }) => (
+                                <div className="space-y-3">
+                                    <SmartSelect
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        value={unitSelectValue}
+                                        onChange={(e) => selectUnit(e.target.value === CUSTOM_UNIT ? '' : e.target.value)}
+                                    >
+                                        {UNIT_GROUPS.map((g) => (
+                                            <optgroup key={g.label} label={g.label}>
+                                                {g.values.map((u) => (
+                                                    <option key={u} value={u}>{u}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                        <optgroup label="Other">
+                                            <option value={CUSTOM_UNIT}>Custom…</option>
+                                        </optgroup>
+                                    </SmartSelect>
+                                    {isCustomUnit && (
+                                        <SmartInput
+                                            placeholder="Enter custom unit (e.g. sqft, metre, inch)"
+                                            value={form.unit}
+                                            onChange={(e) => {
+                                                setForm((f) => ({ ...f, unit: e.target.value }))
+                                                setDirty(true)
+                                            }}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                            {/* Low Stock Alert Toggle */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Low Stock Alert</label>
-                                <div className="flex items-center gap-3 mt-2">
+                            )}
+                        </FormField>
+
+                        <FormField label="Reorder point" description="Get alerted when stock falls to this level." error={errors.reorder_point}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">notification_important</span>}
+                                    decimals={0}
+                                    min={0}
+                                    showSteppers
+                                    placeholder="5"
+                                    value={form.reorder_point}
+                                    onValueChange={(v) => updateNumber('reorder_point', v)}
+                                    onBlur={() => blurValidate('reorder_point')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Low stock alert" description="Notify when stock drops below the reorder point.">
+                            {() => (
+                                <div className="flex items-center gap-3 mt-1">
                                     <button
                                         type="button"
-                                        onClick={() => setForm({ ...form, is_low_stock_alert: !form.is_low_stock_alert })}
+                                        role="switch"
+                                        aria-checked={form.is_low_stock_alert}
+                                        aria-label="Low stock alert"
+                                        onClick={toggleLowStockAlert}
                                         className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${form.is_low_stock_alert ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                                     >
                                         <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${form.is_low_stock_alert ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -495,90 +732,102 @@ export default function CreateProductPage() {
                                         {form.is_low_stock_alert ? 'Enabled' : 'Disabled'}
                                     </span>
                                 </div>
-                            </div>
-                        </div>
+                            )}
+                        </FormField>
                     </div>
+                </FormSection>
 
-                    {/* Barcode, Batch & Expiry */}
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
-                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-5 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[18px]">qr_code</span>
-                            Barcode, Batch & Expiry Tracking
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {/* Barcode */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Barcode</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">qr_code</span>
-                                    <input
+                <FormSection
+                    title="Barcode, batch & expiry"
+                    description="Tracking codes and dates for lot-level inventory control."
+                    icon={<span className="material-symbols-outlined text-[22px]" aria-hidden="true">qr_code</span>}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <FormField
+                            label="Barcode (EAN-13)"
+                            description="Auto-generate a valid EAN-13 code (India prefix 890) or enter your own 13-digit code."
+                            error={errors.barcode}
+                        >
+                            {({ id, describedBy, invalid }) => (
+                                <div className="flex gap-2">
+                                    <SmartInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
+                                        inputMode="numeric"
+                                        maxLength={13}
+                                        className="font-mono"
+                                        placeholder="8900000000000"
                                         value={form.barcode}
-                                        onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 font-mono"
-                                        placeholder="1234567890123"
+                                        onChange={(e) => update('barcode', e.target.value.replace(/\D/g, ''))}
+                                        onBlur={() => blurValidate('barcode')}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={handleGenerateBarcode}
+                                        aria-label="Generate a new EAN-13 barcode"
+                                        title="Generate EAN-13 barcode"
+                                        className="shrink-0 h-12 w-12 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">refresh</span>
+                                    </button>
                                 </div>
-                            </div>
-                            {/* Batch Number */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Batch Number</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">inventory_2</span>
-                                    <input
-                                        value={form.batch_number}
-                                        onChange={(e) => setForm({ ...form, batch_number: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                        placeholder="BATCH-001"
-                                    />
-                                </div>
-                            </div>
-                            {/* Manufacturing Date */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Manufacturing Date</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">calendar_month</span>
-                                    <input
-                                        type="date"
-                                        value={form.mfg_date}
-                                        onChange={(e) => setForm({ ...form, mfg_date: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100"
-                                    />
-                                </div>
-                            </div>
-                            {/* Expiry Date */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
-                                <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">event_busy</span>
-                                    <input
-                                        type="date"
-                                        value={form.expiry_date}
-                                        onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            )}
+                        </FormField>
 
-                {/* Action Footer */}
-                <div className="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                    <Link href="/dashboard/products">
-                        <button type="button" className="px-8 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white dark:hover:bg-slate-800 transition-all">
-                            Cancel
-                        </button>
-                    </Link>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-8 py-3 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">{editId ? 'verified' : 'save'}</span>
-                        {loading ? 'Processing...' : (editId ? 'Update Product' : 'Save Product')}
-                    </button>
-                </div>
+                        <FormField label="Batch number">
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">inventory_2</span>}
+                                    placeholder="BATCH-001"
+                                    maxLength={40}
+                                    trimOnBlur
+                                    value={form.batch_number}
+                                    onChange={(e) => update('batch_number', e.target.value)}
+                                    onBlur={() => blurValidate('batch_number')}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Manufacturing date">
+                            {({ id, describedBy }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    type="date"
+                                    value={form.mfg_date}
+                                    onChange={(e) => update('mfg_date', e.target.value)}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField label="Expiry date">
+                            {({ id, describedBy }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    type="date"
+                                    value={form.expiry_date}
+                                    onChange={(e) => update('expiry_date', e.target.value)}
+                                />
+                            )}
+                        </FormField>
+                    </div>
+                </FormSection>
+
+                <FormActions
+                    formId="product-form"
+                    onCancel={handleCancel}
+                    saving={loading}
+                    success={saved}
+                    dirty={dirty}
+                    saveLabel={editId ? 'Update product' : 'Save product'}
+                />
             </form>
         </div>
     )

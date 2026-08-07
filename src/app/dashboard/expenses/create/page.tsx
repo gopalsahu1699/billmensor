@@ -1,10 +1,55 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { FormSection } from '@/components/ui/form/FormSection'
+import { FormActions } from '@/components/ui/form/FormActions'
+import { SmartInput, SmartSelect, SmartNumberInput, SmartTextarea } from '@/components/ui/form/smart-inputs'
+import { validateRequired, validatePositiveNumber } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+
+interface ExpenseForm {
+    title: string
+    category: string
+    amount: string
+    expense_date: string
+    description: string
+}
+
+const DEFAULT_FORM: ExpenseForm = {
+    title: '',
+    category: '',
+    amount: '',
+    expense_date: new Date().toISOString().split('T')[0],
+    description: '',
+}
+
+const EXPENSE_CATEGORIES = [
+    'General',
+    'Rent',
+    'Salary',
+    'Utilities',
+    'Travel',
+    'Marketing',
+    'Taxes',
+    'Office Supplies',
+    'Maintenance',
+]
+
+function fieldError(key: keyof ExpenseForm, f: ExpenseForm): string | undefined {
+    if (key === 'title') {
+        return f.title.trim() ? undefined : 'Please enter the expense title.'
+    }
+    if (key === 'amount') {
+        return validateRequired(f.amount, 'amount') ?? validatePositiveNumber(f.amount, 'Amount') ?? undefined
+    }
+    return undefined
+}
 
 export default function CreateExpensePage() {
     const router = useRouter()
@@ -12,16 +57,31 @@ export default function CreateExpensePage() {
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
+    const [saved, setSaved] = useState(false)
     const [fetching, setFetching] = useState(!!editId)
-    const [form, setForm] = useState({
-        title: '',
-        category: '',
-        amount: '',
-        expense_date: new Date().toISOString().split('T')[0],
-        description: '',
-    })
+    const [form, setForm] = useState<ExpenseForm>(DEFAULT_FORM)
+    const [errors, setErrors] = useState<Partial<Record<keyof ExpenseForm, string>>>({})
+    const [dirty, setDirty] = useState(false)
+    const { confirmLeave } = useUnsavedChanges(dirty)
 
-    const fetchExpense = React.useCallback(async () => {
+    const update = (key: keyof ExpenseForm, value: string) => {
+        setForm((f) => ({ ...f, [key]: value }))
+        setDirty(true)
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const updateAmount = (value: number | undefined) => {
+        setForm((f) => ({ ...f, amount: value === undefined ? '' : String(value) }))
+        setDirty(true)
+        setErrors((e) => (e.amount ? { ...e, amount: '' } : e))
+    }
+
+    const blurValidate = (key: keyof ExpenseForm) => {
+        const msg = fieldError(key, form)
+        setErrors((e) => ({ ...e, [key]: msg ?? '' }))
+    }
+
+    const fetchExpense = useCallback(async () => {
         if (!editId) return
         try {
             const { data, error } = await supabase
@@ -39,8 +99,7 @@ export default function CreateExpensePage() {
                 description: data.description || '',
             })
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
+            toast.error(friendlyError(error))
             router.push('/dashboard/expenses')
         } finally {
             setFetching(false)
@@ -55,6 +114,17 @@ export default function CreateExpensePage() {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        const validationErrors: Partial<Record<keyof ExpenseForm, string>> = {}
+        ;(Object.keys(DEFAULT_FORM) as (keyof ExpenseForm)[]).forEach((key) => {
+            const msg = fieldError(key, form)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -80,147 +150,156 @@ export default function CreateExpensePage() {
                 if (error) throw error
                 toast.success('Expense added successfully')
             }
-            router.push('/dashboard/expenses')
+            setSaved(true)
+            setDirty(false)
+            setTimeout(() => router.push('/dashboard/expenses'), 500)
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
+            toast.error(friendlyError(error))
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleCancel = () => {
+        if (!confirmLeave()) return
+        router.push('/dashboard/expenses')
     }
 
     if (fetching) {
         return (
             <div className="max-w-3xl mx-auto py-20 flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                <p className="text-slate-500 font-medium">Loading expense details...</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading expense details...</p>
             </div>
         )
     }
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 pb-32 px-4 md:px-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/expenses">
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-                        <span className="material-symbols-outlined text-slate-400">arrow_back</span>
-                    </button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight italic uppercase">
-                        {editId ? 'Update Expense' : 'Record New Expense'}
-                    </h1>
-                    <p className="text-slate-300 dark:text-slate-300 mt-1 font-medium">
-                        {editId ? 'Modify existing spending details.' : 'Classify your spending for better tax tracking.'}
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 bg-slate-900 dark:bg-primary/5 p-6 md:p-10 rounded-[32px] text-white shadow-xl border border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" aria-hidden="true"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                    <Link href="/dashboard/expenses" aria-label="Back to expenses">
+                        <button
+                            type="button"
+                            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-white">arrow_back</span>
+                        </button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight uppercase leading-tight">
+                            {editId ? 'Update' : 'Record'} <span className="text-primary">Expense</span>
+                        </h1>
+                        <p className="text-slate-400 font-medium text-sm mt-0.5">
+                            {editId ? 'Modify existing spending details.' : 'Classify your spending for better tax tracking.'}
+                        </p>
+                    </div>
+                </div>
+                <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                    Required fields are marked with *
                 </div>
             </div>
 
-            {/* Form Card */}
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="p-8 space-y-6">
-                    {/* Title */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Title / Description *</label>
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">title</span>
-                            <input
-                                required
-                                value={form.title}
-                                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+            <form id="expense-form" onSubmit={handleSubmit} noValidate className="space-y-6">
+                <FormSection
+                    title="Expense details"
+                    description="Describe the expense, its category, and how much it cost."
+                    icon={<span className="material-symbols-outlined text-[22px]" aria-hidden="true">receipt_long</span>}
+                >
+                    <FormField label="Title / description" required error={errors.title}>
+                        {({ id, describedBy, invalid }) => (
+                            <SmartInput
+                                id={id}
+                                aria-describedby={describedBy}
+                                aria-invalid={invalid}
+                                invalid={invalid}
+                                icon={<span className="material-symbols-outlined text-[18px]" aria-hidden="true">title</span>}
                                 placeholder="e.g. Monthly Office Rent"
+                                maxLength={120}
+                                transform="words"
+                                trimOnBlur
+                                value={form.title}
+                                onChange={(e) => update('title', e.target.value)}
+                                onBlur={() => blurValidate('title')}
                             />
-                        </div>
+                        )}
+                    </FormField>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <FormField label="Category" description="Selecting a category keeps your tax grouping clean.">
+                            {({ id, describedBy }) => (
+                                <SmartSelect
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    value={form.category}
+                                    onChange={(e) => update('category', e.target.value)}
+                                >
+                                    {EXPENSE_CATEGORIES.map((c) => (
+                                        <option key={c} value={c === 'General' ? '' : c}>{c}</option>
+                                    ))}
+                                </SmartSelect>
+                            )}
+                        </FormField>
+
+                        <FormField label="Amount" required description="Include all taxes and charges." error={errors.amount}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartNumberInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    prefix="₹"
+                                    decimals={2}
+                                    min={0}
+                                    placeholder="0.00"
+                                    value={form.amount}
+                                    onValueChange={updateAmount}
+                                    onBlur={() => blurValidate('amount')}
+                                />
+                            )}
+                        </FormField>
                     </div>
 
-                    {/* Category and Amount */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Category</label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">category</span>
-                                <select
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 appearance-none"
-                                    value={form.category}
-                                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                                >
-                                    <option value="">General</option>
-                                    <option value="Rent">Rent</option>
-                                    <option value="Salary">Salary</option>
-                                    <option value="Utilities">Utilities</option>
-                                    <option value="Travel">Travel</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Taxes">Taxes</option>
-                                    <option value="Office Supplies">Office Supplies</option>
-                                    <option value="Maintenance">Maintenance</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Amount (₹) *</label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">currency_rupee</span>
-                                <input
-                                    required
-                                    type="number"
-                                    step="0.01"
-                                    value={form.amount}
-                                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                                    placeholder="0.00"
+                    <FormField label="Expense date">
+                        {({ id, describedBy }) => (
+                            <div className="max-w-xs">
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    type="date"
+                                    value={form.expense_date}
+                                    onChange={(e) => update('expense_date', e.target.value)}
                                 />
                             </div>
-                        </div>
-                    </div>
+                        )}
+                    </FormField>
 
-                    {/* Date */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Expense Date</label>
-                        <div className="relative max-w-xs">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">calendar_today</span>
-                            <input
-                                type="date"
-                                value={form.expense_date}
-                                onChange={(e) => setForm({ ...form, expense_date: e.target.value })}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest ml-1">Notes</label>
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-3 text-slate-400 text-[18px]">notes</span>
-                            <textarea
+                    <FormField label="Notes">
+                        {({ id, describedBy }) => (
+                            <SmartTextarea
+                                id={id}
+                                aria-describedby={describedBy}
                                 rows={3}
-                                value={form.description}
-                                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                maxLength={500}
                                 placeholder="Additional notes about this expense..."
+                                value={form.description}
+                                onChange={(e) => update('description', e.target.value)}
                             />
-                        </div>
-                    </div>
-                </div>
+                        )}
+                    </FormField>
+                </FormSection>
 
-                {/* Action Footer */}
-                <div className="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                    <Link href="/dashboard/expenses">
-                        <button type="button" className="px-8 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white dark:hover:bg-slate-800 transition-all">
-                            Cancel
-                        </button>
-                    </Link>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-8 py-3 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                        {loading ? 'Processing...' : (editId ? 'Update Expense' : 'Confirm Expense')}
-                    </button>
-                </div>
+                <FormActions
+                    formId="expense-form"
+                    onCancel={handleCancel}
+                    saving={loading}
+                    success={saved}
+                    dirty={dirty}
+                    saveLabel={editId ? 'Update expense' : 'Confirm expense'}
+                />
             </form>
         </div>
     )

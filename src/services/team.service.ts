@@ -99,7 +99,7 @@ export const teamService = {
                         }
                     }
                 }
-            } catch (e) {
+            } catch {
                 // staff_members table may not exist
             }
 
@@ -118,7 +118,7 @@ export const teamService = {
                         permissions: team[0].permissions
                     }
                 }
-            } catch (e) {
+            } catch {
                 // team_members table may not exist
             }
 

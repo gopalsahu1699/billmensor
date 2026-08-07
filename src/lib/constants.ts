@@ -36,3 +36,14 @@ export const INDIAN_STATES = [
     { code: '37', name: 'Andhra Pradesh' },
     { code: '38', name: 'Ladakh' },
 ]
+
+export const UNIT_GROUPS = [
+    { label: 'Quantity', values: ['pcs', 'nos', 'set', 'box', 'pair', 'dozen', 'bundle', 'pack', 'packet', 'roll', 'carton', 'strip', 'bottle', 'can', 'tin', 'tube', 'bag', 'jar', 'sheet', 'piece'] },
+    { label: 'Weight', values: ['kg', 'gm', 'g', 'mg', 'tonne', 'quintal', 'lb', 'oz'] },
+    { label: 'Volume', values: ['ltr', 'ml', 'kl', 'gallon'] },
+    { label: 'Length', values: ['mtr', 'cm', 'mm', 'inch', 'ft', 'yard', 'km'] },
+    { label: 'Area', values: ['sqft', 'sqm', 'sqyd', 'acre', 'hectare'] },
+    { label: 'Time', values: ['hrs', 'min', 'day', 'week', 'month', 'year'] },
+]
+
+export const ALL_UNITS = UNIT_GROUPS.flatMap((g) => g.values)

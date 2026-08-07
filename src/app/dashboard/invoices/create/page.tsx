@@ -1,17 +1,19 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { MdAdd, MdDelete, MdInventory, MdExpandMore, MdCheckCircle, MdRefresh } from 'react-icons/md'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { InlineAlert } from '@/components/ui/InlineAlert'
 import { invoiceService } from '@/services/invoice.service'
+import { paymentService } from '@/services/payment.service'
 import { invoiceSchema } from '@/lib/validators'
 import { INDIAN_STATES } from '@/lib/constants'
+import { UNIT_GROUPS } from '@/lib/constants'
+import { friendlyError } from '@/lib/friendly-errors'
 
 type PriceType = 'selling' | 'mrp' | 'wholesale'
 
@@ -21,6 +23,7 @@ interface InvoiceItem {
     name: string
     hsn_code: string
     quantity: number
+    unit: string
     unit_price: number
     tax_rate: number
     tax_amount: number
@@ -34,6 +37,7 @@ interface InvoiceItem {
     total: number
     image_url?: string
     description?: string
+    warranty?: string
     price_type: PriceType
     tax_method: 'inclusive' | 'exclusive'
 }
@@ -72,7 +76,16 @@ interface Product {
     hsn_code?: string;
     image_url?: string;
     description?: string;
+    warranty?: string;
+    unit?: string;
 }
+
+const PAYMENT_STATUSES = [
+    { value: 'unpaid', label: 'Unpaid', dot: 'bg-yellow-500', badge: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+    { value: 'partially_paid', label: 'Partially Paid', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { value: 'paid', label: 'Paid', dot: 'bg-green-500', badge: 'bg-green-50 text-green-700 border-green-200' },
+    { value: 'hide', label: 'Hide Status', dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-500 border-slate-200' },
+] as const
 
 function CreateInvoiceForm() {
     const router = useRouter()
@@ -101,10 +114,10 @@ function CreateInvoiceForm() {
     const [shippingGST, setShippingGST] = useState('')
     const [billingGST, setBillingGST] = useState('') // New
     const [supplyPlace, setSupplyPlace] = useState('')
-    const [existingPaymentStatus, setExistingPaymentStatus] = useState<string | null>(null)
+    const [paymentStatus, setPaymentStatus] = useState<string>('unpaid')
     const [existingStatus, setExistingStatus] = useState<string | null>(null)
-    const [existingAmountPaid, setExistingAmountPaid] = useState<number>(0)
-    const [existingBalanceAmount, setExistingBalanceAmount] = useState<number>(0)
+    const [amountPaid, setAmountPaid] = useState<number>(0)
+    const loadedAmountPaidRef = useRef(0)
 
     // Subtotals
     const [subtotal, setSubtotal] = useState(0)
@@ -121,10 +134,14 @@ function CreateInvoiceForm() {
     // Modal States
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
+    const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
+    const [submitError, setSubmitError] = useState<string[]>([])
+
+    const currentPaymentStatus = PAYMENT_STATUSES.find(s => s.value === paymentStatus) || PAYMENT_STATUSES[0]
+    const balanceAmount = Math.max(0, Number((grandTotal - amountPaid).toFixed(2)))
 
     const calculateTotals = React.useCallback(() => {
-        let baseTotal = 0
         let t = 0
         let cgst = 0
         let sgst = 0
@@ -186,7 +203,7 @@ function CreateInvoiceForm() {
             setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
-            toast.error('Failed to load data')
+            toast.error(friendlyError(error, 'Failed to load data'))
         }
     }, [])
 
@@ -211,6 +228,24 @@ function CreateInvoiceForm() {
         }
     }, [])
 
+    const generatePaymentNumber = React.useCallback(async () => {
+        const prefix = 'PMT-IN-'
+        const { data } = await supabase
+            .from('payments')
+            .select('payment_number')
+            .eq('type', 'payment_in')
+            .like('payment_number', `${prefix}%`)
+            .order('payment_number', { ascending: false })
+            .limit(1)
+
+        if (data && data.length > 0) {
+            const parts = data[0].payment_number.split('-')
+            const lastCounter = parseInt(parts[2]) || 0
+            return `${prefix}${(lastCounter + 1).toString().padStart(4, '0')}`
+        }
+        return `${prefix}0001`
+    }, [])
+
     const fetchInvoiceForEdit = React.useCallback(async () => {
         if (!editId) return
         try {
@@ -227,10 +262,10 @@ function CreateInvoiceForm() {
             setInvoiceNumber(inv.invoice_number)
             // Convert date to YYYY-MM-DD for <input type="date">
             setInvoiceDate(inv.invoice_date?.split('T')[0] || inv.invoice_date || new Date().toISOString().split('T')[0])
-            setExistingPaymentStatus(inv.payment_status || 'draft')
+            setPaymentStatus(inv.payment_status === 'draft' ? 'unpaid' : inv.payment_status || 'unpaid')
             setExistingStatus(inv.status || 'draft')
-            setExistingAmountPaid(inv.amount_paid || 0)
-            setExistingBalanceAmount(inv.balance_amount || inv.total_amount || 0)
+            setAmountPaid(inv.amount_paid || 0)
+            loadedAmountPaidRef.current = inv.amount_paid || 0
             setGeneralDiscount(inv.discount || 0)
             setGeneralDiscountType(inv.general_discount_type || 'amount')
             setRoundOff(inv.round_off || 0)
@@ -259,9 +294,16 @@ function CreateInvoiceForm() {
                 sgst: number
                 igst: number
                 discount: number
+                per_unit_discount?: number
+                discount_rate?: number
+                discount_type?: 'amount' | 'percent'
+                tax_method?: 'inclusive' | 'exclusive'
                 total: number
                 image_url?: string
                 description?: string
+                warranty?: string
+                unit?: string
+                products?: { image_url?: string }
             }
 
             const mappedItems = (inv.invoice_items as DBInvoiceItem[]).map((item) => {
@@ -271,6 +313,7 @@ function CreateInvoiceForm() {
                     name: item.name,
                     hsn_code: item.hsn_code || '',
                     quantity: item.quantity,
+                    unit: item.unit || 'pcs',
                     unit_price: item.unit_price,
                     tax_rate: item.tax_rate,
                     tax_amount: item.tax_amount,
@@ -278,14 +321,15 @@ function CreateInvoiceForm() {
                     sgst: item.sgst || 0,
                     igst: item.igst || 0,
                     discount: item.discount || 0,
-                    per_unit_discount: (item as any).per_unit_discount || (item.quantity > 0 ? (item.discount || 0) / item.quantity : 0),
-                    discount_rate: (item as any).discount_rate || 0,
-                    discount_type: (item as any).discount_type || 'amount',
+                    per_unit_discount: item.per_unit_discount || (item.quantity > 0 ? (item.discount || 0) / item.quantity : 0),
+                    discount_rate: item.discount_rate || 0,
+                    discount_type: item.discount_type || 'amount',
                     total: item.total,
-                    image_url: item.image_url || (item as any).products?.image_url || '',
+                    image_url: item.image_url || item.products?.image_url || '',
                     description: item.description || '',
+                    warranty: item.warranty || '',
                     price_type: 'selling' as PriceType,
-                    tax_method: (item as any).tax_method || 'inclusive',
+                    tax_method: item.tax_method || 'inclusive',
                 }, {})
                 return calculated
             })
@@ -293,7 +337,7 @@ function CreateInvoiceForm() {
             setItems(mappedItems)
         } catch (error: unknown) {
             console.error('Fetch invoice for edit error:', error)
-            toast.error('Failed to load invoice for editing')
+            toast.error(friendlyError(error, 'Failed to load invoice for editing'))
             router.push('/dashboard/invoices')
         } finally {
             setLoading(false)
@@ -344,6 +388,7 @@ function CreateInvoiceForm() {
             name: product.name,
             hsn_code: product.hsn_code || '',
             quantity: 1,
+            unit: product.unit || 'pcs',
             unit_price: inclusivePrice,
             tax_rate: product.tax_rate,
             tax_amount: Number(taxAmount.toFixed(2)),
@@ -357,6 +402,7 @@ function CreateInvoiceForm() {
             total: Number(inclusivePrice.toFixed(2)),
             image_url: product.image_url || '',
             description: product.description || '',
+            warranty: product.warranty || '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -370,6 +416,7 @@ function CreateInvoiceForm() {
             name: '',
             hsn_code: '',
             quantity: 1,
+            unit: 'pcs',
             unit_price: 0,
             tax_rate: 18,
             tax_amount: 0,
@@ -382,6 +429,7 @@ function CreateInvoiceForm() {
             discount_type: 'amount',
             total: 0,
             description: '',
+            warranty: '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -450,7 +498,7 @@ function CreateInvoiceForm() {
         setItems(prev => prev.map(item => {
             if (item.id !== itemId) return item
 
-            let updated = { ...item, ...updates }
+            const updated = { ...item, ...updates }
 
             // Auto-fill from product selection
             if (updates.product_id) {
@@ -461,6 +509,7 @@ function CreateInvoiceForm() {
                     updated.unit_price = product.price
                     updated.tax_rate = product.tax_rate
                     updated.image_url = product.image_url || ''
+                    updated.warranty = product.warranty || ''
                 }
             }
 
@@ -472,15 +521,21 @@ function CreateInvoiceForm() {
     }
 
     const handleSaveInvoice = async () => {
-        if (!selectedCustomerId) return toast.error('Please select a customer')
-        if (items.length === 0) return toast.error('Please add at least one item')
+        if (!selectedCustomerId) {
+            setSubmitError(['Please select a customer.'])
+            return toast.error('Please select a customer')
+        }
+        if (items.length === 0) {
+            setSubmitError(['Please add at least one item to the invoice.'])
+            return toast.error('Please add at least one item')
+        }
+        setSubmitError([])
 
         setLoading(true)
         try {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData.user) throw new Error('Not authenticated')
 
-            const customer = customers.find(c => c.id === selectedCustomerId)
             const invoicePayload = {
                 // user_id handled by service
                 customer_id: selectedCustomerId,
@@ -505,16 +560,17 @@ function CreateInvoiceForm() {
                 billing_gstin: billingGST,
                 supply_place: supplyPlace,
                 total_amount: grandTotal,
-                amount_paid: editId ? existingAmountPaid : 0,
-                balance_amount: editId ? grandTotal - (existingAmountPaid || 0) : grandTotal,
+                amount_paid: amountPaid,
+                balance_amount: balanceAmount,
                 notes,
-                payment_status: editId ? existingPaymentStatus : 'draft',
+                payment_status: paymentStatus,
                 status: editId ? existingStatus : 'draft',
                 items: items.map(item => ({
                     product_id: item.product_id || null,
                     name: item.name,
                     hsn_code: item.hsn_code || null,
                     quantity: item.quantity,
+                    unit: item.unit || 'pcs',
                     unit_price: item.unit_price,
                     tax_rate: item.tax_rate,
                     cgst: item.cgst || 0,
@@ -529,6 +585,7 @@ function CreateInvoiceForm() {
                     total: item.total,
                     image_url: item.image_url || null,
                     description: item.description || null,
+                    warranty: item.warranty || null,
                 }))
             }
 
@@ -536,19 +593,78 @@ function CreateInvoiceForm() {
             const validatedData = invoiceSchema.parse(invoicePayload)
 
             // Clean Service Layer
+            let savedInvoiceId: string | undefined
             if (editId) {
                 // @ts-expect-error: Supabase type mismatch hack for now
                 await invoiceService.update(editId, validatedData)
+                savedInvoiceId = editId
+
+                // Reverse stock decremented for the previous version
+                const { data: oldItems } = await supabase.from('invoice_items').select('*').eq('invoice_id', editId)
+                if (oldItems) {
+                    for (const item of oldItems) {
+                        if (item.product_id) {
+                            await supabase.rpc('increment_stock', { pid: item.product_id, qty: item.quantity })
+                        }
+                    }
+                }
             } else {
                 // @ts-expect-error: Supabase type mismatch hack for now
-                await invoiceService.create(validatedData)
+                const created = await invoiceService.create(validatedData)
+                savedInvoiceId = created?.id
+            }
+
+            // Decrement stock for the quantities on this invoice
+            for (const item of items) {
+                if (item.product_id) {
+                    const { error: stockError } = await supabase.rpc('decrement_stock', { pid: item.product_id, qty: item.quantity })
+                    if (stockError) throw stockError
+                }
+            }
+
+            // Sync payments-in ledger with the received amount on this invoice
+            if (savedInvoiceId && (paymentStatus === 'paid' || paymentStatus === 'partially_paid')) {
+                const delta = Number((amountPaid - loadedAmountPaidRef.current).toFixed(2))
+                if (delta > 0) {
+                    const paymentNumber = await generatePaymentNumber()
+                    await paymentService.create({
+                        customer_id: selectedCustomerId,
+                        invoice_id: savedInvoiceId,
+                        payment_number: paymentNumber,
+                        payment_date: invoiceDate,
+                        amount: delta,
+                        type: 'payment_in',
+                        payment_mode: 'cash',
+                        notes: `Payment received against invoice ${invoiceNumber}`,
+                    })
+                } else if (delta < 0) {
+                    const { data: linkedPayments } = await supabase
+                        .from('payments')
+                        .select('*')
+                        .eq('invoice_id', savedInvoiceId)
+                        .eq('type', 'payment_in')
+                        .order('created_at', { ascending: false })
+                    if (linkedPayments && linkedPayments.length > 0) {
+                        let toReduce = -delta
+                        for (const p of linkedPayments) {
+                            if (toReduce <= 0) break
+                            if ((p.amount || 0) <= toReduce) {
+                                await supabase.from('payments').delete().eq('id', p.id)
+                                toReduce -= p.amount || 0
+                            } else {
+                                await supabase.from('payments').update({ amount: (p.amount || 0) - toReduce }).eq('id', p.id)
+                                toReduce = 0
+                            }
+                        }
+                    }
+                }
             }
 
             toast.success(editId ? 'Invoice updated successfully!' : 'Invoice created successfully!')
             router.push('/dashboard/invoices')
         } catch (error: unknown) {
             console.error('Save invoice error:', error)
-            toast.error('Failed to save invoice')
+            toast.error(friendlyError(error, 'Failed to save invoice'))
         } finally {
             setLoading(false)
         }
@@ -580,6 +696,16 @@ function CreateInvoiceForm() {
                 </div>
             </div>
 
+            {submitError.length > 0 && (
+                <InlineAlert variant="error" title="Unable to save invoice">
+                    <ul className="list-disc pl-4">
+                        {submitError.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                        ))}
+                    </ul>
+                </InlineAlert>
+            )}
+
             {/* Top Grid: Details & Logistics */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
@@ -607,11 +733,84 @@ function CreateInvoiceForm() {
                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Universal Date</label>
                                 <input
                                     type="date"
+                                    aria-required="true"
                                     value={invoiceDate}
                                     onChange={(e) => setInvoiceDate(e.target.value)}
                                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold"
                                 />
                             </div>
+
+                            <div className="space-y-3 relative">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Status</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                                    aria-expanded={isStatusMenuOpen}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-left flex items-center justify-between"
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <span className={`w-3 h-3 rounded-full ${currentPaymentStatus.dot}`}></span>
+                                        <span className="text-slate-900 dark:text-slate-100 font-black uppercase tracking-tight">{currentPaymentStatus.label}</span>
+                                    </span>
+                                    <MdExpandMore size={20} className={`text-slate-400 transition-transform ${isStatusMenuOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isStatusMenuOpen && (
+                                    <>
+                                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                                            {PAYMENT_STATUSES.map(s => (
+                                                <button
+                                                    key={s.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (s.value === 'paid') setAmountPaid(grandTotal)
+                                                        if (s.value === 'unpaid') setAmountPaid(0)
+                                                        setPaymentStatus(s.value)
+                                                        setIsStatusMenuOpen(false)
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${paymentStatus === s.value
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                                                        }`}
+                                                >
+                                                    <span className={`w-3 h-3 rounded-full ${s.dot}`}></span>
+                                                    {s.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsStatusMenuOpen(false)} />
+                                    </>
+                                )}
+                            </div>
+
+                            {(paymentStatus === 'partially_paid' || paymentStatus === 'paid') && (
+                                <div className="space-y-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 p-4 animate-in fade-in duration-300">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount Received</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">₹</span>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={grandTotal}
+                                                value={amountPaid}
+                                                onChange={(e) => setAmountPaid(Math.min(Math.max(parseFloat(e.target.value) || 0, 0), grandTotal))}
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl h-11 pl-7 pr-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-black shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 pt-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Bill</span>
+                                            <span className="text-xs font-black text-slate-700 dark:text-slate-200">₹{grandTotal.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Remaining</span>
+                                            <span className={`text-xs font-black ${balanceAmount > 0 ? 'text-primary' : 'text-green-600'}`}>₹{balanceAmount.toLocaleString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -627,6 +826,7 @@ function CreateInvoiceForm() {
                             <button
                                 type="button"
                                 onClick={() => setIsCustomerModalOpen(true)}
+                                aria-label={selectedCustomerId ? 'Change customer' : 'Select customer'}
                                 className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-5 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-left flex items-center justify-between group"
                             >
                                 <div className="flex flex-col">
@@ -652,6 +852,9 @@ function CreateInvoiceForm() {
                                 searchKeys={['name', 'phone', 'email']}
                                 valueKey="id"
                                 selectedValue={selectedCustomerId}
+                                emptyMessage="No customers found"
+                                createLabel="Create new customer"
+                                onCreateNew={() => router.push('/dashboard/customers/create')}
                                 onSelect={(c) => setSelectedCustomerId(c.id)}
                                 renderItem={(c) => (
                                     <div className="flex flex-col">
@@ -797,6 +1000,7 @@ function CreateInvoiceForm() {
                         <button
                             type="button"
                             onClick={() => setShowItemDiscount(!showItemDiscount)}
+                            aria-pressed={showItemDiscount || hasAnyDiscount}
                             className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border active:scale-95 ${showItemDiscount || hasAnyDiscount ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}
                         >
                             <span className="material-symbols-outlined text-[16px]">percent</span>
@@ -900,10 +1104,25 @@ function CreateInvoiceForm() {
                                     <td className="py-6 w-24">
                                         <input
                                             type="number"
+                                            inputMode="numeric"
+                                            min={0}
                                             value={item.quantity}
                                             onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                             className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black shadow-inner"
                                         />
+                                        <select
+                                            value={item.unit || 'pcs'}
+                                            onChange={(e) => updateItem(item.id, { unit: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-1.5 px-2 mt-1 text-[9px] font-black uppercase tracking-wider text-center text-slate-500 dark:text-slate-400 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                        >
+                                            {UNIT_GROUPS.map((g) => (
+                                                <optgroup key={g.label} label={g.label}>
+                                                    {g.values.map((u) => (
+                                                        <option key={u} value={u}>{u}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
                                     </td>
                                     <td className="py-6 w-36 px-2">
                                         <div className="relative">
@@ -922,6 +1141,7 @@ function CreateInvoiceForm() {
                                                         key={m}
                                                         type="button"
                                                         onClick={() => updateItem(item.id, { tax_method: m })}
+                                                        aria-pressed={item.tax_method === m}
                                                         className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
                                                             ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -944,6 +1164,7 @@ function CreateInvoiceForm() {
                                                                 key={pt}
                                                                 type="button"
                                                                 onClick={() => changePriceType(item.id, pt)}
+                                                                aria-pressed={item.price_type === pt}
                                                                 className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
                                                                     ? 'bg-primary text-white shadow-sm'
                                                                     : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -967,6 +1188,7 @@ function CreateInvoiceForm() {
                                                             key={t}
                                                             type="button"
                                                             onClick={() => updateItem(item.id, { discount_type: t })}
+                                                            aria-pressed={item.discount_type === t}
                                                             className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${item.discount_type === t
                                                                 ? 'bg-primary text-white shadow-sm'
                                                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1020,7 +1242,7 @@ function CreateInvoiceForm() {
                                         </div>
                                     </td>
                                     <td className="py-6 text-right pl-4">
-                                        <button type="button" onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                        <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
                                             <MdDelete size={18} />
                                         </button>
                                     </td>
@@ -1075,6 +1297,7 @@ function CreateInvoiceForm() {
                                         setTaxMethod(m)
                                         setItems(prev => prev.map(item => calculateItemTotals(item, { tax_method: m })))
                                     }}
+                                    aria-pressed={taxMethod === m}
                                     className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${taxMethod === m
                                         ? 'bg-primary text-white shadow-lg'
                                         : 'text-slate-400 hover:bg-slate-700/50'
@@ -1123,6 +1346,7 @@ function CreateInvoiceForm() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}
+                                                    aria-label="Remove charge"
                                                     className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-500 transition-all"
                                                 >
                                                     <span className="material-symbols-outlined text-[14px]">delete</span>
@@ -1168,6 +1392,7 @@ function CreateInvoiceForm() {
                                                         key={t}
                                                         type="button"
                                                         onClick={() => setGeneralDiscountType(t)}
+                                                        aria-pressed={generalDiscountType === t}
                                                         className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${generalDiscountType === t
                                                             ? 'bg-primary text-white shadow-sm'
                                                             : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
@@ -1243,6 +1468,9 @@ function CreateInvoiceForm() {
                 items={products}
                 searchKeys={['name', 'sku']}
                 valueKey="id"
+                emptyMessage="No products found"
+                createLabel="Create new product"
+                onCreateNew={() => router.push('/dashboard/products/create')}
                 onSelect={(p) => {
                     if (activeItemIndex) {
                         updateItem(activeItemIndex, { product_id: p.id })

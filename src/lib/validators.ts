@@ -24,7 +24,8 @@ const itemBaseSchema = z.object({
     discount: z.number().min(0).optional(),
     total: z.number().min(0),
     image_url: z.string().optional().nullable(),
-    description: z.string().optional().nullable()
+    description: z.string().optional().nullable(),
+    warranty: z.string().optional().nullable()
 })
 
 export const invoiceSchema = z.object({

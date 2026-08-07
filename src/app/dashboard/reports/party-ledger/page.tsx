@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { MdGroup, MdCalendarToday, MdTrendingUp, MdTrendingDown, MdBalance } from 'react-icons/md'
 
 interface Party {
     id: string
@@ -176,9 +175,9 @@ export default function PartyLedgerPage() {
                 .eq('type', 'sales_return')
                 .lt('return_date', dateRange.start)
 
-            const openingBalance = (prevInvoices || []).reduce((sum: number, inv: any) => sum + (inv.total_amount || 0) - (inv.amount_paid || 0), 0)
-                - (prevPayments || []).reduce((sum: number, pay: any) => sum + (pay.amount || 0), 0)
-                + (prevReturns || []).reduce((sum: number, ret: any) => sum + (ret.total_amount || 0), 0)
+            const openingBalance = (prevInvoices || []).reduce((sum: number, inv: { total_amount?: number; amount_paid?: number }) => sum + (inv.total_amount || 0) - (inv.amount_paid || 0), 0)
+                - (prevPayments || []).reduce((sum: number, pay: { amount?: number }) => sum + (pay.amount || 0), 0)
+                + (prevReturns || []).reduce((sum: number, ret: { total_amount?: number }) => sum + (ret.total_amount || 0), 0)
 
             setEntries(allEntries)
             setSummary({

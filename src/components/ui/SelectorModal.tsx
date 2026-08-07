@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MdSearch, MdClose, MdRefresh, MdCheck } from 'react-icons/md'
+import { MdSearch, MdClose, MdCheck } from 'react-icons/md'
 import { Input } from './input'
 
 interface SelectorModalProps<T> {
@@ -16,6 +16,9 @@ interface SelectorModalProps<T> {
     placeholder?: string
     selectedValue?: string | number
     valueKey: keyof T
+    emptyMessage?: string
+    createLabel?: string
+    onCreateNew?: () => void
 }
 
 export function SelectorModal<T>({
@@ -28,44 +31,64 @@ export function SelectorModal<T>({
     renderItem,
     placeholder = "Search...",
     selectedValue,
-    valueKey
+    valueKey,
+    emptyMessage = "No results found",
+    createLabel,
+    onCreateNew
 }: SelectorModalProps<T>) {
     const [search, setSearch] = useState('')
-    const [filteredItems, setFilteredItems] = useState<T[]>(items)
     const inputRef = useRef<HTMLInputElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        if (isOpen) {
-            setSearch('')
-            setFilteredItems(items)
-            setTimeout(() => inputRef.current?.focus(), 100)
-        }
-    }, [isOpen, items])
-
-    useEffect(() => {
-        const query = search.toLowerCase()
-        if (!query) {
-            setFilteredItems(items)
-            return
-        }
-
-        const filtered = items.filter(item => {
+    const filteredItems = useMemo(() => {
+        const query = search.trim().toLowerCase()
+        if (!query) return items
+        return items.filter(item => {
             return searchKeys.some(key => {
                 const val = item[key]
                 return val && String(val).toLowerCase().includes(query)
             })
         })
-        setFilteredItems(filtered)
     }, [search, items, searchKeys])
 
-    // Close on Escape
+    // Focus the search input when the modal opens
     useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose()
+        if (isOpen) {
+            const timer = setTimeout(() => inputRef.current?.focus(), 100)
+            return () => clearTimeout(timer)
         }
-        window.addEventListener('keydown', handleEsc)
-        return () => window.removeEventListener('keydown', handleEsc)
-    }, [onClose])
+    }, [isOpen])
+
+    // Close on Escape and trap focus
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose()
+            if (e.key === 'Tab') {
+                const focusable = containerRef.current?.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                )
+                if (!focusable || focusable.length === 0) return
+                const first = focusable[0]
+                const last = focusable[focusable.length - 1]
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault()
+                    last.focus()
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault()
+                    first.focus()
+                }
+            }
+        }
+
+        const previousFocus = document.activeElement as HTMLElement | null
+        window.addEventListener('keydown', handleKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            previousFocus?.focus()
+        }
+    }, [isOpen, onClose])
 
     return (
         <AnimatePresence>
@@ -82,6 +105,10 @@ export function SelectorModal<T>({
 
                     {/* Modal Content */}
                     <motion.div
+                        ref={containerRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={title}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -91,6 +118,7 @@ export function SelectorModal<T>({
                             <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase italic tracking-tight">{title}</h3>
                             <button
                                 onClick={onClose}
+                                aria-label="Close dialog"
                                 className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 transition-colors"
                             >
                                 <MdClose size={20} />
@@ -103,6 +131,7 @@ export function SelectorModal<T>({
                                 <Input
                                     ref={inputRef}
                                     placeholder={placeholder}
+                                    aria-label={placeholder}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-12 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border-none ring-offset-transparent focus-visible:ring-2 focus-visible:ring-blue-500/20 transition-all font-medium"
@@ -137,8 +166,23 @@ export function SelectorModal<T>({
                                         )
                                     })
                                 ) : (
-                                    <div className="py-12 text-center text-slate-400 font-medium">
-                                        No results found for &quot;{search}&quot;
+                                    <div className="py-10 text-center space-y-4">
+                                        <p className="text-slate-400 dark:text-slate-500 font-medium">
+                                            {search.trim() ? `No results found for "${search}"` : emptyMessage}
+                                        </p>
+                                        {onCreateNew && createLabel && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onCreateNew()
+                                                    onClose()
+                                                }}
+                                                className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-primary text-white text-sm font-black hover:bg-primary/90 transition-colors"
+                                            >
+                                                <span aria-hidden="true">+</span>
+                                                {createLabel}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

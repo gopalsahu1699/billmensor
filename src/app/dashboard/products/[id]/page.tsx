@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { IoArrowBack, IoCube, IoTime, IoSync, IoCreate, IoTrash, IoCalendar, IoPricetag, IoCash, IoWarning, IoCheckmarkCircle } from 'react-icons/io5'
+import { IoTime, IoWarning } from 'react-icons/io5'
 import { MdScale, MdRefresh, MdArrowBack, MdEdit } from 'react-icons/md'
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa'
 
@@ -23,10 +23,24 @@ interface LedgerEntry {
     link?: string
 }
 
+interface ProductRecord {
+    id: string
+    name: string
+    category?: string
+    stock_quantity: number
+    unit?: string
+    sku?: string
+    hsn_code?: string
+    price?: number
+    purchase_price?: number
+    opening_stock_value?: number
+    min_stock_level?: number
+}
+
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const router = useRouter()
-    const [product, setProduct] = useState<any | null>(null)
+    const [product, setProduct] = useState<ProductRecord | null>(null)
     const [ledger, setLedger] = useState<LedgerEntry[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -151,8 +165,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             setLedger(sorted.reverse()) // Latest first in display
 
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
             router.push('/dashboard/products')
         } finally {
             setLoading(false)

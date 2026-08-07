@@ -19,8 +19,7 @@ import {
     MdCalendarToday,
 } from "react-icons/md";
 
-const PLAN_TYPES = ["free", "monthly", "yearly", "lifetime"] as const;
-type PlanType = (typeof PLAN_TYPES)[number];
+type PlanType = "free" | "monthly" | "yearly" | "lifetime";
 
 function getAdminAuthHeader(): string {
     const username = sessionStorage.getItem("admin_user") || "";

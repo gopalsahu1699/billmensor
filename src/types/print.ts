@@ -39,6 +39,7 @@ export interface Item {
     name?: string
     hsn_code?: string
     quantity: number
+    unit?: string
     unit_price?: number
     rate?: number
     tax_rate?: number
@@ -50,6 +51,7 @@ export interface Item {
     image_url?: string
     product_id?: string
     description?: string
+    warranty?: string
     price_type?: 'selling' | 'mrp' | 'wholesale'
 }
 
@@ -61,7 +63,7 @@ export interface InvoiceData {
     invoice_date?: string
     quotation_number?: string
     quotation_date?: string
-    payment_status?: 'paid' | 'unpaid' | 'partially_paid' | 'overdue'
+    payment_status?: 'paid' | 'unpaid' | 'partially_paid' | 'hide' | 'overdue' | 'draft'
     subtotal: number
     tax_total?: number
     gst_amount?: number

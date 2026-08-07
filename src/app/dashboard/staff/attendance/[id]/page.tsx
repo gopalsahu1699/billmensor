@@ -1,24 +1,19 @@
 'use client'
 
 import { useState, useEffect, use, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import {
     MdArrowBack,
-    MdCalendarMonth,
     MdCheckCircle,
     MdCancel,
     MdAccessTime,
     MdEventAvailable,
     MdRefresh,
-    MdChevronLeft,
-    MdChevronRight,
     MdDownload,
     MdShare
 } from 'react-icons/md'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 
 interface StaffMember {
     id: string

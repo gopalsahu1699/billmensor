@@ -28,17 +28,9 @@ interface TallyLedger {
 
 function formatTallyDate(dateStr: string): string {
     const d = new Date(dateStr)
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const day = d.getDate().toString().padStart(2, '0')
-    const month = months[d.getMonth()]
     const year = d.getFullYear()
     return `${year}${(d.getMonth() + 1).toString().padStart(2, '0')}${day}`
-}
-
-function formatDisplayDate(dateStr: string): string {
-    const d = new Date(dateStr)
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    return `${d.getDate()}-${months[d.getMonth()]}-${d.getFullYear()}`
 }
 
 function escapeXml(str: string): string {
@@ -69,7 +61,6 @@ function generateLedgerXml(ledgers: TallyLedger[]): string {
 function generateVoucherXml(vouchers: TallyVoucher[]): string {
     return vouchers.map(v => {
         const tallyDate = formatTallyDate(v.date)
-        const displayDate = formatDisplayDate(v.date)
         const netAmount = v.amount - v.gstAmount
 
         return `

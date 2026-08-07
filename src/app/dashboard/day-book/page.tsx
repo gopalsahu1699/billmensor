@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { MdCalendarToday, MdReceipt, MdPayment, MdAccountBalance, MdTrendingUp, MdTrendingDown } from 'react-icons/md'
+import { MdCalendarToday, MdReceipt, MdAccountBalance, MdTrendingUp, MdTrendingDown } from 'react-icons/md'
 
 interface Transaction {
     id: string
@@ -42,9 +42,6 @@ export default function DayBookPage() {
             if (!userData.user) throw new Error('Not authenticated')
             const uid = userData.user.id
 
-            const startOfDay = `${selectedDate}T00:00:00`
-            const endOfDay = `${selectedDate}T23:59:59`
-
             const [invoicesRes, paymentsInRes, paymentsOutRes, expensesRes] = await Promise.all([
                 supabase.from('invoices')
                     .select('id, invoice_number, invoice_date, total_amount, customers(name)')
@@ -81,7 +78,7 @@ export default function DayBookPage() {
                     description: `Invoice ${inv.invoice_number}`,
                     amount: inv.total_amount || 0,
                     reference: inv.invoice_number,
-                    party: (inv.customers as any)?.name || 'Walk-in'
+                    party: (inv.customers as unknown as { name?: string } | null)?.name || 'Walk-in'
                 })
             })
 
@@ -94,7 +91,7 @@ export default function DayBookPage() {
                     description: `Payment received - ${pay.payment_number}`,
                     amount: pay.amount || 0,
                     reference: pay.payment_number,
-                    party: (pay.customers as any)?.name || 'Walk-in'
+                    party: (pay.customers as unknown as { name?: string } | null)?.name || 'Walk-in'
                 })
             })
 
@@ -107,7 +104,7 @@ export default function DayBookPage() {
                     description: `Payment made - ${pay.payment_number}`,
                     amount: pay.amount || 0,
                     reference: pay.payment_number,
-                    party: (pay.customers as any)?.name || 'Supplier'
+                    party: (pay.customers as unknown as { name?: string } | null)?.name || 'Supplier'
                 })
             })
 
@@ -147,7 +144,7 @@ export default function DayBookPage() {
                 .eq('user_id', uid)
                 .lte('payment_date', prevDateStr)
 
-            const openingBalance = (prevPayments || []).reduce((sum: number, p: any) => {
+            const openingBalance = (prevPayments || []).reduce((sum: number, p) => {
                 if (p.type === 'payment_in') return sum + (p.amount || 0)
                 if (p.type === 'payment_out') return sum - (p.amount || 0)
                 return sum

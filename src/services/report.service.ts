@@ -19,8 +19,46 @@ interface ProfitLossData {
     netProfit: number
 }
 
+interface GSTR2Data {
+    period: string
+    invoices: Record<string, unknown>[]
+    summary: {
+        totalTaxableValue: number
+        totalCGST: number
+        totalSGST: number
+        totalIGST: number
+        totalTax: number
+        totalAmount: number
+    }
+}
+
+interface GSTR4Data {
+    period: string
+    invoices: Record<string, unknown>[]
+    purchases: Record<string, unknown>[]
+    summary: {
+        totalSales: number
+        totalPurchases: number
+    }
+}
+
+interface GSTR9Data {
+    financialYear: string
+    invoices: Record<string, unknown>[]
+    purchases: Record<string, unknown>[]
+    expenses: Record<string, unknown>[]
+    summary: {
+        totalSales: number
+        totalPurchases: number
+        totalExpenses: number
+        totalTaxCollected: number
+        totalTaxPaid: number
+        netTaxLiability: number
+    }
+}
+
 export const reportService = {
-    async getBalanceSheet(startDate?: string, endDate?: string): Promise<BalanceSheetData> {
+    async getBalanceSheet(): Promise<BalanceSheetData> {
         const { data: session } = await supabase.auth.getSession()
         if (!session.session?.user) throw new Error("Unauthorized")
 
@@ -84,7 +122,7 @@ export const reportService = {
         }
     },
 
-    async getProfitLoss(startDate?: string, endDate?: string): Promise<ProfitLossData> {
+    async getProfitLoss(): Promise<ProfitLossData> {
         const { data: session } = await supabase.auth.getSession()
         if (!session.session?.user) throw new Error("Unauthorized")
 
@@ -130,7 +168,7 @@ export const reportService = {
         }
     },
 
-    async getGSTR2(month: number, year: number): Promise<any> {
+    async getGSTR2(month: number, year: number): Promise<GSTR2Data> {
         const { data: session } = await supabase.auth.getSession()
         if (!session.session?.user) throw new Error("Unauthorized")
 
@@ -166,7 +204,7 @@ export const reportService = {
         }
     },
 
-    async getGSTR4(quarter: number, year: number): Promise<any> {
+    async getGSTR4(quarter: number, year: number): Promise<GSTR4Data> {
         const { data: session } = await supabase.auth.getSession()
         if (!session.session?.user) throw new Error("Unauthorized")
 
@@ -195,7 +233,7 @@ export const reportService = {
         }
     },
 
-    async getGSTR9(year: number): Promise<any> {
+    async getGSTR9(year: number): Promise<GSTR9Data> {
         const { data: session } = await supabase.auth.getSession()
         if (!session.session?.user) throw new Error("Unauthorized")
 

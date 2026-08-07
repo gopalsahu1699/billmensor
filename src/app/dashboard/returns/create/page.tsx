@@ -5,13 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { IoMdAdd, IoMdTrash, IoMdArrowDropdown, IoMdCube, IoMdCheckmarkCircle, IoMdRefresh } from 'react-icons/io'
+import { IoMdAdd, IoMdTrash, IoMdCube, IoMdCheckmarkCircle, IoMdRefresh } from 'react-icons/io'
 import { IoChevronDown } from 'react-icons/io5'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { InlineAlert } from '@/components/ui/InlineAlert'
 import { returnService } from '@/services/return.service'
 import { returnSchema } from '@/lib/validators'
+import { friendlyError } from '@/lib/friendly-errors'
 
 
 interface Customer {
@@ -81,6 +83,7 @@ function CreateReturnForm() {
     const [isPartyModalOpen, setIsPartyModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
+    const [submitError, setSubmitError] = useState<string[]>([])
 
     const calculateTotals = React.useCallback(() => {
         let taxableTotal = 0
@@ -129,7 +132,7 @@ function CreateReturnForm() {
             setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
-            toast.error('Failed to load data')
+            toast.error(friendlyError(error, 'Failed to load data'))
         }
     }, [type])
 
@@ -166,7 +169,7 @@ function CreateReturnForm() {
             setReturnNumber(ret.return_number)
             setReturnDate(ret.return_date)
 
-            const mappedItems = ret.return_items.map((item: any) => ({
+            const mappedItems = ret.return_items.map((item: ReturnItem & { products?: { image_url?: string } | null }) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
@@ -179,7 +182,7 @@ function CreateReturnForm() {
                 tax_amount: item.tax_amount,
                 discount: item.discount || 0,
                 total: item.total,
-                image_url: item.image_url || (item as any).products?.image_url || '',
+                image_url: item.image_url || item.products?.image_url || '',
                 description: item.description || ''
             }))
             setItems(mappedItems)
@@ -187,7 +190,7 @@ function CreateReturnForm() {
             setRoundOff(ret.round_off || 0)
         } catch (error: unknown) {
             console.error('Fetch return for edit error:', error)
-            toast.error('Failed to load return for editing')
+            toast.error(friendlyError(error, 'Failed to load return for editing'))
             router.push('/dashboard/returns')
         } finally {
             setLoading(false)
@@ -267,8 +270,15 @@ function CreateReturnForm() {
     const removeItem = (itemId: string) => setItems(items.filter(item => item.id !== itemId))
 
     const handleSaveReturn = async () => {
-        if (!selectedPartyId) return toast.error('Please select a party')
-        if (items.length === 0) return toast.error('Please add at least one item')
+        if (!selectedPartyId) {
+            setSubmitError(['Please select a party.'])
+            return toast.error('Please select a party')
+        }
+        if (items.length === 0) {
+            setSubmitError(['Please add at least one item to the return.'])
+            return toast.error('Please add at least one item')
+        }
+        setSubmitError([])
 
         setLoading(true)
         try {
@@ -320,13 +330,11 @@ function CreateReturnForm() {
                 if (oldItems) {
                     for (const item of oldItems) {
                         if (item.product_id) {
-                            const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).single()
-                            if (prod) {
-                                // Revert previous impact
-                                const revertedQty = type === 'sales_return'
-                                    ? (prod.stock_quantity || 0) - item.quantity // Was increased, now decrease
-                                    : (prod.stock_quantity || 0) + item.quantity; // Was decreased, now increase
-                                await supabase.from('products').update({ stock_quantity: revertedQty }).eq('id', item.product_id)
+                            // Revert previous impact
+                            if (type === 'sales_return') {
+                                await supabase.rpc('decrement_stock', { pid: item.product_id, qty: item.quantity })
+                            } else {
+                                await supabase.rpc('increment_stock', { pid: item.product_id, qty: item.quantity })
                             }
                         }
                     }
@@ -342,13 +350,11 @@ function CreateReturnForm() {
             // Stock update logic
             for (const item of items) {
                 if (item.product_id) {
-                    const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).single()
-                    if (prod) {
-                        const newQty = type === 'sales_return'
-                            ? (prod.stock_quantity || 0) + item.quantity  // Customers returning = more stock
-                            : (prod.stock_quantity || 0) - item.quantity; // You returning to supplier = less stock
-
-                        await supabase.from('products').update({ stock_quantity: newQty }).eq('id', item.product_id)
+                    // Customers returning = more stock; returning to supplier = less stock
+                    if (type === 'sales_return') {
+                        await supabase.rpc('increment_stock', { pid: item.product_id, qty: item.quantity })
+                    } else {
+                        await supabase.rpc('decrement_stock', { pid: item.product_id, qty: item.quantity })
                     }
                 }
             }
@@ -356,8 +362,7 @@ function CreateReturnForm() {
             toast.success(editId ? 'Return updated successfully!' : 'Return recorded successfully!')
             router.push('/dashboard/returns')
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
+            toast.error(friendlyError(error, 'Failed to save return'))
         } finally {
             setLoading(false)
         }
@@ -389,6 +394,16 @@ function CreateReturnForm() {
                 </div>
             </div>
 
+            {submitError.length > 0 && (
+                <InlineAlert variant="error" title="Unable to save return">
+                    <ul className="list-disc pl-4">
+                        {submitError.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                        ))}
+                    </ul>
+                </InlineAlert>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
@@ -399,6 +414,7 @@ function CreateReturnForm() {
                                 <button
                                     type="button"
                                     onClick={() => setIsPartyModalOpen(true)}
+                                    aria-label={selectedPartyId ? 'Change party' : 'Select party'}
                                     className="w-full bg-white border border-slate-200 rounded-md px-3 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-left flex items-center justify-between transition-all"
                                 >
                                     <span className={selectedPartyId ? "text-slate-900 font-bold uppercase tracking-tight" : "text-slate-400"}>
@@ -417,6 +433,9 @@ function CreateReturnForm() {
                                     searchKeys={['name', 'phone', 'email']}
                                     valueKey="id"
                                     selectedValue={selectedPartyId}
+                                    emptyMessage={`No ${type === 'sales_return' ? 'customers' : 'suppliers'} found`}
+                                    createLabel={`Create new ${type === 'sales_return' ? 'customer' : 'supplier'}`}
+                                    onCreateNew={() => router.push('/dashboard/customers/create')}
                                     onSelect={(p) => setSelectedPartyId(p.id)}
                                     renderItem={(p) => (
                                         <div className="flex flex-col">
@@ -433,7 +452,7 @@ function CreateReturnForm() {
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-sm font-medium text-slate-700">Date</label>
-                                    <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
+                                    <Input type="date" aria-required="true" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
                                 </div>
                             </div>
                         </CardContent>
@@ -505,6 +524,8 @@ function CreateReturnForm() {
                                                 <td className="py-4 w-24">
                                                     <input
                                                         type="number"
+                                                        inputMode="numeric"
+                                                        min={0}
                                                         value={item.quantity}
                                                         onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                                         className="w-full bg-slate-50 border-none rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900"
@@ -541,7 +562,7 @@ function CreateReturnForm() {
                                                     </div>
                                                 </td>
                                                 <td className="py-4 text-right pl-4">
-                                                    <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                                    <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
                                                         <IoMdTrash size={18} />
                                                     </button>
                                                 </td>
@@ -605,6 +626,9 @@ function CreateReturnForm() {
                     searchKeys={['name', 'sku']}
                     valueKey="id"
                     selectedValue={activeItemIndex ? items.find(i => i.id === activeItemIndex)?.product_id : ''}
+                    emptyMessage="No products found"
+                    createLabel="Create new product"
+                    onCreateNew={() => router.push('/dashboard/products/create')}
                     onSelect={(p) => {
                         if (activeItemIndex) {
                             updateItem(activeItemIndex, { product_id: p.id })

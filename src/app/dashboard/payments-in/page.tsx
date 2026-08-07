@@ -63,6 +63,7 @@ export default function PaymentInPage() {
                             <tr className="bg-slate-50/50 dark:bg-slate-800/30">
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">Receipt Details</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">Customer</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">Against Bill</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">Amount</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 text-right">Actions</th>
                             </tr>
@@ -89,6 +90,36 @@ export default function PaymentInPage() {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
+                                        {pmt.invoices ? (
+                                            <div className="flex flex-col gap-1.5">
+                                                <p className="text-sm font-black text-blue-600 dark:text-blue-400 leading-tight group-hover:underline">{pmt.invoices.invoice_number}</p>
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    {pmt.invoices.payment_status === 'paid' && (
+                                                        <>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-green-50 text-green-700 border border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/30">Paid</span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Received ₹{(pmt.invoices.amount_paid || 0).toLocaleString('en-IN')}</span>
+                                                        </>
+                                                    )}
+                                                    {pmt.invoices.payment_status === 'partially_paid' && (
+                                                        <>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/30">Partially Paid</span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Recv ₹{(pmt.invoices.amount_paid || 0).toLocaleString('en-IN')}</span>
+                                                            <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold">Balance ₹{(pmt.invoices.balance_amount || 0).toLocaleString('en-IN')}</span>
+                                                        </>
+                                                    )}
+                                                    {pmt.invoices.payment_status !== 'paid' && pmt.invoices.payment_status !== 'partially_paid' && pmt.invoices.payment_status !== 'hide' && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/30">Unpaid</span>
+                                                    )}
+                                                    {pmt.invoices.payment_status === 'hide' && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">Hidden</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-8 py-6">
                                         <div className="flex flex-col">
                                             <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight">₹ {pmt.amount.toLocaleString('en-IN')}</span>
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">
@@ -110,7 +141,7 @@ export default function PaymentInPage() {
                             ))}
                             {filteredPayments.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={4} className="px-8 py-32 text-center text-slate-400 italic">
+                                    <td colSpan={5} className="px-8 py-32 text-center text-slate-400 italic">
                                         <div className="flex flex-col items-center gap-4">
                                             <IoWallet size={48} className="text-slate-200 dark:text-slate-800" strokeWidth={1} />
                                             <p className="text-sm font-medium">No payment records found. Keep track of your customer receipts here.</p>

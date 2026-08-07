@@ -6,10 +6,13 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
-import { MdChevronRight, MdAdd, MdDelete, MdExpandMore, MdInventory } from 'react-icons/md'
+import { InlineAlert } from '@/components/ui/InlineAlert'
+import { MdAdd, MdDelete, MdExpandMore, MdInventory } from 'react-icons/md'
 import { quotationService } from '@/services/quotation.service'
 import { quotationSchema } from '@/lib/validators'
 import { INDIAN_STATES } from '@/lib/constants'
+import { UNIT_GROUPS } from '@/lib/constants'
+import { friendlyError } from '@/lib/friendly-errors'
 
 type PriceType = 'selling' | 'mrp' | 'wholesale'
 
@@ -19,6 +22,7 @@ interface QuotationItem {
     name: string
     hsn_code: string
     quantity: number
+    unit: string
     unit_price: number
     tax_rate: number
     tax_amount: number
@@ -32,6 +36,7 @@ interface QuotationItem {
     total: number
     image_url?: string
     description?: string
+    warranty?: string
     price_type: PriceType
     tax_method: 'inclusive' | 'exclusive'
 }
@@ -39,6 +44,31 @@ interface QuotationItem {
 interface CustomCharge {
     name: string
     amount: number
+}
+
+interface DBQuotationItem {
+    id: string
+    product_id?: string
+    name: string
+    hsn_code?: string
+    quantity: number
+    unit_price: number
+    tax_rate: number
+    tax_amount: number
+    cgst?: number
+    sgst?: number
+    igst?: number
+    discount?: number
+    per_unit_discount?: number
+    discount_rate?: number
+    discount_type?: 'amount' | 'percent'
+    total: number
+    image_url?: string
+    description?: string
+    warranty?: string
+    unit?: string
+    tax_method?: 'inclusive' | 'exclusive'
+    products?: { image_url?: string }
 }
 
 interface Customer {
@@ -68,6 +98,8 @@ interface Product {
     hsn_code?: string;
     image_url?: string;
     description?: string;
+    warranty?: string;
+    unit?: string;
 }
 
 function CreateQuotationForm() {
@@ -107,6 +139,7 @@ function CreateQuotationForm() {
     const [igstTotal, setIgstTotal] = useState(0)
     const [taxMethod, setTaxMethod] = useState<'inclusive' | 'exclusive'>('inclusive')
     const [grandTotal, setGrandTotal] = useState(0)
+    const [showGST, setShowGST] = useState(true)
     const [showItemDiscount, setShowItemDiscount] = useState(false)
     const [generalDiscountType, setGeneralDiscountType] = useState<'amount' | 'percent'>('amount')
     const hasAnyDiscount = items.some(item => (item.discount || 0) > 0 || (item.discount_rate || 0) > 0)
@@ -115,15 +148,16 @@ function CreateQuotationForm() {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
+    const [submitError, setSubmitError] = useState<string[]>([])
 
     const calculateTotals = React.useCallback(() => {
-        let baseTotal = 0
         let t = 0
         let cgst = 0
         let sgst = 0
         let igst = 0
 
         items.forEach(item => {
+            if (!showGST) return
             t += item.tax_amount
             cgst += item.cgst || 0
             sgst += item.sgst || 0
@@ -142,15 +176,17 @@ function CreateQuotationForm() {
             }
         }, 0)
 
-        setSubtotal(Number(itemsBaseTotal.toFixed(2)))
+        const itemsGrossTotal = items.reduce((sum, item) => sum + item.total, 0)
+
+        // Without GST the line totals ARE the amounts (no tax added), so subtotal == line totals
+        setSubtotal(Number((showGST ? itemsBaseTotal : itemsGrossTotal).toFixed(2)))
         setTaxTotal(Number(t.toFixed(2)))
         setCgstTotal(cgst)
         setSgstTotal(sgst)
         setIgstTotal(igst)
 
-        // Grand Total = Sum of inclusive line totals + Charges - Discount + Round Off
-        const itemsTotal = items.reduce((acc, item) => acc + item.total, 0)
-        const totalBeforeCharges = itemsTotal + transportCharges + installationCharges + customTotal
+        // Grand Total = Sum of line totals + Charges - Discount + Round Off
+        const totalBeforeCharges = itemsGrossTotal + transportCharges + installationCharges + customTotal
 
         let finalDiscount = discount
         if (generalDiscountType === 'percent') {
@@ -158,11 +194,23 @@ function CreateQuotationForm() {
         }
 
         setGrandTotal(Number((totalBeforeCharges - finalDiscount + roundOff).toFixed(2)))
-    }, [items, transportCharges, installationCharges, customCharges, discount, generalDiscountType, roundOff])
+    }, [items, showGST, transportCharges, installationCharges, customCharges, discount, generalDiscountType, roundOff])
 
     useEffect(() => {
         calculateTotals()
     }, [calculateTotals])
+
+    const handleToggleGST = () => {
+        const next = !showGST
+        if (next) {
+            setItems(prev => prev.map(item =>
+                item.tax_rate > 0
+                    ? item
+                    : calculateItemTotals(item, { tax_rate: 18 })
+            ))
+        }
+        setShowGST(next)
+    }
 
     const fetchInitialData = React.useCallback(async () => {
         try {
@@ -179,7 +227,7 @@ function CreateQuotationForm() {
             setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
-            toast.error('Failed to load data')
+            toast.error(friendlyError(error, 'Failed to load data'))
         }
     }, [])
 
@@ -235,12 +283,13 @@ function CreateQuotationForm() {
             setBillingGST(quo.billing_gstin || '')
             setSupplyPlace(quo.supply_place || '')
 
-            const mappedItems = quo.quotation_items.map((item: any) => ({
+            const mappedItems: QuotationItem[] = quo.quotation_items.map((item: DBQuotationItem) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
                 hsn_code: item.hsn_code || '',
                 quantity: item.quantity,
+                unit: item.unit || 'pcs',
                 unit_price: item.unit_price,
                 tax_rate: item.tax_rate,
                 tax_amount: item.tax_amount,
@@ -248,20 +297,28 @@ function CreateQuotationForm() {
                 sgst: item.sgst || 0,
                 igst: item.igst || 0,
                 discount: item.discount || 0,
-                per_unit_discount: (item as any).per_unit_discount || (item.quantity > 0 ? (item.discount || 0) / item.quantity : 0),
-                discount_rate: (item as any).discount_rate || 0,
-                discount_type: (item as any).discount_type || 'amount',
+                per_unit_discount: item.per_unit_discount || (item.quantity > 0 ? (item.discount || 0) / item.quantity : 0),
+                discount_rate: item.discount_rate || 0,
+                discount_type: item.discount_type || 'amount',
                 total: item.total,
-                image_url: item.image_url || (item as any).products?.image_url || '',
+                image_url: item.image_url || item.products?.image_url || '',
                 description: item.description || '',
+                warranty: item.warranty || '',
                 price_type: 'selling' as PriceType,
                 tax_method: item.tax_method || 'inclusive',
             }))
 
             setItems(mappedItems)
+
+            const hasGST = Number(quo.tax_total || 0) > 0
+                || Number(quo.cgst_total || 0) > 0
+                || Number(quo.sgst_total || 0) > 0
+                || Number(quo.igst_total || 0) > 0
+                || mappedItems.some(item => item.tax_rate > 0 || item.tax_amount > 0)
+            setShowGST(hasGST)
         } catch (error: unknown) {
             console.error('Fetch quotation for edit error:', error)
-            toast.error('Failed to load quotation for editing')
+            toast.error(friendlyError(error, 'Failed to load quotation for editing'))
             router.push('/dashboard/quotations')
         } finally {
             setLoading(false)
@@ -312,6 +369,7 @@ function CreateQuotationForm() {
             name: product.name,
             hsn_code: product.hsn_code || '',
             quantity: 1,
+            unit: product.unit || 'pcs',
             unit_price: inclusivePrice,
             tax_rate: product.tax_rate,
             tax_amount: Number(taxAmount.toFixed(2)),
@@ -325,6 +383,7 @@ function CreateQuotationForm() {
             total: Number(inclusivePrice.toFixed(2)),
             image_url: product.image_url || '',
             description: product.description || '',
+            warranty: product.warranty || '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -338,6 +397,7 @@ function CreateQuotationForm() {
             name: '',
             hsn_code: '',
             quantity: 1,
+            unit: 'pcs',
             unit_price: 0,
             tax_rate: 18,
             tax_amount: 0,
@@ -350,6 +410,7 @@ function CreateQuotationForm() {
             discount_type: 'amount',
             total: 0,
             description: '',
+            warranty: '',
             price_type: 'selling',
             tax_method: taxMethod
         }
@@ -417,7 +478,7 @@ function CreateQuotationForm() {
         setItems(prev => prev.map(item => {
             if (item.id !== itemId) return item
 
-            let updated = { ...item, ...updates }
+            const updated = { ...item, ...updates }
 
             // Auto-fill from product selection
             if (updates.product_id) {
@@ -428,6 +489,7 @@ function CreateQuotationForm() {
                     updated.unit_price = product.price
                     updated.tax_rate = product.tax_rate
                     updated.image_url = product.image_url || ''
+                    updated.warranty = product.warranty || ''
                 }
             }
 
@@ -440,8 +502,15 @@ function CreateQuotationForm() {
     }
 
     const handleSaveQuotation = async () => {
-        if (!selectedCustomerId) return toast.error('Please select a customer')
-        if (items.length === 0) return toast.error('Please add at least one item')
+        if (!selectedCustomerId) {
+            setSubmitError(['Please select a customer.'])
+            return toast.error('Please select a customer')
+        }
+        if (items.length === 0) {
+            setSubmitError(['Please add at least one item to the quotation.'])
+            return toast.error('Please add at least one item')
+        }
+        setSubmitError([])
 
         setLoading(true)
         try {
@@ -449,23 +518,22 @@ function CreateQuotationForm() {
             if (!userData.user) throw new Error('Not authenticated')
 
             // 1. Prepare Payload
-            const customer = customers.find(c => c.id === selectedCustomerId)
             const quotationPayload = {
                 customer_id: selectedCustomerId,
                 quotation_number: quotationNumber,
                 quotation_date: quotationDate,
                 expiry_date: validUntil || null,
                 subtotal,
-                tax_total: taxTotal,
-                cgst_total: cgstTotal,
-                sgst_total: sgstTotal,
-                igst_total: igstTotal,
+                tax_total: showGST ? taxTotal : 0,
+                cgst_total: showGST ? cgstTotal : 0,
+                sgst_total: showGST ? sgstTotal : 0,
+                igst_total: showGST ? igstTotal : 0,
                 billing_address: billingAddress,
                 shipping_address: shippingAddress,
                 billing_phone: billingPhone,
                 shipping_phone: shippingPhone,
-                shipping_gstin: shippingGST,
-                billing_gstin: billingGST,
+                shipping_gstin: showGST ? shippingGST : '',
+                billing_gstin: showGST ? billingGST : '',
                 supply_place: supplyPlace,
                 total_amount: grandTotal,
                 discount: discount,
@@ -481,12 +549,13 @@ function CreateQuotationForm() {
                     name: item.name,
                     hsn_code: item.hsn_code || null,
                     quantity: item.quantity,
+                    unit: item.unit || 'pcs',
                     unit_price: item.unit_price,
-                    tax_rate: item.tax_rate,
-                    cgst: item.cgst || 0,
-                    sgst: item.sgst || 0,
-                    igst: item.igst || 0,
-                    tax_amount: item.tax_amount,
+                    tax_rate: showGST ? item.tax_rate : 0,
+                    cgst: showGST ? (item.cgst || 0) : 0,
+                    sgst: showGST ? (item.sgst || 0) : 0,
+                    igst: showGST ? (item.igst || 0) : 0,
+                    tax_amount: showGST ? item.tax_amount : 0,
                     discount: item.discount,
                     per_unit_discount: item.per_unit_discount || 0,
                     discount_rate: item.discount_rate || 0,
@@ -494,6 +563,7 @@ function CreateQuotationForm() {
                     total: item.total,
                     image_url: item.image_url || null,
                     description: item.description || null,
+                    warranty: item.warranty || null,
                 }))
             }
 
@@ -512,7 +582,7 @@ function CreateQuotationForm() {
             router.push('/dashboard/quotations')
         } catch (error: unknown) {
             console.error('Save quotation error:', error)
-            toast.error('Failed to save quotation')
+            toast.error(friendlyError(error, 'Failed to save quotation'))
         } finally {
             setLoading(false)
         }
@@ -529,6 +599,20 @@ function CreateQuotationForm() {
                 <div className="flex gap-4">
                     <button onClick={() => router.back()} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold text-sm uppercase tracking-widest">Cancel</button>
                     <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showGST}
+                        onClick={handleToggleGST}
+                        className={`flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all border active:scale-95 ${showGST ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
+                        title={showGST ? 'Hide GST number and tax breakdown' : 'Include GST number and tax breakdown'}
+                    >
+                        <span className="relative inline-flex items-center">
+                            <span className={`w-10 h-5 rounded-full transition-colors ${showGST ? 'bg-white/30' : 'bg-white/10'}`}></span>
+                            <span className={`absolute w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${showGST ? 'translate-x-5.5' : 'translate-x-1'}`}></span>
+                        </span>
+                        {showGST ? 'GST ON' : 'GST OFF'}
+                    </button>
+                    <button
                         onClick={handleSaveQuotation}
                         disabled={loading}
                         className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
@@ -538,6 +622,16 @@ function CreateQuotationForm() {
                     </button>
                 </div>
             </div>
+
+            {submitError.length > 0 && (
+                <InlineAlert variant="error" title="Unable to save quotation">
+                    <ul className="list-disc pl-4">
+                        {submitError.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                        ))}
+                    </ul>
+                </InlineAlert>
+            )}
 
             {/* Main Sections Wrapper - Full Width */}
             {/* Top Grid: Proforma & Logistics */}
@@ -569,6 +663,7 @@ function CreateQuotationForm() {
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Issue Date</label>
                                     <input
                                         type="date"
+                                        aria-required="true"
                                         value={quotationDate}
                                         onChange={(e) => setQuotationDate(e.target.value)}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 font-bold"
@@ -599,6 +694,7 @@ function CreateQuotationForm() {
                             <button
                                 type="button"
                                 onClick={() => setIsCustomerModalOpen(true)}
+                                aria-label={selectedCustomerId ? 'Change customer' : 'Select customer'}
                                 className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-5 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-left flex items-center justify-between group"
                             >
                                 <div className="flex flex-col">
@@ -624,6 +720,9 @@ function CreateQuotationForm() {
                                 searchKeys={['name', 'phone', 'email']}
                                 valueKey="id"
                                 selectedValue={selectedCustomerId}
+                                emptyMessage="No customers found"
+                                createLabel="Create new customer"
+                                onCreateNew={() => router.push('/dashboard/customers/create')}
                                 onSelect={(c) => setSelectedCustomerId(c.id)}
                                 renderItem={(c) => (
                                     <div className="flex flex-col">
@@ -673,15 +772,17 @@ function CreateQuotationForm() {
                                             placeholder="+91..."
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GSTIN</label>
-                                        <input
-                                            value={billingGST}
-                                            onChange={(e) => setBillingGST(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
-                                            placeholder="Billing GSTIN"
-                                        />
-                                    </div>
+                                    {showGST && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GSTIN</label>
+                                            <input
+                                                value={billingGST}
+                                                onChange={(e) => setBillingGST(e.target.value)}
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
+                                                placeholder="Billing GSTIN"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Place of Supply</label>
@@ -731,15 +832,17 @@ function CreateQuotationForm() {
                                             placeholder="+91..."
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Shipping GSTIN</label>
-                                        <input
-                                            value={shippingGST}
-                                            onChange={(e) => setShippingGST(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
-                                            placeholder="Shipping GSTIN"
-                                        />
-                                    </div>
+                                    {showGST && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Shipping GSTIN</label>
+                                            <input
+                                                value={shippingGST}
+                                                onChange={(e) => setShippingGST(e.target.value)}
+                                                className="w-full bg-white dark:bg-slate-900 border border-primary/10 rounded-2xl h-12 px-4 text-sm font-mono focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-slate-100 shadow-sm uppercase"
+                                                placeholder="Shipping GSTIN"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="pt-2">
                                     <button
@@ -771,6 +874,7 @@ function CreateQuotationForm() {
                             <button
                                 type="button"
                                 onClick={() => setShowItemDiscount(!showItemDiscount)}
+                                aria-pressed={showItemDiscount || hasAnyDiscount}
                                 className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border active:scale-95 ${showItemDiscount || hasAnyDiscount ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">percent</span>
@@ -869,12 +973,27 @@ function CreateQuotationForm() {
                                             </div>
                                         </td>
                                         <td className="py-6 w-24">
-                                            <input
-                                                type="number"
-                                                value={item.quantity}
-                                                onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black"
-                                            />
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={0}
+                                            value={item.quantity}
+                                            onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-black"
+                                        />
+                                        <select
+                                            value={item.unit || 'pcs'}
+                                            onChange={(e) => updateItem(item.id, { unit: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-1.5 px-2 mt-1 text-[9px] font-black uppercase tracking-wider text-center text-slate-500 dark:text-slate-400 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                        >
+                                            {UNIT_GROUPS.map((g) => (
+                                                <optgroup key={g.label} label={g.label}>
+                                                    {g.values.map((u) => (
+                                                        <option key={u} value={u}>{u}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
                                         </td>
                                         <td className="py-6 w-36 px-2">
                                             <div className="relative">
@@ -888,12 +1007,13 @@ function CreateQuotationForm() {
                                             </div>
                                             <div className="flex flex-col gap-1 mt-1">
                                                 <div className="flex gap-1">
-                                                    {(['inclusive', 'exclusive'] as const).map(m => (
-                                                        <button
-                                                            key={m}
-                                                            type="button"
-                                                            onClick={() => updateItem(item.id, { tax_method: m })}
-                                                            className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
+                                                {(['inclusive', 'exclusive'] as const).map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => updateItem(item.id, { tax_method: m })}
+                                                        aria-pressed={item.tax_method === m}
+                                                        className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
                                                                 ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                                                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                                                 }`}
@@ -911,16 +1031,17 @@ function CreateQuotationForm() {
                                                             if (pt === 'wholesale' && !prod.wholesale_price) return null
                                                             const label = pt === 'selling' ? 'Sell' : pt === 'mrp' ? 'MRP' : 'W.Sale'
                                                             return (
-                                                                <button
-                                                                    key={pt}
-                                                                    type="button"
-                                                                    onClick={() => changePriceType(item.id, pt)}
-                                                                    className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
-                                                                        ? 'bg-primary text-white shadow-sm'
-                                                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                                                        }`}
-                                                                    title={`₹${price.toLocaleString('en-IN')}`}
-                                                                >
+                                                            <button
+                                                                key={pt}
+                                                                type="button"
+                                                                onClick={() => changePriceType(item.id, pt)}
+                                                                aria-pressed={item.price_type === pt}
+                                                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
+                                                                    ? 'bg-primary text-white shadow-sm'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                                    }`}
+                                                                title={`₹${price.toLocaleString('en-IN')}`}
+                                                            >
                                                                     {label}
                                                                 </button>
                                                             )
@@ -934,15 +1055,16 @@ function CreateQuotationForm() {
                                                 <div className="flex flex-col gap-2">
                                                     <div className="flex gap-1">
                                                         {(['amount', 'percent'] as const).map(t => (
-                                                            <button
-                                                                key={t}
-                                                                type="button"
-                                                                onClick={() => updateItem(item.id, { discount_type: t })}
-                                                                className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${item.discount_type === t
-                                                                    ? 'bg-primary text-white shadow-sm'
-                                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                                    }`}
-                                                            >
+                                                        <button
+                                                            key={t}
+                                                            type="button"
+                                                            onClick={() => updateItem(item.id, { discount_type: t })}
+                                                            aria-pressed={item.discount_type === t}
+                                                            className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${item.discount_type === t
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                                }`}
+                                                        >
                                                                 {t === 'amount' ? 'Flat' : '% Off'}
                                                             </button>
                                                         ))}
@@ -974,24 +1096,28 @@ function CreateQuotationForm() {
                                         <td className="py-6 text-right">
                                             <div className="flex flex-col items-end">
                                                 <span className="font-black text-slate-900 dark:text-slate-100 text-sm italic">₹{item.total.toLocaleString('en-IN')}</span>
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase">GST</span>
-                                                    <select
-                                                        value={item.tax_rate}
-                                                        onChange={(e) => updateItem(item.id, { tax_rate: parseFloat(e.target.value) })}
-                                                        className="bg-slate-50 dark:bg-slate-800 border-none text-[10px] font-black text-primary p-0 h-auto w-auto focus:ring-0 cursor-pointer"
-                                                    >
-                                                        {[0, 5, 12, 18, 28].map(r => (
-                                                            <option key={r} value={r}>{r}%</option>
-                                                        ))}
-                                                    </select>
-                                                    <span className="text-[10px] text-slate-400 font-bold">= ₹{item.tax_amount.toLocaleString('en-IN')}</span>
-                                                </div>
-                                                <span className="text-[10px] text-green-600 font-bold">Base: ₹{item.tax_method === 'inclusive' ? (item.total - item.tax_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (item.total / (1 + item.tax_rate / 100)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                {showGST && (
+                                                    <>
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            <span className="text-[10px] text-slate-400 font-bold uppercase">GST</span>
+                                                            <select
+                                                                value={item.tax_rate}
+                                                                onChange={(e) => updateItem(item.id, { tax_rate: parseFloat(e.target.value) })}
+                                                                className="bg-slate-50 dark:bg-slate-800 border-none text-[10px] font-black text-primary p-0 h-auto w-auto focus:ring-0 cursor-pointer"
+                                                            >
+                                                                {[0, 5, 12, 18, 28].map(r => (
+                                                                    <option key={r} value={r}>{r}%</option>
+                                                                ))}
+                                                            </select>
+                                                            <span className="text-[10px] text-slate-400 font-bold">= ₹{item.tax_amount.toLocaleString('en-IN')}</span>
+                                                        </div>
+                                                        <span className="text-[10px] text-green-600 font-bold">Base: ₹{item.tax_method === 'inclusive' ? (item.total - item.tax_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (item.total / (1 + item.tax_rate / 100)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="py-6 text-right pl-4">
-                                            <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                            <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
                                                 <MdDelete size={18} />
                                             </button>
                                         </td>
@@ -1033,34 +1159,39 @@ function CreateQuotationForm() {
 
                             <h3 className="text-xl font-black italic uppercase tracking-tight mb-8">Valuation</h3>
 
-                            <div className="mb-8 p-1 bg-slate-800 rounded-2xl flex gap-1">
-                                {(['inclusive', 'exclusive'] as const).map(m => (
-                                    <button
-                                        key={m}
-                                        type="button"
-                                        onClick={() => {
-                                            setTaxMethod(m)
-                                            setItems(prev => prev.map(item => calculateItemTotals(item, { tax_method: m })))
-                                        }}
-                                        className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${taxMethod === m
-                                            ? 'bg-primary text-white shadow-lg'
-                                            : 'text-slate-400 hover:bg-slate-700/50'
-                                            }`}
-                                    >
-                                        {m === 'inclusive' ? 'Inclusive' : 'Exclusive'}
-                                    </button>
-                                ))}
-                            </div>
+                            {showGST && (
+                                <div className="mb-8 p-1 bg-slate-800 rounded-2xl flex gap-1">
+                                    {(['inclusive', 'exclusive'] as const).map(m => (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => {
+                                                setTaxMethod(m)
+                                                setItems(prev => prev.map(item => calculateItemTotals(item, { tax_method: m })))
+                                            }}
+                                            aria-pressed={taxMethod === m}
+                                            className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${taxMethod === m
+                                                ? 'bg-primary text-white shadow-lg'
+                                                : 'text-slate-400 hover:bg-slate-700/50'
+                                                }`}
+                                        >
+                                            {m === 'inclusive' ? 'Inclusive' : 'Exclusive'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
                                     <span>Subtotal</span>
                                     <span className="text-slate-200">₹{subtotal.toLocaleString('en-IN')}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                                    <span>Tax Aggregate</span>
-                                    <span className="text-slate-200">₹{taxTotal.toLocaleString('en-IN')}</span>
-                                </div>
+                                {showGST && (
+                                    <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                                        <span>Tax Aggregate</span>
+                                        <span className="text-slate-200">₹{taxTotal.toLocaleString('en-IN')}</span>
+                                    </div>
+                                )}
                                 <div className="space-y-3 pt-4 border-t border-slate-800">
                                     <div className="flex justify-between items-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">
                                         <span>Transport</span>
@@ -1085,6 +1216,7 @@ function CreateQuotationForm() {
                                             <div className="flex items-center gap-1 flex-1">
                                                 <button
                                                     onClick={() => setCustomCharges(customCharges.filter((_, i) => i !== index))}
+                                                    aria-label="Remove charge"
                                                     className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-500 transition-all"
                                                 >
                                                     <span className="material-symbols-outlined text-[14px]">delete</span>
@@ -1128,6 +1260,7 @@ function CreateQuotationForm() {
                                                         key={t}
                                                         type="button"
                                                         onClick={() => setGeneralDiscountType(t)}
+                                                        aria-pressed={generalDiscountType === t}
                                                         className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${generalDiscountType === t
                                                             ? 'bg-primary text-white shadow-sm'
                                                             : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
@@ -1199,6 +1332,9 @@ function CreateQuotationForm() {
                 items={products}
                 searchKeys={['name', 'sku']}
                 valueKey="id"
+                emptyMessage="No products found"
+                createLabel="Create new product"
+                onCreateNew={() => router.push('/dashboard/products/create')}
                 onSelect={(p) => {
                     if (activeItemIndex) {
                         updateItem(activeItemIndex, { product_id: p.id })

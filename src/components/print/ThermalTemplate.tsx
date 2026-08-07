@@ -14,6 +14,7 @@ export function ThermalTemplate({
     const docDate = new Date(
         (isInvoice ? data.invoice_date : data.quotation_date) || new Date()
     ).toLocaleDateString('en-IN')
+    const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
 
     return (
         <div
@@ -31,14 +32,14 @@ export function ThermalTemplate({
 
             {/* COMPANY NAME */}
             <div className="text-center mb-2">
-                <p className="font-bold text-[14px]">{companyName}</p>
+                {!allGstIsZero && <p className="font-bold text-[14px]">{companyName}</p>}
                 {profile?.address && (
                     <p className="text-[9px]">{profile.address.toUpperCase()}</p>
                 )}
                 {profile?.phone && (
                     <p className="text-[9px]">PH: {profile.phone}</p>
                 )}
-                {profile?.gstin && (
+                {!allGstIsZero && profile?.gstin && (
                     <p className="text-[9px]">GSTIN: {profile.gstin}</p>
                 )}
             </div>
@@ -55,7 +56,7 @@ export function ThermalTemplate({
                     <span>DATE:</span>
                     <span>{docDate}</span>
                 </div>
-                {isInvoice && (
+                {isInvoice && data.payment_status !== 'hide' && (
                     <div className="flex justify-between">
                         <span>STATUS:</span>
                         <span className="font-bold">{((data.payment_status === 'draft' ? 'unpaid' : data.payment_status === 'partially_paid' ? 'partially paid' : data.payment_status) || 'UNPAID').toUpperCase()}</span>
@@ -90,7 +91,7 @@ export function ThermalTemplate({
                             <span className="font-bold">{(item.item_name || item.name || 'ITEM').toUpperCase()}</span>
                         </div>
                         <div className="flex justify-between text-[9px]">
-                            <span>{item.quantity} x ₹{(item.unit_price || item.rate || 0).toFixed(2)}</span>
+                            <span>{item.quantity} {item.unit ? `${item.unit} x ` : ''}₹{(item.unit_price || item.rate || 0).toFixed(2)}</span>
                             <span className="font-bold">₹{item.total.toFixed(2)}</span>
                         </div>
                     </div>

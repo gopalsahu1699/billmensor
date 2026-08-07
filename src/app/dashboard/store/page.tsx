@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { MdAdd, MdSearch, MdVisibility, MdEdit, MdDelete, MdOpenInNew, MdShoppingBag, MdInventory, MdShare, MdQrCode, MdContentCopy, MdCheckCircle } from 'react-icons/md'
+import { MdAdd, MdVisibility, MdOpenInNew, MdShoppingBag, MdInventory, MdShare, MdQrCode, MdContentCopy, MdCheckCircle } from 'react-icons/md'
 
 interface OnlineProduct {
     id: string
@@ -25,10 +25,8 @@ interface StoreProduct {
 export default function OnlineStorePage() {
     const [products, setProducts] = useState<OnlineProduct[]>([])
     const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
-    const [showModal, setShowModal] = useState(false)
+    const [, setShowModal] = useState(false)
     const [allProducts, setAllProducts] = useState<StoreProduct[]>([])
-    const [selectedProduct, setSelectedProduct] = useState('')
 
     useEffect(() => {
         fetchOnlineProducts()
@@ -43,7 +41,7 @@ export default function OnlineStorePage() {
             // This would be a separate table for online store products
             // For now, we'll simulate it
             setProducts([])
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
         } finally {
             setLoading(false)
@@ -63,7 +61,7 @@ export default function OnlineStorePage() {
                 .order('name')
 
             setAllProducts(data || [])
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
         }
     }

@@ -14,18 +14,26 @@ import {
     IoDocument,
     IoTrash,
     IoCreate,
-    IoSync,
-    IoCash
+    IoSync
 } from 'react-icons/io5'
-import { FaHashtag } from 'react-icons/fa'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 import { MdShare, MdDownload } from 'react-icons/md'
+
+interface ExpenseRecord {
+    id: string
+    title: string
+    expense_date: string
+    category?: string
+    amount?: number
+    description?: string
+    created_at: string
+}
 
 
 export default function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const router = useRouter()
-    const [expense, setExpense] = useState<any | null>(null)
+    const [expense, setExpense] = useState<ExpenseRecord | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -62,7 +70,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
 
             if (error) throw error
             setExpense(data)
-        } catch (error: unknown) {
+        } catch {
             toast.error('Failed to load expense details')
             router.push('/dashboard/expenses')
         } finally {
@@ -83,8 +91,9 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
             if (error) throw error
             toast.success('Expense record deleted')
             router.push('/dashboard/expenses')
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
             setLoading(false)
         }
     }

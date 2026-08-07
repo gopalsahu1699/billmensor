@@ -13,7 +13,6 @@ import {
     MdLogout,
     MdMenu,
     MdClose,
-    MdChevronLeft,
 } from "react-icons/md";
 
 const NAV_ITEMS = [
@@ -36,6 +35,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     useEffect(() => {
         const auth = sessionStorage.getItem("admin_auth");
         const user = sessionStorage.getItem("admin_user") || "";
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads external sessionStorage on mount
         setAdminUser(user);
         if (auth !== "true") {
             router.replace("/admin/login");

@@ -5,11 +5,11 @@ import { supabase } from '@/lib/supabase'
 import { Profile, Backup } from '@/types/index'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { IoAdd, IoServer, IoDownload, IoTrash, IoRefresh, IoCloud, IoTime, IoCheckmarkCircle, IoAlertCircle, IoSearch, IoCloudUpload, IoCloudDownload } from 'react-icons/io5'
+import { IoServer, IoDownload, IoTrash, IoRefresh, IoCloud, IoTime, IoCheckmarkCircle, IoAlertCircle, IoSearch, IoCloudUpload, IoCloudDownload } from 'react-icons/io5'
 import { MdCloudOff } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa'
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+const statusConfig: Record<string, { label: string; color: string; icon: typeof IoTime }> = {
     pending: { label: 'Creating...', color: 'bg-yellow-100 text-yellow-700', icon: IoTime },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700', icon: IoCheckmarkCircle },
     failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: IoAlertCircle },
@@ -41,8 +41,8 @@ export default function BackupSettingsPage() {
                 .select('plan_type, plan_status, plan_expiry')
                 .eq('id', user.id)
                 .single()
-            if (data) setProfile(data) as any
-        } catch (error: any) {
+            if (data) setProfile(data)
+        } catch (error: unknown) {
             console.error('Failed to fetch profile:', error)
         }
     }
@@ -60,8 +60,8 @@ export default function BackupSettingsPage() {
 
             if (error) throw error
             setBackups(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         } finally {
             setLoading(false)
         }
@@ -130,8 +130,8 @@ export default function BackupSettingsPage() {
 
             toast.success('Backup created successfully')
             fetchBackups()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         } finally {
             setCreating(false)
         }
@@ -156,7 +156,7 @@ export default function BackupSettingsPage() {
             a.download = backup.file_name || 'backup.json'
             a.click()
             URL.revokeObjectURL(url)
-        } catch (error: any) {
+        } catch {
             toast.error('Failed to download backup')
         }
     }
@@ -173,8 +173,8 @@ export default function BackupSettingsPage() {
             if (error) throw error
             toast.success('Backup deleted')
             fetchBackups()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         }
     }
 
@@ -214,8 +214,8 @@ export default function BackupSettingsPage() {
             a.click()
             URL.revokeObjectURL(url)
             toast.success('Data exported successfully')
-        } catch (error: any) {
-            toast.error('Failed to export data: ' + error.message)
+        } catch (error: unknown) {
+            toast.error('Failed to export data: ' + (error instanceof Error ? error.message : String(error)))
         } finally {
             setExporting(false)
         }
@@ -242,6 +242,7 @@ export default function BackupSettingsPage() {
 
             if (data.invoices && Array.isArray(data.invoices)) {
                 for (const inv of data.invoices) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id: _id, created_at: _ca, ...rest } = inv
                     await supabase.from('invoices').insert({ ...rest, user_id: user.id })
                     imported++
@@ -249,6 +250,7 @@ export default function BackupSettingsPage() {
             }
             if (data.customers && Array.isArray(data.customers)) {
                 for (const cust of data.customers) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id: _id, created_at: _ca, ...rest } = cust
                     await supabase.from('customers').insert({ ...rest, user_id: user.id })
                     imported++
@@ -256,6 +258,7 @@ export default function BackupSettingsPage() {
             }
             if (data.products && Array.isArray(data.products)) {
                 for (const prod of data.products) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id: _id, created_at: _ca, ...rest } = prod
                     await supabase.from('products').insert({ ...rest, user_id: user.id })
                     imported++
@@ -263,6 +266,7 @@ export default function BackupSettingsPage() {
             }
             if (data.purchases && Array.isArray(data.purchases)) {
                 for (const pur of data.purchases) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id: _id, created_at: _ca, ...rest } = pur
                     await supabase.from('purchases').insert({ ...rest, user_id: user.id })
                     imported++
@@ -270,6 +274,7 @@ export default function BackupSettingsPage() {
             }
             if (data.quotations && Array.isArray(data.quotations)) {
                 for (const quot of data.quotations) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id: _id, created_at: _ca, ...rest } = quot
                     await supabase.from('quotations').insert({ ...rest, user_id: user.id })
                     imported++
@@ -279,8 +284,8 @@ export default function BackupSettingsPage() {
             toast.success(`Imported ${imported} records successfully`)
             // Reset file input
             if (fileInputRef.current) fileInputRef.current.value = ''
-        } catch (error: any) {
-            toast.error('Failed to import data: ' + error.message)
+        } catch (error: unknown) {
+            toast.error('Failed to import data: ' + (error instanceof Error ? error.message : String(error)))
             if (fileInputRef.current) fileInputRef.current.value = ''
         } finally {
             setImporting(false)

@@ -31,7 +31,7 @@ interface LocalDataRecord {
   id: string
   userId: string
   dataType: string
-  data: any
+  data: unknown
   updatedAt: string
 }
 
@@ -45,7 +45,7 @@ function makeId(userId: string, dataType: string): string {
 export async function saveLocalData(
   userId: string,
   dataType: string,
-  data: any
+  data: unknown
 ): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
@@ -70,7 +70,7 @@ export async function saveLocalData(
 export async function getLocalData(
   userId: string,
   dataType: string
-): Promise<any | null> {
+): Promise<unknown | null> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
@@ -89,7 +89,7 @@ export async function getLocalData(
  */
 export async function getAllLocalData(
   userId: string
-): Promise<Record<string, any>> {
+): Promise<Record<string, unknown>> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
@@ -98,7 +98,7 @@ export async function getAllLocalData(
     const req = index.getAll(IDBKeyRange.only(userId))
     req.onsuccess = () => {
       const records: LocalDataRecord[] = req.result
-      const result: Record<string, any> = {}
+      const result: Record<string, unknown> = {}
       for (const r of records) {
         result[r.dataType] = r.data
       }
@@ -136,7 +136,7 @@ export async function clearLocalData(userId: string): Promise<void> {
  */
 export async function exportLocalData(
   userId: string
-): Promise<{ version: string; exported_at: string; data: Record<string, any> }> {
+): Promise<{ version: string; exported_at: string; data: Record<string, unknown> }> {
   const allData = await getAllLocalData(userId)
   return {
     version: '1.0-local',
@@ -151,7 +151,7 @@ export async function exportLocalData(
  */
 export async function importLocalData(
   userId: string,
-  jsonData: { data: Record<string, any> }
+  jsonData: { data: Record<string, unknown> }
 ): Promise<void> {
   const data = jsonData?.data
   if (!data || typeof data !== 'object') {

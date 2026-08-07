@@ -7,9 +7,11 @@ import { MdAdd, MdDelete, MdInventory, MdCheckCircle, MdRefresh, MdExpandMore } 
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { InlineAlert } from '@/components/ui/InlineAlert'
 import { purchaseService } from '@/services/purchase.service'
 import { purchaseSchema } from '@/lib/validators'
 import { INDIAN_STATES } from '@/lib/constants'
+import { friendlyError } from '@/lib/friendly-errors'
 
 type PriceType = 'selling' | 'mrp' | 'wholesale' | 'purchase'
 
@@ -61,6 +63,25 @@ interface Product {
     description?: string;
 }
 
+interface PurchaseItemRow {
+    id: string
+    product_id?: string | null
+    name: string
+    hsn_code?: string | null
+    quantity: number
+    unit_price: number
+    tax_rate: number
+    cgst?: number
+    sgst?: number
+    igst?: number
+    tax_amount: number
+    discount?: number
+    total: number
+    image_url?: string | null
+    description?: string | null
+    products?: { image_url?: string | null } | null
+}
+
 function CreatePurchaseForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -96,6 +117,7 @@ function CreatePurchaseForm() {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [activeItemIndex, setActiveItemIndex] = useState<string | null>(null)
+    const [submitError, setSubmitError] = useState<string[]>([])
 
     const hasAnyDiscount = useMemo(() => items.some(i => i.discount > 0), [items])
 
@@ -120,7 +142,6 @@ function CreatePurchaseForm() {
         const taxableAmount = (basePrice * quantity) - itemDiscount
         const tax = (taxableAmount * item.tax_rate) / 100
 
-        const supplier = suppliers.find(s => s.id === selectedSupplierId)
         const isInterState = profile?.state && supplyPlace &&
             profile.state.toLowerCase() !== supplyPlace.toLowerCase()
 
@@ -189,7 +210,7 @@ function CreatePurchaseForm() {
             setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
-            toast.error('Failed to load data')
+            toast.error(friendlyError(error, 'Failed to load data'))
         }
     }, [])
 
@@ -235,7 +256,7 @@ function CreatePurchaseForm() {
             setInstallationCharges(pur.installation_charges || 0)
             setCustomCharges(pur.custom_charges || [])
 
-            const mappedItems = pur.purchase_items.map((item: any) => ({
+            const mappedItems = pur.purchase_items.map((item: PurchaseItemRow) => ({
                 id: item.id,
                 product_id: item.product_id || '',
                 name: item.name,
@@ -254,13 +275,13 @@ function CreatePurchaseForm() {
                 tax_method: 'exclusive',
                 price_type: 'purchase',
                 total: item.total,
-                image_url: item.image_url || (item as any).products?.image_url || '',
+                image_url: item.image_url || item.products?.image_url || '',
                 description: item.description || ''
             }))
             setItems(mappedItems)
         } catch (error: unknown) {
             console.error('Fetch purchase for edit error:', error)
-            toast.error('Failed to load purchase for editing')
+            toast.error(friendlyError(error, 'Failed to load purchase for editing'))
             router.push('/dashboard/purchases')
         } finally {
             setLoading(false)
@@ -335,8 +356,15 @@ function CreatePurchaseForm() {
     const removeItem = (itemId: string) => setItems(items.filter(i => i.id !== itemId))
 
     const handleSavePurchase = async () => {
-        if (!selectedSupplierId) return toast.error('Please select a supplier')
-        if (items.length === 0) return toast.error('Please add at least one item')
+        if (!selectedSupplierId) {
+            setSubmitError(['Please select a supplier.'])
+            return toast.error('Please select a supplier')
+        }
+        if (items.length === 0) {
+            setSubmitError(['Please add at least one item to the purchase.'])
+            return toast.error('Please add at least one item')
+        }
+        setSubmitError([])
 
         setLoading(true)
         try {
@@ -390,7 +418,8 @@ function CreatePurchaseForm() {
                 if (oldItems) {
                     for (const item of oldItems) {
                         if (item.product_id) {
-                            await supabase.rpc('decrement_stock', { pid: item.product_id, qty: item.quantity })
+                            const { error: stockError } = await supabase.rpc('decrement_stock', { pid: item.product_id, qty: item.quantity })
+                            if (stockError) throw stockError
                         }
                     }
                 }
@@ -404,14 +433,15 @@ function CreatePurchaseForm() {
             // Update Stock
             for (const item of items) {
                 if (item.product_id) {
-                    await supabase.rpc('increment_stock', { pid: item.product_id, qty: item.quantity })
+                    const { error: stockError } = await supabase.rpc('increment_stock', { pid: item.product_id, qty: item.quantity })
+                    if (stockError) throw stockError
                 }
             }
 
             toast.success(editId ? 'Purchase updated!' : 'Purchase recorded and stock updated!')
             router.push('/dashboard/purchases')
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to save purchase')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to save purchase'))
         } finally {
             setLoading(false)
         }
@@ -448,6 +478,16 @@ function CreatePurchaseForm() {
                 </div>
             </div>
 
+            {submitError.length > 0 && (
+                <InlineAlert variant="error" title="Unable to save purchase">
+                    <ul className="list-disc pl-4">
+                        {submitError.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                        ))}
+                    </ul>
+                </InlineAlert>
+            )}
+
             {/* Logistics & Supplier Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Side: Supplier & Basic Info */}
@@ -460,7 +500,7 @@ function CreatePurchaseForm() {
                         <div className="space-y-6">
                             <div className="space-y-3">
                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Universal Date</label>
-                                <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-bold appearance-none italic" />
+                                <input type="date" aria-required="true" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none text-slate-900 dark:text-slate-100 font-bold appearance-none italic" />
                             </div>
                             <div className="space-y-3">
                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Bill / Reference #</label>
@@ -476,7 +516,7 @@ function CreatePurchaseForm() {
                         </div>
                         <div className="space-y-3">
                             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Vendor Target</label>
-                            <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-5 px-5 text-sm flex items-center justify-between group shadow-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                            <button type="button" onClick={() => setIsCustomerModalOpen(true)} aria-label={selectedSupplierId ? 'Change supplier' : 'Select supplier'} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-5 px-5 text-sm flex items-center justify-between group shadow-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-700/50">
                                 <div className="flex flex-col text-left">
                                     <span className={selectedSupplierId ? "text-slate-900 dark:text-slate-100 font-black uppercase tracking-tight italic" : "text-slate-400 font-bold italic"}>
                                         {selectedSupplierId ? suppliers.find(s => s.id === selectedSupplierId)?.name : "Find Supplier..."}
@@ -557,6 +597,7 @@ function CreatePurchaseForm() {
                         <button
                             type="button"
                             onClick={() => setShowItemDiscount(!showItemDiscount)}
+                            aria-pressed={showItemDiscount || hasAnyDiscount}
                             className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border active:scale-95 ${showItemDiscount || hasAnyDiscount ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 font-bold'}`}
                         >
                             <span className="material-symbols-outlined text-[16px]">percent</span>
@@ -612,7 +653,7 @@ function CreatePurchaseForm() {
                                         </div>
                                     </td>
                                     <td className="py-6 w-24">
-                                        <input type="number" value={item.quantity} onChange={e => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm font-black focus:ring-2 focus:ring-primary/20 outline-none shadow-inner" />
+                                        <input type="number" inputMode="numeric" min={0} value={item.quantity} onChange={e => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 text-center text-sm font-black focus:ring-2 focus:ring-primary/20 outline-none shadow-inner" />
                                     </td>
                                     <td className="py-6 w-40 px-2">
                                         <div className="relative">
@@ -626,6 +667,7 @@ function CreatePurchaseForm() {
                                                         key={m}
                                                         type="button"
                                                         onClick={() => updateItem(item.id, { tax_method: m })}
+                                                        aria-pressed={item.tax_method === m}
                                                         className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider transition-all ${item.tax_method === m
                                                             ? 'bg-primary text-white shadow-sm'
                                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -647,6 +689,7 @@ function CreatePurchaseForm() {
                                                                 key={pt}
                                                                 type="button"
                                                                 onClick={() => changePriceType(item.id, pt)}
+                                                                aria-pressed={item.price_type === pt}
                                                                 className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${item.price_type === pt
                                                                     ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                                                                     : 'bg-slate-200 dark:bg-slate-700 text-slate-400 font-bold hover:bg-slate-300'
@@ -669,6 +712,7 @@ function CreatePurchaseForm() {
                                                             key={t}
                                                             type="button"
                                                             onClick={() => updateItem(item.id, { discount_type: t })}
+                                                            aria-pressed={item.discount_type === t}
                                                             className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all ${item.discount_type === t
                                                                 ? 'bg-primary text-white shadow-sm'
                                                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -718,7 +762,7 @@ function CreatePurchaseForm() {
                                         </div>
                                     </td>
                                     <td className="py-6 text-right pl-4">
-                                        <button onClick={() => removeItem(item.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors active:scale-90"><MdDelete size={20} /></button>
+                                        <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="p-2 text-slate-200 hover:text-red-500 transition-colors active:scale-90"><MdDelete size={20} /></button>
                                     </td>
                                 </tr>
                             ))}
@@ -767,6 +811,7 @@ function CreatePurchaseForm() {
                                         setTaxMethod(m)
                                         setItems(items.map(i => calculateItemTotals(i, m)))
                                     }}
+                                    aria-pressed={taxMethod === m}
                                     className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${taxMethod === m
                                         ? 'bg-primary text-white shadow-lg'
                                         : 'text-slate-500 hover:bg-slate-700/50'
@@ -800,7 +845,7 @@ function CreatePurchaseForm() {
                                   {customCharges.map((charge, idx) => (
                                       <div key={idx} className="flex justify-between items-center group">
                                           <div className="flex items-center gap-1">
-                                              <button type="button" onClick={() => setCustomCharges(prev => prev.filter((_, i) => i !== idx))} className="opacity-0 group-hover:opacity-100 text-red-400 transition-all"><MdDelete size={14}/></button>
+                                              <button type="button" onClick={() => setCustomCharges(prev => prev.filter((_, i) => i !== idx))} aria-label="Remove charge" className="opacity-0 group-hover:opacity-100 text-red-400 transition-all"><MdDelete size={14}/></button>
                                               <input placeholder="Extra..." value={charge.name} onChange={e => {
                                                   const n = [...customCharges]; n[idx].name = e.target.value; setCustomCharges(n)
                                               }} className="bg-transparent border-none p-0 text-[10px] font-black uppercase text-slate-300 focus:ring-0 outline-none w-20" />
@@ -822,6 +867,7 @@ function CreatePurchaseForm() {
                                                   key={t}
                                                   type="button"
                                                   onClick={() => setGeneralDiscountType(t)}
+                                                  aria-pressed={generalDiscountType === t}
                                                   className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${generalDiscountType === t ? 'bg-primary text-white shadow-sm' : 'bg-slate-800 text-slate-500 font-bold hover:bg-slate-700'}`}
                                               >
                                                   {t === 'amount' ? 'Flat' : '%'}
@@ -875,7 +921,7 @@ function CreatePurchaseForm() {
 
             {/* Modals */}
             <SelectorModal
-                isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} title="Target Supplier" items={suppliers} searchKeys={['name', 'phone', 'email']} valueKey="id" selectedValue={selectedSupplierId} onSelect={s => setSelectedSupplierId(s.id)}
+                isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} title="Target Supplier" items={suppliers} searchKeys={['name', 'phone', 'email']} valueKey="id" selectedValue={selectedSupplierId} emptyMessage="No suppliers found" createLabel="Create new supplier" onCreateNew={() => router.push('/dashboard/customers/create')} onSelect={s => setSelectedSupplierId(s.id)}
                 renderItem={s => (
                     <div className="flex flex-col text-left italic">
                         <span className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight italic text-lg leading-tight">{s.name}</span>
@@ -889,6 +935,7 @@ function CreatePurchaseForm() {
 
             <SelectorModal
                 isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} title="Stockable Resources" items={products} searchKeys={['name', 'sku']} valueKey="id"
+                emptyMessage="No products found" createLabel="Create new product" onCreateNew={() => router.push('/dashboard/products/create')}
                 onSelect={p => { if (activeItemIndex) { updateItem(activeItemIndex, { product_id: p.id }); } else { addItem(p); } }}
                 renderItem={p => (
                     <div className="flex justify-between items-center italic text-left">

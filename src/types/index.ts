@@ -297,7 +297,7 @@ export interface Payment {
     supply_place?: string | null
     notes?: string | null
     items?: PaymentItem[]
-    invoices?: { invoice_number: string }
+    invoices?: { invoice_number: string; payment_status?: string; total_amount?: number; amount_paid?: number; balance_amount?: number }
     purchases?: { purchase_number: string }
     created_at: string
 }

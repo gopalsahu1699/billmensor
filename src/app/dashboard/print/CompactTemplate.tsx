@@ -52,7 +52,7 @@ export function CompactTemplate({ data, profile, items, settings, type }: PrintT
                     {items.map((item, idx) => (
                         <tr key={idx}>
                             <td className="p-2 font-bold">{item.name}</td>
-                            <td className="p-2 text-center">{item.quantity}</td>
+                            <td className="p-2 text-center">{item.quantity} {item.unit && <span className="text-[9px] text-slate-400">{item.unit}</span>}</td>
                             <td className="p-2 text-center">₹{item.unit_price}</td>
                             <td className="p-2 text-right font-bold">₹{item.total}</td>
                         </tr>

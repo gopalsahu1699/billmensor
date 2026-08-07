@@ -1,11 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { BankAccount } from '@/types/index'
 import { toast } from 'sonner'
-import { IoAdd, IoBusiness, IoCard, IoTrash, IoCreate, IoStar, IoStarOutline, IoSearch, IoWallet } from 'react-icons/io5'
-import { FaPlus, FaStar, FaStarHalfAlt } from 'react-icons/fa'
+import { IoBusiness, IoCard, IoTrash, IoCreate, IoSearch, IoWallet, IoSync } from 'react-icons/io5'
+import { FaPlus, FaStar } from 'react-icons/fa'
+import { FormField } from '@/components/ui/form/FormField'
+import { SmartInput } from '@/components/ui/form/smart-inputs'
+import { friendlyError } from '@/lib/friendly-errors'
+import { validateRequired } from '@/lib/field-validation'
+
+const EMPTY_FORM = {
+    bank_name: '',
+    account_number: '',
+    ifsc_code: '',
+    account_holder_name: '',
+    upi_id: '',
+    is_primary: false,
+}
+
+function setFieldError(errors: Record<string, string>, field: string, error: string | null): Record<string, string> {
+    if (error) return { ...errors, [field]: error }
+    if (!errors[field]) return errors
+    const next = { ...errors }
+    delete next[field]
+    return next
+}
+
+function focusControl(ref: React.RefObject<HTMLDivElement | null>) {
+    ref.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
+}
+
+function focusFirstError(errors: Record<string, string>, fields: Array<[string, React.RefObject<HTMLDivElement | null>]>) {
+    for (const [field, ref] of fields) {
+        if (errors[field]) {
+            focusControl(ref)
+            return
+        }
+    }
+}
 
 export default function BankAccountsPage() {
     const [accounts, setAccounts] = useState<BankAccount[]>([])
@@ -14,18 +48,38 @@ export default function BankAccountsPage() {
     const [saving, setSaving] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [search, setSearch] = useState('')
-    const [form, setForm] = useState({
-        bank_name: '',
-        account_number: '',
-        ifsc_code: '',
-        account_holder_name: '',
-        upi_id: '',
-        is_primary: false,
-    })
+    const [form, setForm] = useState(EMPTY_FORM)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+
+    const bankNameRef = useRef<HTMLDivElement>(null)
+    const accountNumberRef = useRef<HTMLDivElement>(null)
+    const ifscRef = useRef<HTMLDivElement>(null)
+    const holderRef = useRef<HTMLDivElement>(null)
+
+    const modalTitleId = 'bank-account-modal-title'
 
     useEffect(() => {
         fetchAccounts()
     }, [])
+
+    useEffect(() => {
+        if (showModal) {
+            bankNameRef.current?.querySelector('input')?.focus()
+        }
+    }, [showModal])
+
+    useEffect(() => {
+        if (!showModal) return
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !saving) {
+                e.preventDefault()
+                setShowModal(false)
+                resetForm()
+            }
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [showModal, saving])
 
     async function fetchAccounts() {
         try {
@@ -42,8 +96,8 @@ export default function BankAccountsPage() {
 
             if (error) throw error
             setAccounts(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, error instanceof Error ? error.message : String(error)))
         } finally {
             setLoading(false)
         }
@@ -58,12 +112,55 @@ export default function BankAccountsPage() {
             upi_id: account.upi_id || '',
             is_primary: account.is_primary,
         })
+        setErrors({})
         setEditingId(account.id)
         setShowModal(true)
     }
 
+    function validateForm(): Record<string, string> {
+        const errs: Record<string, string> = {}
+        const bankErr = validateRequired(form.bank_name, 'Bank name')
+        if (bankErr) errs.bank_name = bankErr
+        const acctErr = validateRequired(form.account_number, 'Account number')
+        if (acctErr) errs.account_number = acctErr
+        if (!form.ifsc_code.trim()) {
+            errs.ifsc_code = 'Please enter the IFSC code.'
+        } else if (form.ifsc_code.trim().length !== 11) {
+            errs.ifsc_code = 'IFSC code must be 11 characters (e.g. SBIN0001234).'
+        }
+        const holderErr = validateRequired(form.account_holder_name, 'Account holder name')
+        if (holderErr) errs.account_holder_name = holderErr
+        return errs
+    }
+
+    function validateField(field: string, value: string): string | null {
+        if (field === 'bank_name') return validateRequired(value, 'Bank name')
+        if (field === 'account_number') return validateRequired(value, 'Account number')
+        if (field === 'ifsc_code') {
+            if (!value.trim()) return 'Please enter the IFSC code.'
+            if (value.trim().length !== 11) return 'IFSC code must be 11 characters (e.g. SBIN0001234).'
+        }
+        if (field === 'account_holder_name') return validateRequired(value, 'Account holder name')
+        return null
+    }
+
+    function handleBlur(field: string, value: string) {
+        setErrors(prev => setFieldError(prev, field, validateField(field, value)))
+    }
+
     async function saveAccount(e: React.FormEvent) {
         e.preventDefault()
+        const errs = validateForm()
+        setErrors(errs)
+        if (Object.keys(errs).length > 0) {
+            focusFirstError(errs, [
+                ['bank_name', bankNameRef],
+                ['account_number', accountNumberRef],
+                ['ifsc_code', ifscRef],
+                ['account_holder_name', holderRef],
+            ])
+            return
+        }
         setSaving(true)
 
         try {
@@ -94,22 +191,16 @@ export default function BankAccountsPage() {
             setShowModal(false)
             resetForm()
             fetchAccounts()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, error instanceof Error ? error.message : String(error)))
         } finally {
             setSaving(false)
         }
     }
 
     function resetForm() {
-        setForm({
-            bank_name: '',
-            account_number: '',
-            ifsc_code: '',
-            account_holder_name: '',
-            upi_id: '',
-            is_primary: false,
-        })
+        setForm(EMPTY_FORM)
+        setErrors({})
         setEditingId(null)
     }
 
@@ -118,13 +209,11 @@ export default function BankAccountsPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('Not authenticated')
 
-            // Unset all primaries first
             await supabase
                 .from('bank_accounts')
                 .update({ is_primary: false })
                 .eq('user_id', user.id)
 
-            // Set new primary
             const { error } = await supabase
                 .from('bank_accounts')
                 .update({ is_primary: true })
@@ -133,8 +222,8 @@ export default function BankAccountsPage() {
             if (error) throw error
             toast.success('Primary account updated')
             fetchAccounts()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, error instanceof Error ? error.message : String(error)))
         }
     }
 
@@ -150,12 +239,12 @@ export default function BankAccountsPage() {
             if (error) throw error
             toast.success('Account deleted successfully')
             fetchAccounts()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, error instanceof Error ? error.message : String(error)))
         }
     }
 
-    const filteredAccounts = accounts.filter(a => 
+    const filteredAccounts = accounts.filter(a =>
         a.bank_name?.toLowerCase().includes(search.toLowerCase()) ||
         a.account_number?.includes(search) ||
         a.account_holder_name?.toLowerCase().includes(search.toLowerCase())
@@ -182,7 +271,7 @@ export default function BankAccountsPage() {
                         <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your business bank accounts</p>
                     </div>
                 </div>
-                <button 
+                <button
                     onClick={() => { resetForm(); setShowModal(true); }}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-green-600/20"
                 >
@@ -196,6 +285,7 @@ export default function BankAccountsPage() {
                 <IoSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input
                     type="text"
+                    aria-label="Search accounts"
                     placeholder="Search accounts..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -249,14 +339,18 @@ export default function BankAccountsPage() {
                                     </button>
                                 )}
                                 <button
+                                    type="button"
                                     onClick={() => openEdit(account)}
+                                    aria-label={`Edit ${account.bank_name || 'bank'} account`}
                                     className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                 >
                                     <IoCreate size={18} className="text-slate-400" />
                                 </button>
-                                <button 
+                                <button
+                                    type="button"
                                     onClick={() => deleteAccount(account.id)}
-                                    className="p-2 hover:bg-red-50 dark:hover/20 rounded-lg:bg-red-900 transition-colors"
+                                    aria-label={`Delete ${account.bank_name || 'bank'} account`}
+                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
                                 >
                                     <IoTrash size={18} className="text-red-400" />
                                 </button>
@@ -269,72 +363,119 @@ export default function BankAccountsPage() {
             {/* Add/Edit Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl">
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6">
+                    <div role="dialog" aria-modal="true" aria-labelledby={modalTitleId} className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl">
+                        <h2 id={modalTitleId} className="text-xl font-black text-slate-900 dark:text-white mb-6">
                             {editingId ? 'Edit Bank Account' : 'Add Bank Account'}
                         </h2>
-                        <form onSubmit={saveAccount} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Bank Name *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={form.bank_name}
-                                    onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-green-600/20 outline-none"
-                                    placeholder="State Bank of India"
-                                />
-                            </div>
+                        <form onSubmit={saveAccount} noValidate className="space-y-4">
+                            <FormField label="Bank Name" required error={errors.bank_name}>
+                                {({ id, describedBy, invalid, errorId }) => (
+                                    <div ref={bankNameRef}>
+                                        <SmartInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            aria-errormessage={invalid ? errorId : undefined}
+                                            aria-required
+                                            value={form.bank_name}
+                                            transform="words"
+                                            trimOnBlur
+                                            onValueChange={(v) => {
+                                                setForm(prev => ({ ...prev, bank_name: v }))
+                                                setErrors(prev => setFieldError(prev, 'bank_name', null))
+                                            }}
+                                            onBlur={(e) => handleBlur('bank_name', e.target.value)}
+                                            placeholder="State Bank of India"
+                                        />
+                                    </div>
+                                )}
+                            </FormField>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Account Number *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.account_number}
-                                        onChange={(e) => setForm({ ...form, account_number: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-green-600/20 outline-none font-mono"
-                                        placeholder="1234567890"
+                                <FormField label="Account Number" required error={errors.account_number}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={accountNumberRef}>
+                                            <SmartInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                aria-required
+                                                inputMode="numeric"
+                                                autoComplete="off"
+                                                className="font-mono"
+                                                value={form.account_number}
+                                                onValueChange={(v) => {
+                                                    setForm(prev => ({ ...prev, account_number: v.replace(/\D/g, '') }))
+                                                    setErrors(prev => setFieldError(prev, 'account_number', null))
+                                                }}
+                                                onBlur={(e) => handleBlur('account_number', e.target.value)}
+                                                placeholder="1234567890"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+                                <FormField label="IFSC Code" required hint="11 characters (e.g. SBIN0001234)" error={errors.ifsc_code}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={ifscRef}>
+                                            <SmartInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                aria-required
+                                                transform="upper"
+                                                maxLength={11}
+                                                className="font-mono"
+                                                value={form.ifsc_code}
+                                                onValueChange={(v) => {
+                                                    setForm(prev => ({ ...prev, ifsc_code: v }))
+                                                    setErrors(prev => setFieldError(prev, 'ifsc_code', null))
+                                                }}
+                                                onBlur={(e) => handleBlur('ifsc_code', e.target.value)}
+                                                placeholder="SBIN0001234"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+                            </div>
+                            <FormField label="Account Holder Name" required error={errors.account_holder_name}>
+                                {({ id, describedBy, invalid, errorId }) => (
+                                    <div ref={holderRef}>
+                                        <SmartInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            aria-errormessage={invalid ? errorId : undefined}
+                                            aria-required
+                                            value={form.account_holder_name}
+                                            transform="words"
+                                            trimOnBlur
+                                            onValueChange={(v) => {
+                                                setForm(prev => ({ ...prev, account_holder_name: v }))
+                                                setErrors(prev => setFieldError(prev, 'account_holder_name', null))
+                                            }}
+                                            onBlur={(e) => handleBlur('account_holder_name', e.target.value)}
+                                            placeholder="John Enterprises"
+                                        />
+                                    </div>
+                                )}
+                            </FormField>
+                            <FormField label="UPI ID" description="Optional. Used for UPI payments on invoices.">
+                                {({ id }) => (
+                                    <SmartInput
+                                        id={id}
+                                        value={form.upi_id}
+                                        onValueChange={(v) => setForm(prev => ({ ...prev, upi_id: v }))}
+                                        placeholder="john@upi"
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">IFSC Code *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.ifsc_code}
-                                        onChange={(e) => setForm({ ...form, ifsc_code: e.target.value.toUpperCase() })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-green-600/20 outline-none font-mono"
-                                        placeholder="SBIN0001234"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Account Holder Name *</label>
+                                )}
+                            </FormField>
+                            <label htmlFor="bank-primary-toggle" className="flex items-center gap-3 pt-2 cursor-pointer">
                                 <input
-                                    type="text"
-                                    required
-                                    value={form.account_holder_name}
-                                    onChange={(e) => setForm({ ...form, account_holder_name: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-green-600/20 outline-none"
-                                    placeholder="John Enterprises"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">UPI ID</label>
-                                <input
-                                    type="text"
-                                    value={form.upi_id}
-                                    onChange={(e) => setForm({ ...form, upi_id: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-green-600/20 outline-none"
-                                    placeholder="john@upi"
-                                />
-                            </div>
-                            <label className="flex items-center gap-3 pt-2 cursor-pointer">
-                                <input
+                                    id="bank-primary-toggle"
                                     type="checkbox"
                                     checked={form.is_primary}
-                                    onChange={(e) => setForm({ ...form, is_primary: e.target.checked })}
+                                    onChange={(e) => setForm(prev => ({ ...prev, is_primary: e.target.checked }))}
                                     className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-green-600"
                                 />
                                 <span className="text-sm text-slate-600 dark:text-slate-400">Set as primary account</span>
@@ -350,8 +491,10 @@ export default function BankAccountsPage() {
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-black text-sm uppercase tracking-widest disabled:opacity-50"
+                                    aria-busy={saving}
+                                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-black text-sm uppercase tracking-widest disabled:opacity-50 inline-flex items-center justify-center gap-2"
                                 >
+                                    {saving ? <IoSync size={16} className="animate-spin" /> : null}
                                     {saving ? 'Saving...' : (editingId ? 'Update' : 'Add Account')}
                                 </button>
                             </div>

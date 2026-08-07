@@ -17,7 +17,7 @@ export default function PaymentOutDetailPage({ params }: { params: Promise<{ id:
     const [payment, setPayment] = useState<Payment | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
-    const [sharing, setSharing] = useState(false)
+    const [sharing] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
 
     const fetchProfile = useCallback(async () => {

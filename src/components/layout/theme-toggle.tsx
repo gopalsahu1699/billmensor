@@ -9,6 +9,7 @@ export function ThemeToggle({ variant = 'default' }: { variant?: 'default' | 'ic
     useEffect(() => {
         const isDark = localStorage.getItem('theme') === 'dark' ||
             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads external localStorage on mount
         setDarkMode(isDark)
         if (isDark) {
             document.documentElement.classList.add('dark')

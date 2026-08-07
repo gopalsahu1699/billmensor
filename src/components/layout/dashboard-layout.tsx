@@ -19,7 +19,7 @@ export default function DashboardLayout({
     const [loading, setLoading] = useState(true)
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showMobileMenu, setShowMobileMenu] = useState(false)
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<{ plan_type: string | null; plan_status: string | null; plan_expiry: string | null } | null>(null)
     const [bannerDismissed, setBannerDismissed] = useState(false)
 
     const fetchProfile = useCallback(async () => {

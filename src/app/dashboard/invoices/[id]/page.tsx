@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { MdArrowBack, MdDownload, MdRefresh, MdDashboard, MdMail, MdCheckCircle, MdShare, MdDelete, MdEdit, MdDescription } from 'react-icons/md'
+import { MdArrowBack, MdDownload, MdRefresh, MdDashboard, MdMail, MdCheckCircle, MdShare, MdDelete, MdEdit } from 'react-icons/md'
 import { FaWhatsapp } from 'react-icons/fa'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -12,6 +12,7 @@ import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
 import { ThermalTemplate } from '@/components/print/ThermalTemplate'
+import { ClassicGSTTemplate } from '@/components/print/ClassicGSTTemplate'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
@@ -107,7 +108,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
             
             const mappedItems = (itemsData || []).map(item => ({
                 ...item,
-                image_url: item.image_url || (item.products as any)?.image_url,
+                image_url: item.image_url || item.products?.image_url,
                 discount_type: item.discount_type || 'amount',
                 discount_rate: item.discount_rate || 0,
             }))
@@ -136,6 +137,41 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                 .eq('id', id)
 
             if (error) throw error
+
+            // Sync a receipt into the payments-in ledger for the settled balance
+            const settled = Number(((invoice.total_amount || 0) - (invoice.amount_paid || 0)).toFixed(2))
+            if (settled > 0) {
+                const prefix = 'PMT-IN-'
+                const { data: numData } = await supabase
+                    .from('payments')
+                    .select('payment_number')
+                    .eq('type', 'payment_in')
+                    .like('payment_number', `${prefix}%`)
+                    .order('payment_number', { ascending: false })
+                    .limit(1)
+                let paymentNumber = `${prefix}0001`
+                if (numData && numData.length > 0) {
+                    const parts = numData[0].payment_number.split('-')
+                    const lastCounter = parseInt(parts[2]) || 0
+                    paymentNumber = `${prefix}${(lastCounter + 1).toString().padStart(4, '0')}`
+                }
+
+                const { error: payError } = await supabase
+                    .from('payments')
+                    .insert({
+                        user_id: invoice.user_id,
+                        customer_id: invoice.customer_id,
+                        invoice_id: id,
+                        payment_number: paymentNumber,
+                        payment_date: new Date().toISOString().split('T')[0],
+                        amount: settled,
+                        type: 'payment_in',
+                        payment_mode: 'cash',
+                        notes: `Settled in full against invoice ${invoice.invoice_number}`,
+                    })
+                if (payError) throw payError
+            }
+
             toast.success('Invoice marked as paid')
             fetchInvoiceDetails()
         } catch (error) {
@@ -175,7 +211,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
         const customerName = invoice.customers?.name || 'Customer'
         const printUrl = `${window.location.origin}/print/invoices/${invoice.id}`
 
-        let message = `Hello ${customerName},\n\nPlease find your invoice *${invoice.invoice_number}* from *${companyName}* for the amount of *₹${invoice.total_amount.toLocaleString('en-IN')}*.\n\nYou can view and download your professional invoice here:\n${printUrl}\n\nThank you for your business!`
+        const message = `Hello ${customerName},\n\nPlease find your invoice *${invoice.invoice_number}* from *${companyName}* for the amount of *₹${invoice.total_amount.toLocaleString('en-IN')}*.\n\nYou can view and download your professional invoice here:\n${printUrl}\n\nThank you for your business!`
 
         const encodedMessage = encodeURIComponent(message)
         const phone = invoice.customers?.phone?.replace(/\D/g, '')
@@ -262,9 +298,11 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         </div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Invoice Details</h1>
-                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${invoice.payment_status === 'paid' ? 'bg-green-100 text-green-600' : invoice.payment_status === 'partially_paid' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                                {invoice.payment_status === 'draft' ? 'unpaid' : invoice.payment_status === 'partially_paid' ? 'partially paid' : invoice.payment_status}
-                            </div>
+                            {invoice.payment_status !== 'hide' && (
+                                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${invoice.payment_status === 'paid' ? 'bg-green-100 text-green-600' : invoice.payment_status === 'partially_paid' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                    {invoice.payment_status === 'draft' ? 'unpaid' : invoice.payment_status === 'partially_paid' ? 'partially paid' : invoice.payment_status}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -290,7 +328,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                         {isTemplateMenuOpen && (
                             <div className="absolute top-14 left-0 w-64 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="space-y-1">
-                                    {['modern', 'professional', 'compact', 'thermal'].map((t) => (
+                                    {(['modern', 'professional', 'compact', 'thermal', 'classic-gst'] as const).map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => {
@@ -302,7 +340,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
                                                 }`}
                                         >
-                                            {t} Template
+                                            {t === 'classic-gst' ? 'Classic GST' : t} Template
                                         </button>
                                     ))}
                                 </div>
@@ -402,6 +440,17 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                     ) : printSettings.print_template === 'thermal' ? (
                         <div className="bg-white border border-slate-200 shadow-xl overflow-hidden print:border-none print:shadow-none">
                             <ThermalTemplate
+                                data={invoice}
+                                profile={profile}
+                                bankDetails={bankDetails || undefined}
+                                items={items}
+                                settings={printSettings}
+                                type="invoice"
+                            />
+                        </div>
+                    ) : printSettings.print_template === 'classic-gst' ? (
+                        <div className="bg-white overflow-hidden print:border-none print:shadow-none print:overflow-visible">
+                            <ClassicGSTTemplate
                                 data={invoice}
                                 profile={profile}
                                 bankDetails={bankDetails || undefined}

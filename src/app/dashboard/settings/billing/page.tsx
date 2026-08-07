@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { IoShield, IoCheckmarkCircle, IoAlertCircle, IoTime } from "react-icons/io5";
-import { MdBolt, MdDownload, MdComputer, MdCheckCircle, MdLocalOffer, MdContentCopy } from "react-icons/md";
+import { MdBolt, MdDownload, MdComputer, MdCheckCircle, MdLocalOffer } from "react-icons/md";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 

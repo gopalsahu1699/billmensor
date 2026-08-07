@@ -48,7 +48,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMo
     const [manualSalesOpen, setSalesOpen] = useState(false);
     const [manualPurchaseOpen, setPurchaseOpen] = useState(false);
     const [manualSettingsOpen, setSettingsOpen] = useState(false);
-    const [manualOrdersOpen, setOrdersOpen] = useState(false);
     const [manualInventoryOpen, setInventoryOpen] = useState(false);
     const [manualFinanceOpen, setFinanceOpen] = useState(false);
     const [manualToolsOpen, setToolsOpen] = useState(false);

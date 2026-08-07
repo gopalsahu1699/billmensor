@@ -4,7 +4,6 @@ import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { IoCloudUpload, IoCamera, IoDocument, IoSync, IoCheckmarkCircle, IoCloseCircle, IoArrowForward, IoCart } from 'react-icons/io5'
-import { FaPlus } from 'react-icons/fa'
 
 interface ExtractedData {
     invoice_number?: string
@@ -53,17 +52,18 @@ export default function OCRScannerPage() {
             if (uploadError) throw uploadError
 
             // Simulate OCR processing (in production, use Google Cloud Vision or Azure)
-            await processOCR(file)
+            await processOCR()
             
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
             setImagePreview(null)
         } finally {
             setUploading(false)
         }
     }
 
-    const processOCR = async (file: File) => {
+    const processOCR = async () => {
         setProcessing(true)
 
         // Simulate OCR processing delay

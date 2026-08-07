@@ -9,6 +9,8 @@ import { IoAdd, IoTrash, IoCube, IoChevronDown, IoCheckmarkCircle, IoSync } from
 import { toast } from 'sonner'
 import { Profile } from '@/types/print'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { InlineAlert } from '@/components/ui/InlineAlert'
+import { friendlyError } from '@/lib/friendly-errors'
 
 interface ChallanItem {
     id: string
@@ -78,6 +80,7 @@ function CreateChallanForm() {
 
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
+    const [submitError, setSubmitError] = useState<string[]>([])
 
     const calculateTotals = React.useCallback(() => {
         let taxableTotal = 0
@@ -125,7 +128,7 @@ function CreateChallanForm() {
             setProfile(profileRes.data)
         } catch (error: unknown) {
             console.error('Initial data fetch error:', error)
-            toast.error('Failed to load data')
+            toast.error(friendlyError(error, 'Failed to load data'))
         }
     }, [])
 
@@ -173,13 +176,13 @@ function CreateChallanForm() {
                 sgst: item.sgst || 0,
                 igst: item.igst || 0,
                 discount: item.discount || 0,
-                image_url: item.image_url || (item as any).products?.image_url || ''
+                image_url: item.image_url || (item as unknown as { products?: { image_url?: string } }).products?.image_url || ''
             })))
             setDiscount(data.discount || 0)
             setRoundOff(data.round_off || 0)
         } catch (error: unknown) {
             console.error('Fetch challan for edit error:', error)
-            toast.error('Failed to load challan for editing')
+            toast.error(friendlyError(error, 'Failed to load challan for editing'))
             router.push('/dashboard/delivery-challans')
         } finally {
             setLoading(false)
@@ -210,7 +213,7 @@ function CreateChallanForm() {
             discount: 0,
             total: product.price + (product.price * product.tax_rate) / 100,
             image_url: product.image_url || '',
-            description: (product as any).description || ''
+            description: (product as unknown as { description?: string }).description || ''
         }
         setItems(prev => [...prev, newItem])
     }
@@ -251,7 +254,11 @@ function CreateChallanForm() {
     }
 
     const handleSave = async () => {
-        if (!selectedCustomerId) return toast.error('Please select a customer')
+        if (!selectedCustomerId) {
+            setSubmitError(['Please select a customer.'])
+            return toast.error('Please select a customer')
+        }
+        setSubmitError([])
 
         setLoading(true)
         try {
@@ -291,8 +298,7 @@ function CreateChallanForm() {
             toast.success(editId ? 'Delivery Challan updated!' : 'Delivery Challan created!')
             router.push('/dashboard/delivery-challans')
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
+            toast.error(friendlyError(error, 'Failed to save delivery challan'))
         } finally {
             setLoading(false)
         }
@@ -328,6 +334,16 @@ function CreateChallanForm() {
                 </div>
             </div>
 
+            {submitError.length > 0 && (
+                <InlineAlert variant="error" title="Unable to save delivery challan">
+                    <ul className="list-disc pl-4">
+                        {submitError.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                        ))}
+                    </ul>
+                </InlineAlert>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Challan Details */}
                 <div className="lg:col-span-2 space-y-6">
@@ -341,6 +357,7 @@ function CreateChallanForm() {
                                 <button
                                     type="button"
                                     onClick={() => setIsCustomerModalOpen(true)}
+                                    aria-label={selectedCustomerId ? 'Change customer' : 'Select customer'}
                                     className="w-full flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-left"
                                 >
                                     <span className={selectedCustomerId ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}>
@@ -358,6 +375,9 @@ function CreateChallanForm() {
                                     searchKeys={['name', 'phone', 'email']}
                                     valueKey="id"
                                     selectedValue={selectedCustomerId}
+                                    emptyMessage="No customers found"
+                                    createLabel="Create new customer"
+                                    onCreateNew={() => router.push('/dashboard/customers/create')}
                                     onSelect={(c: Customer) => setSelectedCustomerId(c.id)}
                                     renderItem={(c: Customer) => (
                                         <div className="flex flex-col">
@@ -374,7 +394,7 @@ function CreateChallanForm() {
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
-                                    <Input type="date" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} />
+                                    <Input type="date" aria-required="true" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} />
                                 </div>
                             </div>
                         </CardContent>
@@ -435,6 +455,8 @@ function CreateChallanForm() {
                                                 <td className="py-4 w-20">
                                                     <input
                                                         type="number"
+                                                        inputMode="numeric"
+                                                        min={0}
                                                         value={item.quantity}
                                                         onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
                                                         className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-black text-slate-900 dark:text-white"
@@ -468,7 +490,7 @@ function CreateChallanForm() {
                                                     ₹{item.total.toLocaleString('en-IN')}
                                                 </td>
                                                 <td className="py-4 text-right pl-4">
-                                                    <button onClick={() => removeItem(item.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                                    <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
                                                         <IoTrash size={18} />
                                                     </button>
                                                 </td>
@@ -571,6 +593,9 @@ function CreateChallanForm() {
                 items={products}
                 searchKeys={['name', 'sku']}
                 valueKey="id"
+                emptyMessage="No products found"
+                createLabel="Create new product"
+                onCreateNew={() => router.push('/dashboard/products/create')}
                 onSelect={(p: Product) => addItem(p)}
                 renderItem={(p: Product) => (
                     <div className="flex justify-between items-center">

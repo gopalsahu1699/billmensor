@@ -5,11 +5,30 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 import { EmployeeLoginForm } from '@/components/auth/EmployeeLoginForm'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { FormField } from '@/components/ui/form/FormField'
+import { EmailInput, SmartInput } from '@/components/ui/form/smart-inputs'
+import { validateEmail } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+
+type LoginFormKey = 'email' | 'password'
+
+function fieldError(key: LoginFormKey, f: { email: string; password: string }): string | undefined {
+    switch (key) {
+        case 'email':
+            if (!f.email.trim()) return 'Please enter your email address.'
+            return validateEmail(f.email) ?? undefined
+        case 'password':
+            if (!f.password) return 'Please enter your password.'
+            if (f.password.length < 8) return 'Password must be at least 8 characters.'
+            return undefined
+        default:
+            return undefined
+    }
+}
 
 export default function LoginPage() {
     const router = useRouter()
@@ -19,9 +38,30 @@ export default function LoginPage() {
         email: '',
         password: '',
     })
+    const [errors, setErrors] = useState<Partial<Record<LoginFormKey, string>>>({})
+
+    const update = (key: LoginFormKey, value: string) => {
+        setFormData((f) => ({ ...f, [key]: value }))
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: LoginFormKey) => {
+        setErrors((e) => ({ ...e, [key]: fieldError(key, formData) ?? '' }))
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        const validationErrors: Partial<Record<LoginFormKey, string>> = {}
+        ;(['email', 'password'] as LoginFormKey[]).forEach((key) => {
+            const msg = fieldError(key, formData)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -34,8 +74,8 @@ export default function LoginPage() {
 
             toast.success('Logged in successfully!')
             router.push('/dashboard')
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to login')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to login'))
         } finally {
             setLoading(false)
         }
@@ -96,31 +136,45 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                                    <Input
-                                        type="email"
-                                        placeholder="name@company.com"
-                                        required
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <div className="flex justify-between mb-1">
-                                        <label className="block text-sm font-medium text-slate-700">Password</label>
-                                        <Link href="/forgot-password" title="sm" className="text-sm text-blue-600 hover:underline">
-                                            Forgot?
-                                        </Link>
-                                    </div>
-                                    <Input
-                                        type="password"
-                                        placeholder="••••••••"
-                                        required
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    />
+                            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                                <FormField label="Email Address" required error={errors.email}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <EmailInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            placeholder="name@company.com"
+                                            required
+                                            value={formData.email}
+                                            onChange={(e) => update('email', e.target.value)}
+                                            onBlur={() => blurValidate('email')}
+                                        />
+                                    )}
+                                </FormField>
+
+                                <FormField label="Password" required error={errors.password}>
+                                    {({ id, describedBy, invalid }) => (
+                                        <SmartInput
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            aria-invalid={invalid}
+                                            invalid={invalid}
+                                            type="password"
+                                            autoComplete="current-password"
+                                            placeholder="Enter your password"
+                                            required
+                                            value={formData.password}
+                                            onChange={(e) => update('password', e.target.value)}
+                                            onBlur={() => blurValidate('password')}
+                                        />
+                                    )}
+                                </FormField>
+
+                                <div className="text-right -mt-1">
+                                    <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                                        Forgot password?
+                                    </Link>
                                 </div>
 
                                 <Button type="submit" className="w-full" isLoading={loading}>

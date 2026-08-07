@@ -110,7 +110,6 @@ export default function AdminNotificationsPage() {
                 throw new Error(data.error || "Failed to send notification");
             }
 
-            const result = await res.json();
             toast.success("Notification sent successfully!");
             resetForm();
             fetchNotifications();

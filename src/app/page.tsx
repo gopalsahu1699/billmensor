@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { MdArrowForward, MdCheckCircle, MdBolt, MdShield, MdBarChart, MdDownload, MdComputer, MdCloud, MdStorage, MdCancel } from "react-icons/md";
+import { MdArrowForward, MdCheckCircle, MdBolt, MdShield, MdBarChart, MdDownload, MdComputer, MdCloud, MdCancel } from "react-icons/md";
 import { User } from "@supabase/supabase-js";
 
 export default function LandingPage() {

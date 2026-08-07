@@ -43,6 +43,12 @@ const templates = [
         name: 'Thermal Receipt',
         description: 'Compact layout for 80mm thermal printers.',
         preview: 'bg-slate-200 border-slate-500'
+    },
+    {
+        id: 'classic-gst',
+        name: 'Classic GST Template',
+        description: 'Tally-style A4 landscape GST invoice.',
+        preview: 'bg-white border-slate-400'
     }
 ]
 
@@ -233,7 +239,7 @@ export default function PrintSettingsPage() {
                             Select Print Template
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                             {templates.map((template) => (
                                 <button
                                     key={template.id}

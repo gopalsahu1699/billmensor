@@ -151,6 +151,12 @@ export default function POSPage() {
             const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems)
             if (itemsError) throw itemsError
 
+            // 3. Decrement stock for sold items
+            for (const item of cart) {
+                const { error: stockError } = await supabase.rpc('decrement_stock', { pid: item.id, qty: item.quantity })
+                if (stockError) throw stockError
+            }
+
             toast.success('Transaction completed successfully!')
             setCart([])
             setSelectedCustomer(null)

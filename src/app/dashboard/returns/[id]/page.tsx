@@ -39,7 +39,7 @@ export default function ReturnDetailPage({ params }: { params: Promise<{ id: str
 
             if (itemsError) throw itemsError
             
-            const mappedItems = (itemsData || []).map((item: any) => ({
+            const mappedItems = (itemsData || []).map((item) => ({
                 ...item,
                 image_url: item.image_url || item.products?.image_url || ''
             }))

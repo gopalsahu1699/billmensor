@@ -7,9 +7,17 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 
+interface Customer {
+    id: string
+    name: string
+    email?: string | null
+    phone?: string | null
+    type?: string | null
+}
+
 export default function CustomersPage() {
     const router = useRouter()
-    const [customers, setCustomers] = useState<any[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
 
@@ -30,8 +38,9 @@ export default function CustomersPage() {
 
             if (error) throw error
             setCustomers(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
         } finally {
             setLoading(false)
         }
@@ -49,8 +58,9 @@ export default function CustomersPage() {
             if (error) throw error
             toast.success('Customer record deleted successfully')
             fetchCustomers()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
         }
     }
 

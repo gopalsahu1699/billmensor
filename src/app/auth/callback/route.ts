@@ -7,9 +7,6 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   
-  // Also support implicit flow redirects which some providers natively fallback to
-  const access_token = searchParams.get('access_token')
-
   // If a standard PKCE Auth code is provided (the default for Supabase)
   if (code) {
     const cookieStore = await cookies()

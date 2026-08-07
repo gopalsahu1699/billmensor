@@ -6,11 +6,12 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { MdArrowBack, MdDownload, MdRotateLeft, MdRefresh, MdDashboard, MdMail, MdShare, MdDelete, MdEdit } from 'react-icons/md'
+import { MdArrowBack, MdDownload, MdRotateLeft, MdRefresh, MdDashboard, MdMail, MdShare, MdDelete, MdEdit, MdContentCopy } from 'react-icons/md'
 import { ProfessionalTemplate } from '@/components/print/ProfessionalTemplate'
 import { CompactTemplate } from '@/components/print/CompactTemplate'
 import { ModernTemplate } from '@/components/print/ModernTemplate'
 import { ThermalTemplate } from '@/components/print/ThermalTemplate'
+import { ClassicGSTTemplate } from '@/components/print/ClassicGSTTemplate'
 import { InvoiceData, Profile, BankDetails, Item, Settings } from '@/types/print'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
@@ -27,7 +28,8 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
     const [loading, setLoading] = useState(true)
     const [converting, setConverting] = useState(false)
     const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
-    const [sharing, setSharing] = useState(false)
+    const [sharing] = useState(false)
+    const [duplicating, setDuplicating] = useState(false)
     const [printSettings, setPrintSettings] = useState<Settings & { print_template: string }>({
         print_template: 'modern',
         show_bank_details: true,
@@ -51,9 +53,9 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
             
             const mappedItems = (itemsRes.data || []).map(item => ({
                 ...item,
-                image_url: (item as any).image_url || (item as any).products?.image_url,
-                discount_type: (item as any).discount_type || 'amount',
-                discount_rate: (item as any).discount_rate || 0,
+                image_url: item.image_url || item.products?.image_url,
+                discount_type: item.discount_type || 'amount',
+                discount_rate: item.discount_rate || 0,
             }))
             
             setQuotation(quoteRes.data as InvoiceData)
@@ -153,7 +155,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     invoice_date: new Date().toISOString().split('T')[0],
                     subtotal: quotation?.subtotal || 0,
                     discount: quotation?.discount || 0,
-                    general_discount_type: (quotation as any)?.general_discount_type || 'amount',
+                    general_discount_type: quotation?.general_discount_type || 'amount',
                     round_off: quotation?.round_off || 0,
                     tax_total: quotation?.tax_total || 0,
                     transport_charges: quotation?.transport_charges || 0,
@@ -188,10 +190,11 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 tax_amount: item.tax_amount || 0,
                 discount: item.discount || 0,
                 discount_type: item.discount_type || 'amount',
-                discount_rate: (item as any).discount_rate || 0,
-                per_unit_discount: (item as any).per_unit_discount || 0,
+                discount_rate: item.discount_rate || 0,
+                per_unit_discount: (item as unknown as Record<string, unknown>).per_unit_discount || 0,
                 total: item.total,
-                image_url: item.image_url || null
+                image_url: item.image_url || null,
+                warranty: item.warranty || null
             }))
 
             const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems)
@@ -265,6 +268,107 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
         }
     }
 
+    async function handleDuplicate() {
+        if (!quotation) return
+        if (!window.confirm('Create a copy of this quotation with a new quotation number?')) return
+
+        setDuplicating(true)
+        try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
+            // 1. Generate next quotation number
+            const now = new Date()
+            const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`
+            const prefix = `QUO-${yearMonth}-`
+
+            const { data: lastQuo } = await supabase
+                .from('quotations')
+                .select('quotation_number')
+                .like('quotation_number', `${prefix}%`)
+                .order('quotation_number', { ascending: false })
+                .limit(1)
+
+            let nextNumber = `${prefix}001`
+            if (lastQuo && lastQuo.length > 0) {
+                const parts = lastQuo[0].quotation_number.split('-')
+                const lastCounter = parseInt(parts[2]) || 0
+                nextNumber = `${prefix}${(lastCounter + 1).toString().padStart(3, '0')}`
+            }
+
+            // 2. Create the copied quotation
+            const { data: copy, error: copyError } = await supabase
+                .from('quotations')
+                .insert([{
+                    user_id: userData.user.id,
+                    customer_id: quotation.customer_id || null,
+                    quotation_number: nextNumber,
+                    quotation_date: new Date().toISOString().split('T')[0],
+                    expiry_date: (quotation as unknown as Record<string, unknown>)?.expiry_date || null,
+                    subtotal: quotation.subtotal || 0,
+                    discount: quotation.discount || 0,
+                    general_discount_type: quotation?.general_discount_type || 'amount',
+                    round_off: quotation.round_off || 0,
+                    tax_total: quotation.tax_total || 0,
+                    cgst_total: (quotation as unknown as Record<string, unknown>)?.cgst_total || 0,
+                    sgst_total: (quotation as unknown as Record<string, unknown>)?.sgst_total || 0,
+                    igst_total: (quotation as unknown as Record<string, unknown>)?.igst_total || 0,
+                    transport_charges: quotation.transport_charges || 0,
+                    installation_charges: quotation.installation_charges || 0,
+                    custom_charges: quotation.custom_charges || [],
+                    billing_address: quotation.billing_address || null,
+                    shipping_address: quotation.shipping_address || null,
+                    billing_phone: quotation.billing_phone || null,
+                    shipping_phone: quotation.shipping_phone || null,
+                    billing_gstin: quotation.billing_gstin || null,
+                    shipping_gstin: quotation.shipping_gstin || null,
+                    supply_place: quotation.supply_place || null,
+                    total_amount: quotation.total_amount || 0,
+                    notes: quotation.notes || '',
+                    status: 'draft'
+                }])
+                .select()
+                .single()
+
+            if (copyError) throw copyError
+
+            // 3. Copy the items
+            const copyItems = items.map(item => ({
+                user_id: userData.user.id,
+                quotation_id: copy.id,
+                product_id: item.product_id || null,
+                name: item.name,
+                hsn_code: item.hsn_code || null,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                tax_rate: item.tax_rate || 0,
+                tax_amount: item.tax_amount || 0,
+                cgst: (item as unknown as Record<string, unknown>).cgst || 0,
+                sgst: (item as unknown as Record<string, unknown>).sgst || 0,
+                igst: (item as unknown as Record<string, unknown>).igst || 0,
+                discount: item.discount || 0,
+                discount_type: item.discount_type || 'amount',
+                discount_rate: item.discount_rate || 0,
+                per_unit_discount: (item as unknown as Record<string, unknown>).per_unit_discount || 0,
+                total: item.total,
+                image_url: item.image_url || null,
+                description: item.description || null,
+                warranty: item.warranty || null
+            }))
+
+            const { error: itemsError } = await supabase.from('quotation_items').insert(copyItems)
+            if (itemsError) throw itemsError
+
+            toast.success(`Quotation copied as ${nextNumber}`)
+            router.push(`/dashboard/quotations/${copy.id}`)
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Unknown error'
+            toast.error(msg)
+        } finally {
+            setDuplicating(false)
+        }
+    }
+
     if (loading) return (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
             <MdRefresh className="animate-spin text-blue-600 w-10 h-10" />
@@ -309,7 +413,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                         {isTemplateMenuOpen && (
                             <div className="absolute top-14 left-0 w-64 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="space-y-1">
-                                    {['modern', 'professional', 'compact', 'thermal'].map((t) => (
+                                    {(['modern', 'professional', 'compact', 'thermal', 'classic-gst'] as const).map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => {
@@ -321,7 +425,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
                                                 }`}
                                         >
-                                            {t} Template
+                                            {t === 'classic-gst' ? 'Classic GST' : t} Template
                                         </button>
                                     ))}
                                 </div>
@@ -375,6 +479,15 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={handleDuplicate}
+                        disabled={duplicating}
+                        className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        {duplicating ? <MdRefresh size={18} className="animate-spin" /> : <MdContentCopy size={18} />}
+                        {duplicating ? 'Copying...' : 'Duplicate'}
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={handleDelete}
                         className="flex items-center gap-2 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 transition-all shadow-sm"
                     >
@@ -424,6 +537,17 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     ) : printSettings.print_template === 'thermal' ? (
                         <div className="bg-white border border-slate-200 shadow-xl overflow-hidden print:border-none print:shadow-none">
                             <ThermalTemplate
+                                data={quotation}
+                                profile={profile}
+                                items={items}
+                                bankDetails={bankDetails || undefined}
+                                settings={printSettings}
+                                type="quotation"
+                            />
+                        </div>
+                    ) : printSettings.print_template === 'classic-gst' ? (
+                        <div className="bg-white overflow-hidden print:border-none print:shadow-none print:overflow-visible">
+                            <ClassicGSTTemplate
                                 data={quotation}
                                 profile={profile}
                                 items={items}

@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // One-off dev/utility scripts, not part of the app bundle
+    "tmp/**",
+    "seed_notifications.js",
+    "fix_pdfs.js",
+    "fix_ca.js",
+    "check_schema.js",
   ]),
 ]);
 

@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card'
 import { IoArrowBack, IoSync, IoTrash, IoCreate, IoWallet, IoCalendar, IoCash, IoCard, IoSend, IoShare, IoMail, IoDocument, IoChevronDown, IoDownload } from 'react-icons/io5'
 import { FaHashtag } from 'react-icons/fa'
 import type { Payment, Profile } from '@/types'
+import { paymentService } from '@/services/payment.service'
 import { downloadPDF, sharePDF } from '@/lib/pdf-service'
 
 
@@ -18,7 +19,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
     const [payment, setPayment] = useState<Payment | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
-    const [sharing, setSharing] = useState(false)
+    const [sharing] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
 
     const fetchPayment = useCallback(async () => {
@@ -26,7 +27,7 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
             setLoading(true)
             const { data, error } = await supabase
                 .from('payments')
-                .select('*, customers(*), invoices(invoice_number)')
+                .select('*, customers(*), invoices(invoice_number, payment_status, total_amount, amount_paid, balance_amount)')
                 .eq('id', resolvedParams.id)
                 .single()
 
@@ -69,12 +70,17 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
 
         try {
             setLoading(true)
+            const linkedInvoiceId = payment?.invoice_id
             const { error } = await supabase
                 .from('payments')
                 .delete()
                 .eq('id', resolvedParams.id)
 
             if (error) throw error
+
+            if (linkedInvoiceId) {
+                await paymentService.reconcileInvoice(linkedInvoiceId)
+            }
 
             toast.success('Payment deleted successfully')
             router.push('/dashboard/payments-in')
@@ -350,6 +356,17 @@ export default function PaymentInDetailPage({ params }: { params: Promise<{ id: 
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase">Linked Invoice</p>
                                             <p className="text-sm font-black text-slate-900">{payment.invoices.invoice_number}</p>
+                                            {(payment.invoices.payment_status === 'paid' || payment.invoices.payment_status === 'partially_paid') && (
+                                                <p className="text-[10px] font-bold mt-1">
+                                                    <span className={payment.invoices.payment_status === 'paid' ? 'text-green-600' : 'text-blue-600'}>
+                                                        {payment.invoices.payment_status === 'paid' ? 'Paid' : 'Partially Paid'}
+                                                    </span>
+                                                    {' · '}
+                                                    <span className="text-slate-500">Received ₹{(payment.invoices.amount_paid || 0).toLocaleString('en-IN')}</span>
+                                                    {' · '}
+                                                    <span className="text-orange-600">Balance ₹{(payment.invoices.balance_amount || 0).toLocaleString('en-IN')}</span>
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

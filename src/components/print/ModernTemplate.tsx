@@ -63,20 +63,22 @@ export function ModernTemplate({
                     </div>
 
                     <div className="text-right">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-none text-[11px] font-semibold uppercase
-              ${data.payment_status === 'paid'
-                                ? 'bg-green-100 text-green-700'
-                                : data.payment_status === 'partially_paid'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-orange-100 text-orange-700'}`}>
-                            <span className={`w-2 h-2 rounded-none
+                        {type === 'invoice' && data.payment_status !== 'hide' && (
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-none text-[11px] font-semibold uppercase
                 ${data.payment_status === 'paid'
-                                    ? 'bg-green-500'
+                                    ? 'bg-green-100 text-green-700'
                                     : data.payment_status === 'partially_paid'
-                                    ? 'bg-blue-500'
-                                    : 'bg-orange-500'}`}></span>
-                            {data.payment_status === 'draft' ? 'unpaid' : data.payment_status === 'partially_paid' ? 'partially paid' : data.payment_status}
-                        </div>
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-orange-100 text-orange-700'}`}>
+                                <span className={`w-2 h-2 rounded-none
+                    ${data.payment_status === 'paid'
+                                        ? 'bg-green-500'
+                                        : data.payment_status === 'partially_paid'
+                                            ? 'bg-blue-500'
+                                            : 'bg-orange-500'}`}></span>
+                                {data.payment_status === 'draft' ? 'unpaid' : data.payment_status === 'partially_paid' ? 'partially paid' : data.payment_status}
+                            </div>
+                        )}
 
                         <div className="mt-3 text-sm font-medium text-slate-800">
                             <p className="text-[11px] text-slate-600">Issue Date</p>
@@ -98,15 +100,17 @@ export function ModernTemplate({
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-2">
                             Vendor Info
                         </p>
-                        <p className="font-bold text-lg text-slate-900">
-                            {profile?.company_name || 'Billmensor'}
-                        </p>
+                        {!allGstIsZero && (
+                            <p className="font-bold text-lg text-slate-900">
+                                {profile?.company_name || 'Billmensor'}
+                            </p>
+                        )}
                         <p className="text-[12px] text-slate-700 mt-1">
                             {profile?.address}
                         </p>
 
                         <div className="mt-2 space-y-1 text-[11px]">
-                            <p><span className="font-semibold">GST:</span> {profile?.gstin}</p>
+                            {!allGstIsZero && <p><span className="font-semibold">GST:</span> {profile?.gstin}</p>}
                             <p><span className="font-semibold">Mob:</span> {profile?.phone}</p>
                         </div>
                     </div>
@@ -124,7 +128,7 @@ export function ModernTemplate({
                             </p>
                             <div className="mt-2 text-[11px] space-y-0.5 text-slate-600">
                                 <p><span className="font-semibold text-slate-900">Phone:</span> {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
-                                <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</span></p>
+                                {!allGstIsZero && <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</span></p>}
                                 <p><span className="font-semibold text-slate-900">POS:</span> {data.supply_place || data.customers?.supply_place || 'N/A'}</p>
                             </div>
                         </div>
@@ -139,7 +143,7 @@ export function ModernTemplate({
                                 </p>
                                 <div className="mt-2 text-[11px] space-y-0.5 text-slate-600">
                                     <p><span className="font-semibold text-slate-900">Phone:</span> {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
-                                    <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</span></p>
+                                    {!allGstIsZero && <p className="flex justify-between"><span>GSTIN:</span> <span className="text-slate-900 font-medium">{data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</span></p>}
                                 </div>
                             </div>
                         )}
@@ -183,7 +187,9 @@ export function ModernTemplate({
                                         )}
                                         <p className="text-[10px] text-slate-600">HSN: {item.hsn_code || '-'}</p>
                                     </td>
-                                    <td className="px-2 py-2 text-center">{item.quantity}</td>
+                                    <td className="px-2 py-2 text-center">
+                                        {item.quantity} {item.unit && <span className="text-[10px] text-slate-500">{item.unit}</span>}
+                                    </td>
                                     <td className="px-2 py-2 text-center">
                                         ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                                     </td>
@@ -235,7 +241,7 @@ export function ModernTemplate({
                                             acc[key].taxable += taxable;
                                             acc[key].tax += tax;
                                             return acc;
-                                        }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                        }, {} as Record<string, { rate: number; taxable: number; tax: number }>)).map((t: { rate: number; taxable: number; tax: number }, i: number) => (
                                             <tr key={i} className="border-b border-slate-50 last:border-0">
                                                 <td className="py-3 text-slate-700 font-bold uppercase tracking-tighter italic">GST {t.rate}%</td>
                                                 <td className="text-right py-3 text-slate-500 italic">₹{t.taxable.toLocaleString('en-IN')}</td>
@@ -247,7 +253,7 @@ export function ModernTemplate({
                             </div>
                         )}
 
-                        {settings.show_bank_details && bankDetails && (
+                        {!allGstIsZero && settings.show_bank_details && bankDetails && (
                             <div className="bg-slate-50 p-5 rounded-none border border-slate-100 break-inside-avoid">
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2 mb-4 italic">
                                     Bank Account Settlement
@@ -344,7 +350,7 @@ export function ModernTemplate({
                             </div>
                         )}
 
-                        {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                        {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: { name: string; amount: number }, idx: number) => (
                             <div key={idx} className="flex justify-between text-[12px]">
                                 <span>{charge.name || 'Custom'}</span>
                                 <span className="font-semibold">

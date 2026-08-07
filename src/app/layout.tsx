@@ -8,16 +8,19 @@ import { I18nProvider } from "@/components/providers/i18n-provider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "optional",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "optional",
 });
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "optional",
 });
 
 export const metadata: Metadata = {
@@ -51,7 +54,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </head>
       <body

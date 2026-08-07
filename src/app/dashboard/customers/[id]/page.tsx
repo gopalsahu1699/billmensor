@@ -209,9 +209,11 @@ export default function CustomerLedgerPage({ params }: { params: Promise<{ id: s
                                             <td className="py-4 px-6">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${inv.payment_status === 'paid'
                                                     ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/30'
-                                                    : 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/30'
+                                                    : inv.payment_status === 'hide'
+                                                        ? 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                                                        : 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/30'
                                                     }`}>
-                                                    {inv.payment_status}
+                                                    {inv.payment_status === 'hide' ? 'hidden' : inv.payment_status}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-right">

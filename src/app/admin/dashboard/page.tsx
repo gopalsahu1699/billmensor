@@ -28,14 +28,6 @@ function getAdminAuthHeader(): string {
     return "Basic " + btoa(username + ":" + password);
 }
 
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
-}
-
 const PLAN_COLORS: Record<string, string> = {
     free: "bg-slate-600",
     monthly: "bg-emerald-600",

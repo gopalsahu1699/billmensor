@@ -3,9 +3,28 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { EmailInput, SmartInput } from '@/components/ui/form/smart-inputs'
+import { validateEmail } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+
+type EmployeeFormKey = 'email' | 'pin'
+
+function fieldError(key: EmployeeFormKey, f: { email: string; pin: string }): string | undefined {
+    switch (key) {
+        case 'email':
+            if (!f.email.trim()) return 'Please enter your email address.'
+            return validateEmail(f.email) ?? undefined
+        case 'pin':
+            if (!f.pin) return 'Please enter your PIN.'
+            if (!/^\d{6}$/.test(f.pin)) return 'PIN must be 6 digits.'
+            return undefined
+        default:
+            return undefined
+    }
+}
 
 export function EmployeeLoginForm() {
     const router = useRouter()
@@ -14,14 +33,35 @@ export function EmployeeLoginForm() {
         email: '',
         pin: '',
     })
+    const [errors, setErrors] = useState<Partial<Record<EmployeeFormKey, string>>>({})
+
+    const update = (key: EmployeeFormKey, value: string) => {
+        setFormData((f) => ({ ...f, [key]: value }))
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: EmployeeFormKey) => {
+        setErrors((e) => ({ ...e, [key]: fieldError(key, formData) ?? '' }))
+    }
 
     const handleEmployeeLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        const validationErrors: Partial<Record<EmployeeFormKey, string>> = {}
+        ;(['email', 'pin'] as EmployeeFormKey[]).forEach((key) => {
+            const msg = fieldError(key, formData)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+
         setLoading(true)
 
         try {
             // 1. Try to find the member in 'staff_members' (Hierarchy pattern)
-            let { data: staff, error: staffError } = await supabase
+            let { data: staff } = await supabase
                 .from('staff_members')
                 .select('*')
                 .eq('login_email', formData.email)
@@ -31,7 +71,7 @@ export function EmployeeLoginForm() {
 
             // 2. Fallback to 'team_members' (Legacy pattern)
             if (!staff) {
-                const { data: team, error: teamError } = await supabase
+                const { data: team } = await supabase
                     .from('team_members')
                     .select('*')
                     .eq('email', formData.email)
@@ -57,40 +97,53 @@ export function EmployeeLoginForm() {
 
             toast.success('Access Granted! Welcome back.')
             router.push('/dashboard')
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login Error:', error)
-            toast.error(error.message || 'Login failed. Please check your credentials.')
+            toast.error(friendlyError(error, 'Login failed. Please check your credentials.'))
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <form onSubmit={handleEmployeeLogin} className="space-y-4">
+        <form onSubmit={handleEmployeeLogin} noValidate className="space-y-4">
             <div className="space-y-4">
-                <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Staff Email</label>
-                    <Input
-                        type="email"
-                        placeholder="yourname@company.com"
-                        required
-                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-blue-600/20"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Entry PIN</label>
-                    <Input
-                        type="password"
-                        placeholder="••••"
-                        required
-                        maxLength={6}
-                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-blue-600/20 text-lg tracking-[0.5em]"
-                        value={formData.pin}
-                        onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                    />
-                </div>
+                <FormField label="Staff Email" required error={errors.email}>
+                    {({ id, describedBy, invalid }) => (
+                        <EmailInput
+                            id={id}
+                            aria-describedby={describedBy}
+                            aria-invalid={invalid}
+                            invalid={invalid}
+                            placeholder="yourname@company.com"
+                            required
+                            className="bg-slate-50 focus:ring-blue-600/20"
+                            value={formData.email}
+                            onChange={(e) => update('email', e.target.value)}
+                            onBlur={() => blurValidate('email')}
+                        />
+                    )}
+                </FormField>
+                <FormField label="Entry PIN" required error={errors.pin}>
+                    {({ id, describedBy, invalid }) => (
+                        <SmartInput
+                            id={id}
+                            aria-describedby={describedBy}
+                            aria-invalid={invalid}
+                            invalid={invalid}
+                            type="password"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="••••••"
+                            maxLength={6}
+                            required
+                            className="bg-slate-50 focus:ring-blue-600/20 text-lg tracking-[0.5em]"
+                            value={formData.pin}
+                            onChange={(e) => update('pin', e.target.value.replace(/\D/g, ''))}
+                            onBlur={() => blurValidate('pin')}
+                        />
+                    )}
+                </FormField>
 
                 <Button 
                     type="submit" 

@@ -8,11 +8,12 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { 
     IoAdd, IoSearch, IoEye, IoCreate, IoTrash,
-    IoCube, IoArrowForward, IoTime, IoCheckmarkCircle, IoCloseCircle, IoEllipsisVertical
+    IoCube, IoTime, IoCheckmarkCircle, IoCloseCircle
 } from 'react-icons/io5'
 import { FaTruck } from 'react-icons/fa'
+import type { IconType } from 'react-icons'
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+const statusConfig: Record<string, { label: string; color: string; icon: IconType }> = {
     pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: IoTime },
     confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-700', icon: IoCheckmarkCircle },
     processing: { label: 'Processing', color: 'bg-purple-100 text-purple-700', icon: IoCube },
@@ -43,8 +44,9 @@ export default function SalesOrdersPage() {
 
             if (error) throw error
             setOrders(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
         } finally {
             setLoading(false)
         }
@@ -58,8 +60,9 @@ export default function SalesOrdersPage() {
             if (error) throw error
             toast.success('Order deleted successfully')
             fetchOrders()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
         }
     }
 

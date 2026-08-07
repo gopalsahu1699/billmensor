@@ -23,9 +23,9 @@ export async function GET() {
     const { error } = await supabase.auth.getSession()
     supabaseLatency = Date.now() - startTime
     supabaseStatus = error ? `error: ${error.message}` : 'connected'
-  } catch (e: any) {
+  } catch (e: unknown) {
     supabaseLatency = Date.now() - startTime
-    supabaseStatus = `exception: ${e.message}`
+    supabaseStatus = `exception: ${e instanceof Error ? e.message : String(e)}`
   }
 
   const totalLatency = Date.now() - startTime

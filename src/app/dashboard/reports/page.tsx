@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
-import { MdBarChart, MdLock, MdStar } from 'react-icons/md'
 
 const reportGroups = [
     {
@@ -63,7 +61,7 @@ export default function ReportsDashboard() {
         count: 0
     })
     const [loading, setLoading] = useState(true)
-    const [isPremium, setIsPremium] = useState(false)
+    const [, setIsPremium] = useState(false)
 
     const fetchStats = useCallback(async () => {
         try {
@@ -237,11 +235,3 @@ export default function ReportsDashboard() {
     )
 }
 
-// Small check icon used in the upgrade CTA
-function IoCheckM({ className }: { className?: string }) {
-    return (
-        <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-        </svg>
-    )
-}

@@ -1,25 +1,56 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+const PLAN_PRICES: Record<string, number> = {
+    monthly: 199,
+    yearly: 1999,
+};
 
 export async function POST(req: Request) {
-    const razorpay = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID!,
-        key_secret: process.env.RAZORPAY_KEY_SECRET!,
-    });
-
     try {
-        const { planType, amount } = await req.json();
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() { return cookieStore.getAll(); },
+                    setAll(cookiesToSet) {
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                cookieStore.set(name, value, options)
+                            );
+                        } catch { /* Ignore */ }
+                    },
+                },
+            }
+        );
 
-        if (!planType || !amount) {
-            return NextResponse.json({ error: 'Plan type and amount are required' }, { status: 400 });
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized: No session' }, { status: 401 });
         }
 
+        const { planType } = await req.json();
+        const price = PLAN_PRICES[planType as string];
+        if (!price) {
+            return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
+        }
+
+        const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
         const options = {
-            amount: amount * 100, // amount in smallest currency unit (paise)
+            amount: price * 100,
             currency: 'INR',
             receipt: `receipt_${Date.now()}`,
             notes: {
-                planType: planType,
+                planType,
+                userId: user.id,
             },
         };
 

@@ -4,16 +4,33 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { EmailInput } from '@/components/ui/form/smart-inputs'
+import { validateEmail } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+
+function fieldError(email: string): string | undefined {
+    if (!email.trim()) return 'Please enter your email address.'
+    return validateEmail(email) ?? undefined
+}
 
 export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false)
     const [email, setEmail] = useState('')
     const [emailSent, setEmailSent] = useState(false)
+    const [error, setError] = useState('')
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        const msg = fieldError(email)
+        if (msg) {
+            setError(msg)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+            return
+        }
+        setError('')
+
         setLoading(true)
 
         try {
@@ -23,8 +40,8 @@ export default function ForgotPasswordPage() {
 
             setEmailSent(true)
             toast.success('Password reset link sent to your email!')
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to send reset link')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to send reset link'))
         } finally {
             setLoading(false)
         }
@@ -121,17 +138,25 @@ export default function ForgotPasswordPage() {
                     <h1 className="text-2xl font-bold text-slate-900 mb-2">Forgot your password?</h1>
                     <p className="text-slate-500 mb-8">No worries, we&apos;ll send you reset instructions.</p>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                            <Input
-                                type="email"
-                                placeholder="name@company.com"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
+                    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                        <FormField label="Email Address" required error={error}>
+                            {({ id, describedBy, invalid }) => (
+                                <EmailInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    placeholder="name@company.com"
+                                    required
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value)
+                                        if (error) setError('')
+                                    }}
+                                    onBlur={() => setError(fieldError(email) ?? '')}
+                                />
+                            )}
+                        </FormField>
 
                         <Button type="submit" className="w-full" isLoading={loading}>
                             Reset Password

@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { MdSearch, MdNotifications, MdMenu } from 'react-icons/md'
+import type { User } from '@supabase/supabase-js'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
-    const [user, setUser] = useState<any | null>(null)
+    const [user, setUser] = useState<User | null>(null)
     const [notificationCount, setNotificationCount] = useState(0)
 
     useEffect(() => {

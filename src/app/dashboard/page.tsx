@@ -49,6 +49,17 @@ interface PaymentMode {
     amount: number;
 }
 
+interface Profile {
+    plan_type?: string;
+    plan_expiry?: string;
+}
+
+interface MonthlyInvoice {
+    customer_id: string;
+    total_amount: number;
+    customers?: { name?: string };
+}
+
 export default function DashboardPage() {
     const [stats, setStats] = useState([
         { label: 'Total Customers', value: '0' },
@@ -68,7 +79,7 @@ export default function DashboardPage() {
     const [chartLabels, setChartLabels] = useState<string[]>([])
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
     const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([])
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -117,7 +128,7 @@ export default function DashboardPage() {
                 .eq('user_id', uid)
                 .not('payment_status', 'eq', 'paid')
 
-            const totalPending = (unpaidInvoices || []).reduce((sum: number, inv: any) => sum + (inv.balance_amount || 0), 0)
+            const totalPending = (unpaidInvoices || []).reduce((sum: number, inv: { balance_amount?: number }) => sum + (inv.balance_amount || 0), 0)
             setPendingPayments(totalPending)
 
             // Top Customer this month
@@ -133,7 +144,7 @@ export default function DashboardPage() {
 
             if (monthlyInvoices && monthlyInvoices.length > 0) {
                 const customerMap: Record<string, { name: string; total: number }> = {}
-                ;(monthlyInvoices as any[]).forEach(inv => {
+                ;(monthlyInvoices as MonthlyInvoice[]).forEach(inv => {
                     const custName = inv.customers?.name || 'Unknown'
                     if (!customerMap[inv.customer_id]) {
                         customerMap[inv.customer_id] = { name: custName, total: 0 }
@@ -150,7 +161,7 @@ export default function DashboardPage() {
                 .select('price, stock_quantity')
                 .eq('user_id', uid)
 
-            const totalStockValue = (products || []).reduce((sum: number, p: any) => sum + (p.price || 0) * (p.stock_quantity || 0), 0)
+            const totalStockValue = (products || []).reduce((sum: number, p: { price?: number; stock_quantity?: number }) => sum + (p.price || 0) * (p.stock_quantity || 0), 0)
             setStockValue(totalStockValue)
 
             // Dynamic Chart Data Grouping (Last 15 Days - DAILY)
@@ -601,9 +612,11 @@ View All Invoices
                                             "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter",
                                             inv.payment_status === 'paid'
                                                 ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                                : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                                : inv.payment_status === 'hide'
+                                                    ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                                    : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
                                         )}>
-                                            {inv.payment_status}
+                                            {inv.payment_status === 'hide' ? 'hidden' : inv.payment_status}
                                         </span>
                                     </td>
                                     <td className="px-8 py-5 text-right">

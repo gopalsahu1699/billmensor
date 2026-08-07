@@ -3,13 +3,20 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { MdCheckCircle as CheckCircle2, MdLoop as Loader2, MdExpandMore as ChevronDown, MdCalendarToday as Calendar } from 'react-icons/md'
+import { MdArrowBack, MdPerson, MdPayments, MdReceiptLong, MdExpandMore, MdCalendarToday } from 'react-icons/md'
 import { toast } from 'sonner'
 import { SelectorModal } from '@/components/ui/SelectorModal'
+import { FormField } from '@/components/ui/form/FormField'
+import { FormSection } from '@/components/ui/form/FormSection'
+import { FormActions } from '@/components/ui/form/FormActions'
+import { SmartInput, SmartNumberInput, SmartSelect, SmartTextarea } from '@/components/ui/form/smart-inputs'
+import { InlineAlert } from '@/components/ui/InlineAlert'
+import { validatePositiveNumber } from '@/lib/field-validation'
+import { friendlyError } from '@/lib/friendly-errors'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { paymentSchema } from '@/lib/validators'
 import { paymentService } from '@/services/payment.service'
+import { cn } from '@/lib/utils'
 
 interface Customer {
     id: string;
@@ -29,12 +36,26 @@ interface Invoice {
     payment_status: string;
 }
 
+interface FormErrors {
+    customer?: string
+    payment_number?: string
+    amount?: string
+    payment_date?: string
+    payment_mode?: string
+}
+
 function CreatePaymentForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const editId = searchParams.get('edit')
 
     const [loading, setLoading] = useState(false)
+    const [fetching, setFetching] = useState(!!editId)
+    const [dirty, setDirty] = useState(false)
+    const [errors, setErrors] = useState<FormErrors>({})
+    const [showSummary, setShowSummary] = useState(false)
+    const { confirmLeave } = useUnsavedChanges(dirty)
+
     const [customers, setCustomers] = useState<Customer[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
@@ -42,6 +63,7 @@ function CreatePaymentForm() {
     const [invoices, setInvoices] = useState<Invoice[]>([])
     const [selectedInvoiceId, setSelectedInvoiceId] = useState('')
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [loadedInvoiceId, setLoadedInvoiceId] = useState<string | null>(null)
 
     // Form fields
     const [paymentNumber, setPaymentNumber] = useState('')
@@ -50,6 +72,33 @@ function CreatePaymentForm() {
     const [paymentMode, setPaymentMode] = useState('cash')
     const [referenceNumber, setReferenceNumber] = useState('')
     const [notes, setNotes] = useState('')
+
+    const today = new Date().toISOString().split('T')[0]
+
+    const markChanged = () => {
+        setDirty(true)
+        setShowSummary(false)
+    }
+
+    const validateForm = (): FormErrors => {
+        const errs: FormErrors = {}
+        if (!selectedCustomerId) errs.customer = 'Please select a customer.'
+        if (!paymentNumber.trim()) errs.payment_number = 'Please enter the receipt number.'
+        if (!amount || amount <= 0) {
+            errs.amount = 'Please enter the amount.'
+        } else {
+            const positive = validatePositiveNumber(amount, 'amount')
+            if (positive) errs.amount = positive
+        }
+        if (!paymentDate) errs.payment_date = 'Please select the payment date.'
+        if (!paymentMode) errs.payment_mode = 'Please select the payment mode.'
+        return errs
+    }
+
+    const blurValidate = (field: keyof FormErrors) => {
+        const all = validateForm()
+        setErrors((e) => ({ ...e, [field]: all[field] ?? '' }))
+    }
 
     const fetchInitialData = React.useCallback(async () => {
         try {
@@ -104,7 +153,7 @@ function CreatePaymentForm() {
     const fetchPaymentForEdit = React.useCallback(async () => {
         if (!editId) return
         try {
-            setLoading(true)
+            setFetching(true)
             const { data, error } = await supabase
                 .from('payments')
                 .select('*')
@@ -119,6 +168,7 @@ function CreatePaymentForm() {
 
             setSelectedCustomerId(data.customer_id)
             setSelectedInvoiceId(data.invoice_id)
+            setLoadedInvoiceId(data.invoice_id)
             setPaymentNumber(data.payment_number)
             setPaymentDate(data.payment_date)
             setAmount(data.amount)
@@ -132,7 +182,7 @@ function CreatePaymentForm() {
         } catch (error: unknown) {
             console.error('Fetch payment for edit error:', error)
         } finally {
-            setLoading(false)
+            setFetching(false)
         }
     }, [editId, router, fetchCustomerInvoices])
 
@@ -145,9 +195,15 @@ function CreatePaymentForm() {
         }
     }, [editId, fetchInitialData, fetchPaymentForEdit, generatePaymentNumber])
 
-    const handleSave = async () => {
-        if (!selectedCustomerId) return toast.error('Please select a customer')
-        if (amount <= 0) return toast.error('Please enter a valid amount')
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault()
+        const validationErrors = validateForm()
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            setShowSummary(true)
+            document.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"]')?.focus()
+            return
+        }
 
         setLoading(true)
         try {
@@ -174,130 +230,171 @@ function CreatePaymentForm() {
             const validatedData = paymentSchema.parse(payload)
 
             if (editId) {
-                // In a real production app, we should handle reversing old payments.
-                // For now, updating the record.
+                // Reconcile the old invoice first so its balance reflects the
+                // removal of this receipt before it is re-pointed elsewhere.
+                if (loadedInvoiceId && loadedInvoiceId !== selectedInvoiceId) {
+                    await paymentService.reconcileInvoice(loadedInvoiceId)
+                }
                 await paymentService.update(editId, validatedData)
             } else {
                 await paymentService.create(validatedData)
             }
 
-            // Update Invoice Balance and Status if linked
-            if (selectedInvoiceId && !editId) {
-                const invoice = invoices.find(i => i.id === selectedInvoiceId)
-                if (invoice) {
-                    const newPaid = (invoice.amount_paid || 0) + amount
-                    const newBalance = invoice.total_amount - newPaid
-                    const newStatus = newBalance <= 0 ? 'paid' : 'partially_paid'
-
-                    await supabase
-                        .from('invoices')
-                        .update({
-                            amount_paid: newPaid,
-                            balance_amount: newBalance,
-                            payment_status: newStatus
-                        })
-                        .eq('id', selectedInvoiceId)
-                }
+            // Keep the linked invoice's received/balance/status in sync with the payments ledger
+            if (selectedInvoiceId) {
+                await paymentService.reconcileInvoice(selectedInvoiceId)
             }
 
             toast.success(editId ? 'Payment updated successfully!' : 'Payment recorded successfully!')
             router.push('/dashboard/payments-in')
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'An error occurred'
-            toast.error(msg)
+            toast.error(friendlyError(error))
         } finally {
             setLoading(false)
         }
     }
 
+    const handleCancel = () => {
+        if (!confirmLeave()) return
+        router.back()
+    }
+
+    if (fetching) {
+        return (
+            <div className="max-w-4xl mx-auto py-20 flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading payment...</p>
+            </div>
+        )
+    }
+
     return (
-        <div className="space-y-10 max-w-4xl mx-auto pb-20 animate-in fade-in duration-500">
+        <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-32 px-4 md:px-6 animate-in fade-in duration-500">
             {/* Studio Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 dark:bg-primary/5 p-8 md:p-12 rounded-[40px] text-white shadow-2xl border border-slate-800">
-                <div className="space-y-2">
-                    <h1 className="text-4xl font-black tracking-tight italic uppercase">
-                        {editId ? 'Edit' : 'Record'} <span className="text-green-500">Payment-In</span>
-                    </h1>
-                    <p className="text-slate-300 font-medium tracking-tight whitespace-pre-line">
-                        {editId ? 'Update transition details for this receipt.' : 'Document funds received from your customers.'}
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 bg-slate-900 dark:bg-primary/5 p-6 md:p-10 rounded-[32px] text-white shadow-xl border border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] pointer-events-none" aria-hidden="true"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        aria-label="Back to payments-in"
+                        className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95"
+                    >
+                        <MdArrowBack size={22} className="text-white" aria-hidden="true" />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight uppercase leading-tight">
+                            {editId ? 'Edit' : 'Record'} <span className="text-green-500">Payment-In</span>
+                        </h1>
+                        <p className="text-slate-400 font-medium text-sm mt-0.5">
+                            {editId ? 'Update receipt details for this payment.' : 'Document funds received from your customers.'}
+                        </p>
+                    </div>
                 </div>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => router.back()}
-                        className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-widest"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-green-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-green-500 transition-all shadow-xl shadow-green-600/20 active:scale-95 disabled:opacity-50"
-                    >
-                        {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
-                        {loading ? 'SAVING...' : editId ? 'UPDATE PAYMENT' : 'RECORD RECEIPT'}
-                    </button>
+                <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                    Required fields are marked with *
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Payment Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-black uppercase tracking-widest text-slate-400">Customer *</label>
-                            <button
-                                type="button"
-                                onClick={() => setIsCustomerModalOpen(true)}
-                                className="w-full flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 h-14 text-sm focus:ring-4 focus:ring-green-500/10 outline-none text-left transition-all"
-                            >
-                                <span className={selectedCustomerId ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}>
-                                    {selectedCustomerId
-                                        ? customers.find(c => c.id === selectedCustomerId)?.name || 'Select Customer'
-                                        : 'Choose a customer...'}
-                                </span>
-                                <ChevronDown size={20} className="text-slate-400" />
-                            </button>
-                            <SelectorModal
-                                isOpen={isCustomerModalOpen}
-                                onClose={() => setIsCustomerModalOpen(false)}
-                                title="Search Customer"
-                                items={customers}
-                                searchKeys={['name', 'phone']}
-                                valueKey="id"
-                                selectedValue={selectedCustomerId}
-                                onSelect={(c) => {
-                                    setSelectedCustomerId(c.id)
-                                    setSelectedInvoiceId('')
-                                    fetchCustomerInvoices(c.id)
-                                }}
-                                renderItem={(c) => (
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight">{c.name}</span>
-                                        <span className="text-xs text-slate-500">{c.phone || 'No phone'}</span>
-                                    </div>
-                                )}
-                            />
-                        </div>
+            <form id="payment-form" onSubmit={handleSave} noValidate className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {showSummary && (
+                    <div className="lg:col-span-3">
+                        <InlineAlert variant="error" title="Please fix the following before saving:">
+                            <ul className="list-disc list-inside space-y-1">
+                                {Object.values(errors).filter(Boolean).map((msg, i) => (
+                                    <li key={i}>{msg}</li>
+                                ))}
+                            </ul>
+                        </InlineAlert>
+                    </div>
+                )}
 
-                        {/* Invoice Selection */}
-                        {selectedCustomerId && (
-                            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Link to Invoice (Optional)</label>
+                {/* Left Column */}
+                <div className="lg:col-span-2 space-y-6">
+                    <FormSection
+                        title="Party & Invoice"
+                        description="Who is paying and which invoice (if any) this receipt settles."
+                        icon={<MdPerson size={22} aria-hidden="true" />}
+                    >
+                        <FormField
+                            label="Customer"
+                            required
+                            error={errors.customer}
+                            description="The customer making this payment."
+                        >
+                            {({ id, describedBy, invalid }) => (
                                 <button
                                     type="button"
-                                    onClick={() => setIsInvoiceModalOpen(true)}
-                                    className="w-full flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 h-14 text-sm focus:ring-4 focus:ring-green-500/10 outline-none text-left transition-all"
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    data-invalid={invalid ? 'true' : undefined}
+                                    onClick={() => setIsCustomerModalOpen(true)}
+                                    className={cn(
+                                        'w-full flex items-center justify-between rounded-2xl border bg-slate-50 dark:bg-slate-800/40 px-4 h-12 text-sm font-medium text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/25',
+                                        invalid
+                                            ? 'border-red-300 dark:border-red-500/40 bg-red-50/40 dark:bg-red-500/5'
+                                            : 'border-slate-200/80 dark:border-white/10'
+                                    )}
                                 >
-                                    <span className={selectedInvoiceId ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}>
-                                        {selectedInvoiceId
-                                            ? invoices.find(i => i.id === selectedInvoiceId)?.invoice_number || 'Select Invoice'
-                                            : invoices.length > 0 ? 'Choose an invoice...' : 'No pending invoices found'}
+                                    <span className={selectedCustomerId ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}>
+                                        {selectedCustomerId
+                                            ? customers.find(c => c.id === selectedCustomerId)?.name || 'Select Customer'
+                                            : 'Choose a customer...'}
                                     </span>
-                                    <ChevronDown size={20} className="text-slate-400" />
+                                    <MdExpandMore size={20} className="text-slate-400 shrink-0" aria-hidden="true" />
                                 </button>
+                            )}
+                        </FormField>
+                        <SelectorModal
+                            isOpen={isCustomerModalOpen}
+                            onClose={() => setIsCustomerModalOpen(false)}
+                            title="Search Customer"
+                            items={customers}
+                            searchKeys={['name', 'phone']}
+                            valueKey="id"
+                            selectedValue={selectedCustomerId}
+                            onSelect={(c) => {
+                                setSelectedCustomerId(c.id)
+                                setSelectedInvoiceId('')
+                                fetchCustomerInvoices(c.id)
+                                setErrors((e) => ({ ...e, customer: '' }))
+                                markChanged()
+                            }}
+                            renderItem={(c) => (
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight">{c.name}</span>
+                                    <span className="text-xs text-slate-500">{c.phone || 'No phone'}</span>
+                                </div>
+                            )}
+                            emptyMessage="No customers found"
+                            createLabel="Create Customer"
+                            onCreateNew={() => router.push('/dashboard/customers/create')}
+                        />
+
+                        {selectedCustomerId && (
+                            <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                                <FormField
+                                    label="Link to Invoice"
+                                    description="Optional — allocates this receipt to a pending invoice."
+                                >
+                                    {({ id, describedBy }) => (
+                                        <button
+                                            type="button"
+                                            id={id}
+                                            aria-describedby={describedBy}
+                                            onClick={() => setIsInvoiceModalOpen(true)}
+                                            className="w-full flex items-center justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-800/40 px-4 h-12 text-sm font-medium text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/25"
+                                        >
+                                            <span className={selectedInvoiceId ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}>
+                                                {selectedInvoiceId
+                                                    ? invoices.find(i => i.id === selectedInvoiceId)?.invoice_number || 'Select Invoice'
+                                                    : invoices.length > 0 ? 'Choose an invoice...' : 'No pending invoices found'}
+                                            </span>
+                                            <MdExpandMore size={20} className="text-slate-400 shrink-0" aria-hidden="true" />
+                                        </button>
+                                    )}
+                                </FormField>
                                 <SelectorModal
                                     isOpen={isInvoiceModalOpen}
                                     onClose={() => setIsInvoiceModalOpen(false)}
@@ -310,6 +407,7 @@ function CreatePaymentForm() {
                                         setSelectedInvoiceId(inv.id)
                                         // Auto-fill amount with balance if currently 0
                                         if (amount === 0) setAmount(inv.balance_amount)
+                                        markChanged()
                                     }}
                                     renderItem={(inv) => (
                                         <div className="flex justify-between items-center w-full">
@@ -323,6 +421,9 @@ function CreatePaymentForm() {
                                             </div>
                                         </div>
                                     )}
+                                    emptyMessage="No pending invoices found"
+                                    createLabel="Create Invoice"
+                                    onCreateNew={() => router.push('/dashboard/invoices/create')}
                                 />
                                 {selectedInvoiceId && (
                                     <div className="px-4 py-3 bg-green-50 dark:bg-green-500/5 rounded-2xl border border-green-100 dark:border-green-500/10 flex justify-between items-center">
@@ -330,6 +431,7 @@ function CreatePaymentForm() {
                                             Selected Invoice: {invoices.find(i => i.id === selectedInvoiceId)?.invoice_number}
                                         </div>
                                         <button
+                                            type="button"
                                             onClick={() => setSelectedInvoiceId('')}
                                             className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700"
                                         >
@@ -339,94 +441,197 @@ function CreatePaymentForm() {
                                 )}
                             </div>
                         )}
+                    </FormSection>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-black uppercase tracking-widest text-slate-500">Amount (₹) *</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                                    <input
-                                        type="number"
+                    <FormSection
+                        title="Payment Details"
+                        description="Amount, date and remarks for this receipt."
+                        icon={<MdPayments size={22} aria-hidden="true" />}
+                    >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormField
+                                label="Amount received"
+                                required
+                                error={errors.amount}
+                                description="Enter the amount received from the customer."
+                            >
+                                {({ id, describedBy, invalid }) => (
+                                    <SmartNumberInput
+                                        id={id}
+                                        aria-describedby={describedBy}
+                                        aria-invalid={invalid}
+                                        invalid={invalid}
                                         value={amount}
-                                        onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-8 pr-4 text-lg font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
+                                        onValueChange={(v) => {
+                                            setAmount(v ?? 0)
+                                            markChanged()
+                                        }}
+                                        onBlur={() => blurValidate('amount')}
+                                        prefix="₹"
+                                        decimals={2}
+                                        min={0}
                                         placeholder="0.00"
+                                        className="text-lg font-bold"
                                     />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-black uppercase tracking-widest text-slate-500">Payment Date</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                    <input
-                                        type="date"
-                                        value={paymentDate}
-                                        onChange={(e) => setPaymentDate(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
-                                    />
-                                </div>
-                            </div>
+                                )}
+                            </FormField>
+
+                            <FormField
+                                label="Payment date"
+                                required
+                                error={errors.payment_date}
+                                description="The date this receipt was collected."
+                            >
+                                {({ id, describedBy, invalid }) => (
+                                    <div>
+                                        <div className="relative">
+                                            <MdCalendarToday className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={18} aria-hidden="true" />
+                                            <input
+                                                id={id}
+                                                type="date"
+                                                aria-invalid={invalid}
+                                                aria-describedby={describedBy}
+                                                value={paymentDate}
+                                                onChange={(e) => {
+                                                    setPaymentDate(e.target.value)
+                                                    markChanged()
+                                                }}
+                                                onBlur={() => blurValidate('payment_date')}
+                                                max={editId ? undefined : today}
+                                                className={cn(
+                                                    'w-full bg-slate-50 dark:bg-slate-800/40 border rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 transition-all focus:outline-none focus:ring-2 focus:ring-primary/25',
+                                                    invalid
+                                                        ? 'border-red-300 dark:border-red-500/40 bg-red-50/40 dark:bg-red-500/5'
+                                                        : 'border-slate-200/80 dark:border-white/10'
+                                                )}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPaymentDate(today)
+                                                markChanged()
+                                            }}
+                                            className="mt-1.5 text-xs font-bold text-primary hover:underline"
+                                        >
+                                            Set to today
+                                        </button>
+                                    </div>
+                                )}
+                            </FormField>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-black uppercase tracking-widest text-slate-500">Notes / Remarks</label>
-                            <textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-4 text-sm font-medium text-slate-900 dark:text-white focus:ring-4 focus:ring-green-500/10 outline-none transition-all min-h-30"
-                                placeholder="Payment received for invoice #..."
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Reference</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Receipt #</label>
-                                <Input
-                                    value={paymentNumber}
-                                    onChange={(e) => setPaymentNumber(e.target.value)}
-                                    className="font-bold border-slate-200 dark:border-slate-800"
+                        <FormField label="Notes / remarks" hint={notes ? `${notes.length}/500` : undefined}>
+                            {({ id, describedBy }) => (
+                                <SmartTextarea
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    value={notes}
+                                    onValueChange={(v) => {
+                                        setNotes(v)
+                                        markChanged()
+                                    }}
+                                    maxLength={500}
+                                    rows={3}
+                                    placeholder="Payment received for invoice #..."
                                 />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Mode</label>
-                                <select
+                            )}
+                        </FormField>
+                    </FormSection>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                    <FormSection
+                        title="Reference"
+                        description="Voucher identification and mode of receipt."
+                        icon={<MdReceiptLong size={22} aria-hidden="true" />}
+                    >
+                        <FormField
+                            label="Receipt number"
+                            required
+                            error={errors.payment_number}
+                            description="Auto-generated — editable if needed."
+                        >
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    value={paymentNumber}
+                                    onChange={(e) => {
+                                        setPaymentNumber(e.target.value)
+                                        markChanged()
+                                    }}
+                                    onBlur={() => blurValidate('payment_number')}
+                                    placeholder="PMT-IN-0001"
+                                    maxLength={20}
+                                />
+                            )}
+                        </FormField>
+
+                        <FormField
+                            label="Payment mode"
+                            required
+                            error={errors.payment_mode}
+                        >
+                            {({ id, describedBy, invalid }) => (
+                                <SmartSelect
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
                                     value={paymentMode}
-                                    onChange={(e) => setPaymentMode(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 h-12 text-sm focus:ring-4 focus:ring-green-500/10 outline-none font-bold"
+                                    onChange={(e) => {
+                                        setPaymentMode(e.target.value)
+                                        markChanged()
+                                    }}
                                 >
                                     <option value="cash">Cash</option>
                                     <option value="bank">Bank Transfer</option>
                                     <option value="upi">UPI / QR</option>
                                     <option value="cheque">Cheque</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ref # (Optional)</label>
-                                <Input
-                                    value={referenceNumber}
-                                    onChange={(e) => setReferenceNumber(e.target.value)}
-                                    placeholder="Txn ID, Cheque #"
-                                    className="font-medium border-slate-200 dark:border-slate-800"
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </SmartSelect>
+                            )}
+                        </FormField>
 
-                    <Card className="bg-green-600 text-white overflow-hidden shadow-xl shadow-green-600/20">
-                        <div className="p-6 space-y-2">
-                            <p className="text-green-100 text-[10px] font-black uppercase tracking-widest">Total Receipt</p>
-                            <h2 className="text-4xl font-black italic tracking-tight">₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
-                        </div>
-                    </Card>
+                        <FormField
+                            label="Reference number"
+                            hint={referenceNumber ? undefined : 'Optional'}
+                            description="Txn ID, UTR, or cheque number."
+                        >
+                            {({ id, describedBy }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    value={referenceNumber}
+                                    onChange={(e) => {
+                                        setReferenceNumber(e.target.value)
+                                        markChanged()
+                                    }}
+                                    placeholder="Txn ID, Cheque #"
+                                    maxLength={60}
+                                />
+                            )}
+                        </FormField>
+                    </FormSection>
+
+                    <div className="bg-green-600 text-white rounded-[32px] p-6 space-y-2 shadow-xl shadow-green-600/20 overflow-hidden">
+                        <p className="text-green-100 text-[10px] font-black uppercase tracking-widest">Total Receipt</p>
+                        <h2 className="text-4xl font-black italic tracking-tight">₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+                    </div>
                 </div>
-            </div>
+
+                <FormActions
+                    formId="payment-form"
+                    onCancel={handleCancel}
+                    saving={loading}
+                    dirty={dirty}
+                    saveLabel={editId ? 'Update payment' : 'Record receipt'}
+                    className="lg:col-span-3"
+                />
+            </form>
         </div>
     )
 }

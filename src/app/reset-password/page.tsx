@@ -5,8 +5,27 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { FormField } from '@/components/ui/form/FormField'
+import { SmartInput } from '@/components/ui/form/smart-inputs'
+import { friendlyError } from '@/lib/friendly-errors'
+
+type ResetFormKey = 'password' | 'confirmPassword'
+
+function fieldError(key: ResetFormKey, f: { password: string; confirmPassword: string }): string | undefined {
+    switch (key) {
+        case 'password':
+            if (!f.password) return 'Please enter a new password.'
+            if (f.password.length < 8) return 'Password must be at least 8 characters.'
+            return undefined
+        case 'confirmPassword':
+            if (!f.confirmPassword) return 'Please confirm your new password.'
+            if (f.confirmPassword !== f.password) return 'Passwords do not match.'
+            return undefined
+        default:
+            return undefined
+    }
+}
 
 export default function ResetPasswordPage() {
     const router = useRouter()
@@ -14,6 +33,7 @@ export default function ResetPasswordPage() {
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [isValidToken, setIsValidToken] = useState(true)
+    const [errors, setErrors] = useState<Partial<Record<ResetFormKey, string>>>({})
 
     useEffect(() => {
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
@@ -30,16 +50,28 @@ export default function ResetPasswordPage() {
         }
     }, [])
 
+    const update = (key: ResetFormKey, value: string) => {
+        if (key === 'password') setPassword(value)
+        else setConfirmPassword(value)
+        setErrors((e) => (e[key] ? { ...e, [key]: '' } : e))
+    }
+
+    const blurValidate = (key: ResetFormKey) => {
+        const form = { password, confirmPassword }
+        setErrors((e) => ({ ...e, [key]: fieldError(key, form) ?? '' }))
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        
-        if (password !== confirmPassword) {
-            toast.error('Passwords do not match')
-            return
-        }
-
-        if (password.length < 6) {
-            toast.error('Password must be at least 6 characters')
+        const form = { password, confirmPassword }
+        const validationErrors: Partial<Record<ResetFormKey, string>> = {}
+        ;(['password', 'confirmPassword'] as ResetFormKey[]).forEach((key) => {
+            const msg = fieldError(key, form)
+            if (msg) validationErrors[key] = msg
+        })
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
             return
         }
 
@@ -52,8 +84,8 @@ export default function ResetPasswordPage() {
 
             toast.success('Password reset successfully!')
             router.push('/login')
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to reset password')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to reset password'))
         } finally {
             setLoading(false)
         }
@@ -99,27 +131,41 @@ export default function ResetPasswordPage() {
                     <h1 className="text-2xl font-bold text-slate-900 mb-2">Set new password</h1>
                     <p className="text-slate-500 mb-8">Your new password must be different from previously used passwords.</p>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                required
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                            />
-                        </div>
+                    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                        <FormField label="New Password" required error={errors.password} hint="Must be at least 8 characters">
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    type="password"
+                                    autoComplete="new-password"
+                                    placeholder="••••••••"
+                                    required
+                                    value={password}
+                                    onChange={(e) => update('password', e.target.value)}
+                                    onBlur={() => blurValidate('password')}
+                                />
+                            )}
+                        </FormField>
+                        <FormField label="Confirm Password" required error={errors.confirmPassword}>
+                            {({ id, describedBy, invalid }) => (
+                                <SmartInput
+                                    id={id}
+                                    aria-describedby={describedBy}
+                                    aria-invalid={invalid}
+                                    invalid={invalid}
+                                    type="password"
+                                    autoComplete="new-password"
+                                    placeholder="••••••••"
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => update('confirmPassword', e.target.value)}
+                                    onBlur={() => blurValidate('confirmPassword')}
+                                />
+                            )}
+                        </FormField>
 
                         <Button type="submit" className="w-full" isLoading={loading}>
                             Reset Password

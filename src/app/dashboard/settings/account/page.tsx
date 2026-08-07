@@ -1,16 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Profile, BankDetails } from '@/types'
 import { INDIAN_STATES } from '@/lib/constants'
+import { FormField } from '@/components/ui/form/FormField'
+import { FormSection } from '@/components/ui/form/FormSection'
+import { FormActions } from '@/components/ui/form/FormActions'
+import { SmartInput, SmartTextarea, SmartSelect, EmailInput, PhoneInput, GSTInput } from '@/components/ui/form/smart-inputs'
+import { friendlyError } from '@/lib/friendly-errors'
+import { validateRequired, validateEmail, validatePhone, validateGSTIN } from '@/lib/field-validation'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import {
     IoBusiness,
     IoCall,
     IoMail,
-    IoLocation,
     IoDocument,
     IoCard,
     IoCloudUpload,
@@ -20,54 +26,94 @@ import {
     IoPhonePortrait,
     IoBook,
     IoGrid,
-    IoColorPalette,
-    IoText
+    IoColorPalette
 } from 'react-icons/io5'
-import { FaHashtag } from 'react-icons/fa'
-import { FaSave } from 'react-icons/fa'
+import { FaHashtag, FaSave } from 'react-icons/fa'
+
+const EMPTY_PROFILE = {
+    company_name: '',
+    full_name: '',
+    designation: '',
+    phone: '',
+    email: '',
+    address: '',
+    gstin: '',
+    website: '',
+    business_type: '',
+    industry_type: '',
+    place_of_supply: '',
+    terms_and_conditions: '',
+    logo_url: '',
+    signature_url: '',
+    custom_field_1_label: '',
+    custom_field_1_value: '',
+    custom_field_2_label: '',
+    custom_field_2_value: '',
+    custom_field_3_label: '',
+    custom_field_3_value: '',
+    brand_color: '#2563eb',
+    accent_color: '#1e293b',
+    font_family: 'Inter',
+}
+
+const EMPTY_BANK = {
+    account_number: '',
+    account_holder_name: '',
+    ifsc_code: '',
+    bank_branch_name: '',
+    upi_id: '',
+}
+
+function setFieldError(errors: Record<string, string>, field: string, error: string | null): Record<string, string> {
+    if (error) return { ...errors, [field]: error }
+    if (!errors[field]) return errors
+    const next = { ...errors }
+    delete next[field]
+    return next
+}
+
+function focusControl(ref: React.RefObject<HTMLDivElement | null>) {
+    ref.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
+}
+
+function focusFirstError(errors: Record<string, string>, fields: Array<[string, React.RefObject<HTMLDivElement | null>]>) {
+    for (const [field, ref] of fields) {
+        if (errors[field]) {
+            focusControl(ref)
+            return
+        }
+    }
+}
 
 export default function AccountSettingsPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [bankSaving, setBankSaving] = useState(false)
 
-    /* ----------- COMPANY STATE ----------- */
-    const [profile, setProfile] = useState({
-        company_name: '',
-        full_name: '',
-        designation: '',
-        phone: '',
-        email: '',
-        address: '',
-        gstin: '',
-        website: '',
-        business_type: '',
-        industry_type: '',
-        place_of_supply: '',
-        terms_and_conditions: '',
-        logo_url: '',
-        signature_url: '',
-        custom_field_1_label: '',
-        custom_field_1_value: '',
-        custom_field_2_label: '',
-        custom_field_2_value: '',
-        custom_field_3_label: '',
-        custom_field_3_value: '',
-        brand_color: '#2563eb',
-        accent_color: '#1e293b',
-        font_family: 'Inter',
-    })
+    const [profile, setProfile] = useState(EMPTY_PROFILE)
+    const [bank, setBank] = useState(EMPTY_BANK)
 
-    /* ----------- BANK STATE ----------- */
-    const [bank, setBank] = useState({
-        account_number: '',
-        account_holder_name: '',
-        ifsc_code: '',
-        bank_branch_name: '',
-        upi_id: '',
-    })
+    const [initialProfile, setInitialProfile] = useState<typeof EMPTY_PROFILE | null>(null)
+    const [initialBank, setInitialBank] = useState<typeof EMPTY_BANK | null>(null)
 
-    /* ----------- LOAD DATA ----------- */
+    const [profileErrors, setProfileErrors] = useState<Record<string, string>>({})
+    const [bankErrors, setBankErrors] = useState<Record<string, string>>({})
+
+    const companyNameRef = useRef<HTMLDivElement>(null)
+    const phoneRef = useRef<HTMLDivElement>(null)
+    const emailRef = useRef<HTMLDivElement>(null)
+    const gstinRef = useRef<HTMLDivElement>(null)
+    const ifscRef = useRef<HTMLDivElement>(null)
+    const logoInputRef = useRef<HTMLInputElement>(null)
+    const signatureInputRef = useRef<HTMLInputElement>(null)
+
+    const dirty = initialProfile !== null && (
+        JSON.stringify(profile) !== JSON.stringify(initialProfile) ||
+        JSON.stringify(bank) !== JSON.stringify(initialBank)
+    )
+
+    useUnsavedChanges(dirty)
+
     useEffect(() => {
         fetchProfile()
     }, [])
@@ -84,9 +130,10 @@ export default function AccountSettingsPage() {
                 .single()
 
             if (error && error.code !== 'PGRST116') throw error
+
             if (data) {
                 const p = data as Profile
-                setProfile({
+                const loadedProfile = {
                     company_name: p.company_name || '',
                     full_name: p.full_name || '',
                     designation: p.designation || '',
@@ -110,36 +157,91 @@ export default function AccountSettingsPage() {
                     brand_color: p.brand_color || '#2563eb',
                     accent_color: p.accent_color || '#1e293b',
                     font_family: p.font_family || 'Inter',
-                })
+                }
+                setProfile(loadedProfile)
+                setInitialProfile(loadedProfile)
 
-                // Load bank details
                 const { data: bankData } = await supabase
                     .from('company_bank_details')
                     .select('*')
                     .eq('user_id', user.id)
                     .single()
 
-                if (bankData) {
-                    const b = bankData as BankDetails
-                    setBank({
-                        account_number: b.account_number || '',
-                        account_holder_name: b.account_holder_name || '',
-                        ifsc_code: b.ifsc_code || '',
-                        bank_branch_name: b.bank_branch_name || '',
-                        upi_id: b.upi_id || '',
-                    })
-                }
+                const b = bankData as BankDetails | null
+                const loadedBank = b ? {
+                    account_number: b.account_number || '',
+                    account_holder_name: b.account_holder_name || '',
+                    ifsc_code: b.ifsc_code || '',
+                    bank_branch_name: b.bank_branch_name || '',
+                    upi_id: b.upi_id || '',
+                } : EMPTY_BANK
+                setBank(loadedBank)
+                setInitialBank(loadedBank)
             }
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'An error occurred')
+            toast.error(friendlyError(error, error instanceof Error ? error.message : 'An error occurred'))
         } finally {
             setLoading(false)
         }
     }
 
-    /* ----------- SAVE COMPANY ----------- */
+    function validateProfileForm(): Record<string, string> {
+        const errs: Record<string, string> = {}
+        const companyErr = validateRequired(profile.company_name, 'Company name')
+        if (companyErr) errs.company_name = companyErr
+        const emailErr = validateEmail(profile.email)
+        if (emailErr) errs.email = emailErr
+        const phoneErr = validatePhone(profile.phone)
+        if (phoneErr) errs.phone = phoneErr
+        const gstinErr = validateGSTIN(profile.gstin)
+        if (gstinErr) errs.gstin = gstinErr
+        return errs
+    }
+
+    function validateBankForm(): Record<string, string> {
+        const errs: Record<string, string> = {}
+        const ifsc = bank.ifsc_code.trim()
+        if (ifsc && ifsc.length !== 11) errs.ifsc_code = 'IFSC code must be 11 characters (e.g. SBIN0001234).'
+        return errs
+    }
+
+    function validateProfileField(field: string, value: string): string | null {
+        if (field === 'company_name') return validateRequired(value, 'Company name')
+        if (field === 'email') return validateEmail(value)
+        if (field === 'phone') return validatePhone(value)
+        if (field === 'gstin') return validateGSTIN(value)
+        return null
+    }
+
+    function validateBankField(field: string, value: string): string | null {
+        if (field === 'ifsc_code') {
+            const ifsc = value.trim()
+            if (ifsc && ifsc.length !== 11) return 'IFSC code must be 11 characters (e.g. SBIN0001234).'
+        }
+        return null
+    }
+
+    function handleProfileBlur(field: string, value: string) {
+        setProfileErrors(prev => setFieldError(prev, field, validateProfileField(field, value)))
+    }
+
+    function handleBankBlur(field: string, value: string) {
+        setBankErrors(prev => setFieldError(prev, field, validateBankField(field, value)))
+    }
+
     async function handleSave(e?: React.FormEvent) {
         if (e) e.preventDefault()
+        const errs = validateProfileForm()
+        setProfileErrors(errs)
+        if (Object.keys(errs).length > 0) {
+            focusFirstError(errs, [
+                ['company_name', companyNameRef],
+                ['phone', phoneRef],
+                ['email', emailRef],
+                ['gstin', gstinRef],
+            ])
+            return
+        }
         setSaving(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -159,16 +261,22 @@ export default function AccountSettingsPage() {
                 }
                 throw error
             }
+            setInitialProfile(profile)
             toast.success('Settings saved successfully')
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Failed to save settings')
+            toast.error(friendlyError(error, error instanceof Error ? error.message : 'Failed to save settings'))
         } finally {
             setSaving(false)
         }
     }
 
-    /* ----------- SAVE BANK ----------- */
     async function handleBankSave() {
+        const errs = validateBankForm()
+        setBankErrors(errs)
+        if (Object.keys(errs).length > 0) {
+            focusFirstError(errs, [['ifsc_code', ifscRef]])
+            return
+        }
         setBankSaving(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -193,15 +301,15 @@ export default function AccountSettingsPage() {
                 if (error) throw error
             }
 
+            setInitialBank(bank)
             toast.success('Bank details saved successfully')
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Failed to save bank details')
+            toast.error(friendlyError(error, error instanceof Error ? error.message : 'Failed to save bank details'))
         } finally {
             setBankSaving(false)
         }
     }
 
-    /* ----------- IMAGE UPLOAD ----------- */
     async function handleImageUpload(file: File, field: 'logo_url' | 'signature_url') {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -222,7 +330,6 @@ export default function AccountSettingsPage() {
 
             setProfile(prev => ({ ...prev, [field]: publicUrl }))
 
-            // Save immediately
             await supabase
                 .from('profiles')
                 .update({ [field]: publicUrl })
@@ -230,11 +337,16 @@ export default function AccountSettingsPage() {
 
             toast.success(`${field === 'logo_url' ? 'Logo' : 'Signature'} uploaded successfully`)
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Upload failed')
+            toast.error(friendlyError(error, error instanceof Error ? error.message : 'Upload failed'))
         }
     }
 
-    /* ----------- UI HELPERS ----------- */
+    function handleCancel() {
+        if (initialProfile) setProfile(initialProfile)
+        if (initialBank) setBank(initialBank)
+        setProfileErrors({})
+        setBankErrors({})
+    }
 
     if (loading) {
         return (
@@ -246,6 +358,8 @@ export default function AccountSettingsPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+            <form id="bank-form" onSubmit={(e) => { e.preventDefault(); handleBankSave() }} noValidate className="hidden"></form>
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
                 <div>
@@ -258,7 +372,8 @@ export default function AccountSettingsPage() {
                     <p className="text-slate-500 dark:text-slate-400 font-medium max-w-lg leading-relaxed">Manage your business profile and custom print fields.</p>
                 </div>
                 <button
-                    onClick={() => handleSave()}
+                    type="submit"
+                    form="account-form"
                     disabled={saving}
                     className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50"
                 >
@@ -267,21 +382,22 @@ export default function AccountSettingsPage() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* LEFT COLUMN */}
-                <div className="space-y-8">
-                    {/* Company Information Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <IoBusiness size={16} className="text-blue-500" />
-                                Company Information
-                            </h2>
-                        </div>
-                        <div className="p-6 space-y-5">
-                            {/* Logo & Signature */}
+            <form id="account-form" onSubmit={handleSave} noValidate>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* LEFT COLUMN */}
+                    <div className="space-y-8">
+                        <FormSection
+                            title="Company Information"
+                            description="Your business identity used on invoices and quotations."
+                            icon={<IoBusiness size={20} />}
+                        >
                             <div className="flex gap-4">
-                                <label className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group">
+                                <button
+                                    type="button"
+                                    onClick={() => logoInputRef.current?.click()}
+                                    aria-label="Upload logo"
+                                    className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group"
+                                >
                                     {profile.logo_url ? (
                                         <div className="relative w-full h-full">
                                             <Image
@@ -297,9 +413,21 @@ export default function AccountSettingsPage() {
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logo</span>
                                         </>
                                     )}
-                                    <input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'logo_url')} />
-                                </label>
-                                <label className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group">
+                                </button>
+                                <input
+                                    ref={logoInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    aria-label="Upload logo"
+                                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'logo_url')}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => signatureInputRef.current?.click()}
+                                    aria-label="Upload signature"
+                                    className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-xs cursor-pointer overflow-hidden border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-blue-500/50 transition-all group"
+                                >
                                     {profile.signature_url ? (
                                         <div className="relative w-full h-full">
                                             <Image
@@ -315,314 +443,423 @@ export default function AccountSettingsPage() {
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Signature</span>
                                         </>
                                     )}
-                                    <input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'signature_url')} />
-                                </label>
-                            </div>
-
-                            {/* Field Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<IoBusiness size={16} />} label="Company Name">
-                                    <input
-                                        className="settings-input"
-                                        value={profile.company_name}
-                                        onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
-                                        placeholder="e.g. Billmensor Solutions Pvt Ltd"
-                                    />
-                                </SettingsField>
-
-                                <SettingsField icon={<IoCheckmarkCircle size={16} />} label="Owner / Contact Name">
-                                    <input
-                                        className="settings-input"
-                                        value={profile.full_name}
-                                        onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                                        placeholder="Full name"
-                                    />
-                                </SettingsField>
-
-                                <SettingsField icon={<IoCall size={16} />} label="Phone Number">
-                                    <input
-                                        className="settings-input"
-                                        value={profile.phone}
-                                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                                        placeholder="+91 00000 00000"
-                                    />
-                                </SettingsField>
-
-                                <SettingsField icon={<IoMail size={16} />} label="Email Address">
-                                    <input
-                                        className="settings-input"
-                                        type="email"
-                                        value={profile.email}
-                                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                                        placeholder="hello@company.com"
-                                    />
-                                </SettingsField>
-                            </div>
-
-                            <SettingsField icon={<IoLocation size={16} />} label="Registered Address">
-                                <textarea
-                                    className="settings-input min-h-[100px] py-3"
-                                    value={profile.address}
-                                    onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                                    placeholder="Complete street address, city, state, PIN code..."
+                                </button>
+                                <input
+                                    ref={signatureInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    aria-label="Upload signature"
+                                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'signature_url')}
                                 />
-                            </SettingsField>
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* Custom Fields Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <IoGrid size={16} className="text-blue-500" />
-                                Custom Print Fields
-                            </h2>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <p className="text-xs text-slate-500 font-medium italic">These fields will appear on your printed invoices and quotations.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField label="Company Name" required error={profileErrors.company_name}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={companyNameRef}>
+                                            <SmartInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                aria-required
+                                                icon={<IoBusiness size={16} />}
+                                                value={profile.company_name}
+                                                transform="words"
+                                                trimOnBlur
+                                                onValueChange={(v) => {
+                                                    setProfile(prev => ({ ...prev, company_name: v }))
+                                                    setProfileErrors(prev => setFieldError(prev, 'company_name', null))
+                                                }}
+                                                onBlur={(e) => handleProfileBlur('company_name', e.target.value)}
+                                                placeholder="e.g. Billmensor Solutions Pvt Ltd"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
 
+                                <FormField label="Owner / Contact Name">
+                                    {({ id }) => (
+                                        <SmartInput
+                                            id={id}
+                                            icon={<IoCheckmarkCircle size={16} />}
+                                            value={profile.full_name}
+                                            transform="words"
+                                            trimOnBlur
+                                            onValueChange={(v) => setProfile(prev => ({ ...prev, full_name: v }))}
+                                            placeholder="Full name"
+                                        />
+                                    )}
+                                </FormField>
+
+                                <FormField label="Phone Number" error={profileErrors.phone}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={phoneRef}>
+                                            <PhoneInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                icon={<IoCall size={16} />}
+                                                value={profile.phone}
+                                                onValueChange={(v) => {
+                                                    setProfile(prev => ({ ...prev, phone: v }))
+                                                    setProfileErrors(prev => setFieldError(prev, 'phone', null))
+                                                }}
+                                                onBlur={(e) => handleProfileBlur('phone', e.target.value)}
+                                                placeholder="+91 00000 00000"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+
+                                <FormField label="Email Address" error={profileErrors.email}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={emailRef}>
+                                            <EmailInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                icon={<IoMail size={16} />}
+                                                value={profile.email}
+                                                onValueChange={(v) => {
+                                                    setProfile(prev => ({ ...prev, email: v }))
+                                                    setProfileErrors(prev => setFieldError(prev, 'email', null))
+                                                }}
+                                                onBlur={(e) => handleProfileBlur('email', e.target.value)}
+                                                placeholder="hello@company.com"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+                            </div>
+
+                            <FormField label="Registered Address" description="Complete street address, city, state, PIN code.">
+                                {({ id }) => (
+                                    <SmartTextarea
+                                        id={id}
+                                        value={profile.address}
+                                        onValueChange={(v) => setProfile(prev => ({ ...prev, address: v }))}
+                                        placeholder="Complete street address, city, state, PIN code..."
+                                    />
+                                )}
+                            </FormField>
+                        </FormSection>
+
+                        <FormSection
+                            title="Custom Print Fields"
+                            description="These fields will appear on your printed invoices and quotations."
+                            icon={<IoGrid size={20} />}
+                        >
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 1 Label">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_1_label}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_1_label: e.target.value })}
-                                            placeholder="e.g. Vehicle No."
-                                        />
-                                    </SettingsField>
-                                    <SettingsField icon={<IoGrid size={14} />} label="Field 1 Value">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_1_value}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_1_value: e.target.value })}
-                                            placeholder="e.g. MH 12 AB 1234"
-                                        />
-                                    </SettingsField>
+                                    <FormField label="Field 1 Label">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<FaHashtag size={14} />}
+                                                value={profile.custom_field_1_label}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_1_label: v }))}
+                                                placeholder="e.g. Vehicle No."
+                                            />
+                                        )}
+                                    </FormField>
+                                    <FormField label="Field 1 Value">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<IoGrid size={14} />}
+                                                value={profile.custom_field_1_value}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_1_value: v }))}
+                                                placeholder="e.g. MH 12 AB 1234"
+                                            />
+                                        )}
+                                    </FormField>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 2 Label">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_2_label}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_2_label: e.target.value })}
-                                            placeholder="e.g. PAN No."
-                                        />
-                                    </SettingsField>
-                                    <SettingsField icon={<IoGrid size={14} />} label="Field 2 Value">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_2_value}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_2_value: e.target.value })}
-                                            placeholder="ABCDE1234F"
-                                        />
-                                    </SettingsField>
+                                    <FormField label="Field 2 Label">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<FaHashtag size={14} />}
+                                                value={profile.custom_field_2_label}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_2_label: v }))}
+                                                placeholder="e.g. PAN No."
+                                            />
+                                        )}
+                                    </FormField>
+                                    <FormField label="Field 2 Value">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<IoGrid size={14} />}
+                                                value={profile.custom_field_2_value}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_2_value: v }))}
+                                                placeholder="ABCDE1234F"
+                                            />
+                                        )}
+                                    </FormField>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SettingsField icon={<FaHashtag size={14} />} label="Field 3 Label">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_3_label}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_3_label: e.target.value })}
-                                            placeholder="e.g. DL No."
-                                        />
-                                    </SettingsField>
-                                    <SettingsField icon={<IoGrid size={14} />} label="Field 3 Value">
-                                        <input
-                                            className="settings-input"
-                                            value={profile.custom_field_3_value}
-                                            onChange={(e) => setProfile({ ...profile, custom_field_3_value: e.target.value })}
-                                            placeholder="Enter Value"
-                                        />
-                                    </SettingsField>
+                                    <FormField label="Field 3 Label">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<FaHashtag size={14} />}
+                                                value={profile.custom_field_3_label}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_3_label: v }))}
+                                                placeholder="e.g. DL No."
+                                            />
+                                        )}
+                                    </FormField>
+                                    <FormField label="Field 3 Value">
+                                        {({ id }) => (
+                                            <SmartInput
+                                                id={id}
+                                                icon={<IoGrid size={14} />}
+                                                value={profile.custom_field_3_value}
+                                                onValueChange={(v) => setProfile(prev => ({ ...prev, custom_field_3_value: v }))}
+                                                placeholder="Enter Value"
+                                            />
+                                        )}
+                                    </FormField>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* RIGHT COLUMN */}
-                <div className="space-y-8">
-                    {/* Bank Details Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <IoBusiness size={16} className="text-green-500" />
-                                Bank Details
-                            </h2>
-                            <button
-                                onClick={handleBankSave}
-                                disabled={bankSaving}
-                                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                {bankSaving ? <IoSync size={14} className="animate-spin" /> : <FaSave size={14} />}
-                                {bankSaving ? 'SAVING...' : 'SAVE BANK'}
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <SettingsField icon={<IoCard size={16} />} label="Account Number">
-                                <input
-                                    className="settings-input tracking-widest"
-                                    value={bank.account_number}
-                                    onChange={(e) => setBank({ ...bank, account_number: e.target.value })}
-                                    placeholder="XXXX XXXX XXXX XXXX"
-                                />
-                            </SettingsField>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<IoCheckmarkCircle size={16} />} label="Account Holder Name">
-                                    <input
-                                        className="settings-input"
-                                        value={bank.account_holder_name}
-                                        onChange={(e) => setBank({ ...bank, account_holder_name: e.target.value })}
-                                        placeholder="As per bank records"
-                                    />
-                                </SettingsField>
-
-                                <SettingsField icon={<FaHashtag size={16} />} label="IFSC Code">
-                                    <input
-                                        className="settings-input uppercase tracking-widest font-black"
-                                        value={bank.ifsc_code}
-                                        onChange={(e) => setBank({ ...bank, ifsc_code: e.target.value })}
-                                        placeholder="SBIN0001234"
-                                    />
-                                </SettingsField>
-                            </div>
-
-                            <SettingsField icon={<IoBusiness size={16} />} label="Bank & Branch Name">
-                                <input
-                                    className="settings-input"
-                                    value={bank.bank_branch_name}
-                                    onChange={(e) => setBank({ ...bank, bank_branch_name: e.target.value })}
-                                    placeholder="e.g. State Bank of India, MG Road Branch"
-                                />
-                            </SettingsField>
-
-                            <SettingsField icon={<IoPhonePortrait size={16} />} label="UPI ID">
-                                <input
-                                    className="settings-input"
-                                    value={bank.upi_id}
-                                    onChange={(e) => setBank({ ...bank, upi_id: e.target.value })}
-                                    placeholder="business@upi"
-                                />
-                            </SettingsField>
-                        </div>
+                        </FormSection>
                     </div>
 
-                    {/* Tax & Compliance Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <FaHashtag size={16} className="text-amber-500" />
-                                Tax & Compliance
-                            </h2>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <SettingsField icon={<IoDocument size={16} />} label="GSTIN Number">
-                                    <input
-                                        className="settings-input uppercase tracking-widest font-black"
-                                        value={profile.gstin}
-                                        onChange={(e) => setProfile({ ...profile, gstin: e.target.value })}
-                                        placeholder="27AAAAA0000A1Z5"
-                                    />
-                                </SettingsField>
-
-                                <SettingsField icon={<IoLocation size={16} />} label="Place of Supply">
-                                    <select
-                                        className="settings-input"
-                                        value={profile.place_of_supply}
-                                        onChange={(e) => setProfile({ ...profile, place_of_supply: e.target.value })}
-                                    >
-                                        <option value="">Select State</option>
-                                        {INDIAN_STATES.map(s => (
-                                            <option key={s.code} value={s.name}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </SettingsField>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Terms & Conditions */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <IoBook size={16} className="text-orange-500" />
-                                Terms & Conditions
-                            </h2>
-                        </div>
-                        <div className="p-6">
-                            <textarea
-                                rows={6}
-                                className="settings-input min-h-[160px] py-3"
-                                value={profile.terms_and_conditions}
-                                onChange={(e) => setProfile({ ...profile, terms_and_conditions: e.target.value })}
-                                placeholder="Enter terms and conditions that will appear on your invoices..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Branding & Appearance Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <IoColorPalette size={16} className="text-pink-500" />
-                                Branding & Appearance
-                            </h2>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <SettingsField icon={<IoColorPalette size={16} />} label="Brand Color">
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="color"
-                                            className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
-                                            value={profile.brand_color}
-                                            onChange={(e) => setProfile({ ...profile, brand_color: e.target.value })}
-                                        />
-                                        <input
-                                            className="settings-input font-mono uppercase"
-                                            value={profile.brand_color}
-                                            onChange={(e) => setProfile({ ...profile, brand_color: e.target.value })}
-                                            placeholder="#2563EB"
-                                        />
-                                    </div>
-                                </SettingsField>
-
-                                <SettingsField icon={<IoColorPalette size={16} />} label="Accent Color">
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="color"
-                                            className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
-                                            value={profile.accent_color}
-                                            onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })}
-                                        />
-                                        <input
-                                            className="settings-input font-mono uppercase"
-                                            value={profile.accent_color}
-                                            onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })}
-                                            placeholder="#1E293B"
-                                        />
-                                    </div>
-                                </SettingsField>
-                            </div>
-
-                            <SettingsField icon={<IoText size={16} />} label="Font Family">
-                                <select
-                                    className="settings-input"
-                                    value={profile.font_family}
-                                    onChange={(e) => setProfile({ ...profile, font_family: e.target.value })}
+                    {/* RIGHT COLUMN */}
+                    <div className="space-y-8">
+                        <FormSection
+                            title="Bank Details"
+                            description="Your payment account used for customer transfers."
+                            icon={<IoCard size={20} />}
+                            action={
+                                <button
+                                    type="submit"
+                                    form="bank-form"
+                                    disabled={bankSaving}
+                                    className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
                                 >
-                                    <option value="Inter">Inter (Sans Serif)</option>
-                                    <option value="Roboto">Roboto</option>
-                                    <option value="Outfit">Outfit</option>
-                                    <option value="Geist">Geist</option>
-                                    <option value="system-ui">System Sans</option>
-                                </select>
-                            </SettingsField>
+                                    {bankSaving ? <IoSync size={14} className="animate-spin" /> : <FaSave size={14} />}
+                                    {bankSaving ? 'SAVING...' : 'SAVE BANK'}
+                                </button>
+                            }
+                        >
+                            <FormField label="Account Number">
+                                {({ id }) => (
+                                    <SmartInput
+                                        id={id}
+                                        icon={<IoCard size={16} />}
+                                        inputMode="numeric"
+                                        autoComplete="off"
+                                        className="tracking-widest"
+                                        value={bank.account_number}
+                                        onValueChange={(v) => setBank(prev => ({ ...prev, account_number: v.replace(/\D/g, '') }))}
+                                        placeholder="XXXX XXXX XXXX XXXX"
+                                    />
+                                )}
+                            </FormField>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField label="Account Holder Name">
+                                    {({ id }) => (
+                                        <SmartInput
+                                            id={id}
+                                            icon={<IoCheckmarkCircle size={16} />}
+                                            value={bank.account_holder_name}
+                                            transform="words"
+                                            trimOnBlur
+                                            onValueChange={(v) => setBank(prev => ({ ...prev, account_holder_name: v }))}
+                                            placeholder="As per bank records"
+                                        />
+                                    )}
+                                </FormField>
+
+                                <FormField label="IFSC Code" hint="11 characters (e.g. SBIN0001234)" error={bankErrors.ifsc_code}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={ifscRef}>
+                                            <SmartInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                icon={<FaHashtag size={16} />}
+                                                transform="upper"
+                                                maxLength={11}
+                                                className="tracking-widest font-black"
+                                                value={bank.ifsc_code}
+                                                onValueChange={(v) => {
+                                                    setBank(prev => ({ ...prev, ifsc_code: v }))
+                                                    setBankErrors(prev => setFieldError(prev, 'ifsc_code', null))
+                                                }}
+                                                onBlur={(e) => handleBankBlur('ifsc_code', e.target.value)}
+                                                placeholder="SBIN0001234"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+                            </div>
+
+                            <FormField label="Bank & Branch Name">
+                                {({ id }) => (
+                                    <SmartInput
+                                        id={id}
+                                        icon={<IoBusiness size={16} />}
+                                        value={bank.bank_branch_name}
+                                        transform="words"
+                                        trimOnBlur
+                                        onValueChange={(v) => setBank(prev => ({ ...prev, bank_branch_name: v }))}
+                                        placeholder="e.g. State Bank of India, MG Road Branch"
+                                    />
+                                )}
+                            </FormField>
+
+                            <FormField label="UPI ID" description="Used to accept UPI payments on your invoices.">
+                                {({ id }) => (
+                                    <SmartInput
+                                        id={id}
+                                        icon={<IoPhonePortrait size={16} />}
+                                        value={bank.upi_id}
+                                        onValueChange={(v) => setBank(prev => ({ ...prev, upi_id: v }))}
+                                        placeholder="business@upi"
+                                    />
+                                )}
+                            </FormField>
+                        </FormSection>
+
+                        <FormSection
+                            title="Tax & Compliance"
+                            description="GST details printed on your invoices."
+                            icon={<IoDocument size={20} />}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField label="GSTIN Number" hint="15 characters" error={profileErrors.gstin}>
+                                    {({ id, describedBy, invalid, errorId }) => (
+                                        <div ref={gstinRef}>
+                                            <GSTInput
+                                                id={id}
+                                                aria-describedby={describedBy}
+                                                aria-invalid={invalid}
+                                                aria-errormessage={invalid ? errorId : undefined}
+                                                icon={<IoDocument size={16} />}
+                                                maxLength={15}
+                                                className="tracking-widest font-black"
+                                                value={profile.gstin}
+                                                onValueChange={(v) => {
+                                                    setProfile(prev => ({ ...prev, gstin: v }))
+                                                    setProfileErrors(prev => setFieldError(prev, 'gstin', null))
+                                                }}
+                                                onBlur={(e) => handleProfileBlur('gstin', e.target.value)}
+                                                placeholder="27AAAAA0000A1Z5"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+
+                                <FormField label="Place of Supply">
+                                    {({ id }) => (
+                                        <SmartSelect
+                                            id={id}
+                                            value={profile.place_of_supply}
+                                            onChange={(e) => setProfile(prev => ({ ...prev, place_of_supply: e.target.value }))}
+                                        >
+                                            <option value="">Select State</option>
+                                            {INDIAN_STATES.map(s => (
+                                                <option key={s.code} value={s.name}>{s.name}</option>
+                                            ))}
+                                        </SmartSelect>
+                                    )}
+                                </FormField>
+                            </div>
+                        </FormSection>
+
+                        <FormSection
+                            title="Terms & Conditions"
+                            description="Shown at the bottom of your invoices and quotations."
+                            icon={<IoBook size={20} />}
+                        >
+                            <FormField label="Terms & Conditions">
+                                {({ id }) => (
+                                    <SmartTextarea
+                                        id={id}
+                                        className="min-h-[160px]"
+                                        value={profile.terms_and_conditions}
+                                        onValueChange={(v) => setProfile(prev => ({ ...prev, terms_and_conditions: v }))}
+                                        placeholder="Enter terms and conditions that will appear on your invoices..."
+                                    />
+                                )}
+                            </FormField>
+                        </FormSection>
+
+                        <FormSection
+                            title="Branding & Appearance"
+                            description="Colors and typography used across your documents."
+                            icon={<IoColorPalette size={20} />}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField label="Brand Color">
+                                    {({ id }) => (
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                aria-label="Brand color swatch"
+                                                className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
+                                                value={profile.brand_color}
+                                                onChange={(e) => setProfile(prev => ({ ...prev, brand_color: e.target.value }))}
+                                            />
+                                            <SmartInput
+                                                id={id}
+                                                className="font-mono uppercase"
+                                                value={profile.brand_color}
+                                                onChange={(e) => setProfile(prev => ({ ...prev, brand_color: e.target.value }))}
+                                                placeholder="#2563EB"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+
+                                <FormField label="Accent Color">
+                                    {({ id }) => (
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                aria-label="Accent color swatch"
+                                                className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
+                                                value={profile.accent_color}
+                                                onChange={(e) => setProfile(prev => ({ ...prev, accent_color: e.target.value }))}
+                                            />
+                                            <SmartInput
+                                                id={id}
+                                                className="font-mono uppercase"
+                                                value={profile.accent_color}
+                                                onChange={(e) => setProfile(prev => ({ ...prev, accent_color: e.target.value }))}
+                                                placeholder="#1E293B"
+                                            />
+                                        </div>
+                                    )}
+                                </FormField>
+                            </div>
+
+                            <FormField label="Font Family">
+                                {({ id }) => (
+                                    <SmartSelect
+                                        id={id}
+                                        value={profile.font_family}
+                                        onChange={(e) => setProfile(prev => ({ ...prev, font_family: e.target.value }))}
+                                    >
+                                        <option value="Inter">Inter (Sans Serif)</option>
+                                        <option value="Roboto">Roboto</option>
+                                        <option value="Outfit">Outfit</option>
+                                        <option value="Geist">Geist</option>
+                                        <option value="system-ui">System Sans</option>
+                                    </SmartSelect>
+                                )}
+                            </FormField>
 
                             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                 <p className="text-[10px] font-black uppercase text-slate-500 mb-2">Preview</p>
@@ -641,10 +878,18 @@ export default function AccountSettingsPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </FormSection>
                     </div>
                 </div>
-            </div>
+            </form>
+
+            <FormActions
+                formId="account-form"
+                onCancel={handleCancel}
+                saving={saving}
+                saveLabel="Save All"
+                dirty={dirty}
+            />
 
             {/* Security Footer */}
             <div className="bg-slate-900 dark:bg-slate-950 rounded-3xl p-8 border border-slate-800 dark:border-white/5 text-white flex items-center gap-6 shadow-2xl">
@@ -656,80 +901,6 @@ export default function AccountSettingsPage() {
                     <p className="text-slate-400 text-xs mt-1 font-medium leading-relaxed">Your business credentials are used exclusively for invoice generation and tax compliance filing. All data is secured with industry-standard encryption.</p>
                 </div>
             </div>
-
-            <style jsx global>{`
-                .settings-input {
-                    width: 100%;
-                    background: rgb(248 250 252);
-                    border: none;
-                    border-radius: 16px;
-                    padding: 12px 16px;
-                    font-size: 14px;
-                    outline: none;
-                    transition: all 0.2s;
-                    font-weight: 600;
-                    color: #000000;
-                }
-                .settings-input::placeholder {
-                    color: rgb(148 163 184);
-                    font-weight: 500;
-                }
-                select.settings-input {
-                    appearance: none;
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-                    background-repeat: no-repeat;
-                    background-position: right 12px center;
-                    padding-right: 40px;
-                    color: #000000;
-                }
-                select.settings-input option {
-                    color: #000000;
-                    background: white;
-                }
-                textarea.settings-input {
-                    resize: vertical;
-                    color: #000000;
-                }
-                .settings-input:focus {
-                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.05);
-                    background: white;
-                    color: #000000;
-                }
-                .dark .settings-input {
-                    background: rgba(255, 255, 255, 0.03);
-                    color: rgb(226 232 240);
-                }
-                .dark .settings-input::placeholder {
-                    color: rgb(100 116 139);
-                }
-                .dark select.settings-input {
-                    color: rgb(226 232 240);
-                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-                }
-                .dark select.settings-input option {
-                    color: rgb(226 232 240);
-                    background: rgb(30 41 59);
-                }
-                .dark textarea.settings-input {
-                    color: rgb(226 232 240);
-                }
-                .dark .settings-input:focus {
-                    background: rgba(255, 255, 255, 0.06);
-                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-                }
-            `}</style>
-        </div>
-    )
-}
-
-function SettingsField({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
-    return (
-        <div className="space-y-1.5 group">
-            <label className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <span className="text-slate-900 dark:text-slate-300 group-focus-within:text-blue-500 transition-colors">{icon}</span>
-                {label}
-            </label>
-            {children}
         </div>
     )
 }

@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { 
     MdWarning, MdInventory, MdCheck, MdDoneAll, MdSearch, 
-    MdVisibility, MdEdit, MdRefresh
+    MdVisibility, MdRefresh
 } from 'react-icons/md'
 
 export default function LowStockAlertsPage() {
@@ -33,8 +33,8 @@ export default function LowStockAlertsPage() {
 
             if (error) throw error
             setAlerts(data || [])
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         } finally {
             setLoading(false)
         }
@@ -50,8 +50,8 @@ export default function LowStockAlertsPage() {
             if (error) throw error
             toast.success('Alert marked as read')
             fetchAlerts()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         }
     }
 
@@ -69,8 +69,8 @@ export default function LowStockAlertsPage() {
             if (error) throw error
             toast.success('All alerts marked as read')
             fetchAlerts()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error))
         }
     }
 

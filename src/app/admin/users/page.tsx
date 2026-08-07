@@ -2,15 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Profile } from "@/types";
 import {
     MdSearch,
     MdVisibility,
-    MdEdit,
     MdDownload,
     MdChevronLeft,
     MdChevronRight,
@@ -23,13 +21,6 @@ function getAdminAuthHeader(): string {
     const password = sessionStorage.getItem("admin_pass") || "";
     return "Basic " + btoa(username + ":" + password);
 }
-
-const PLAN_COLORS: Record<string, string> = {
-    free: "bg-slate-600 text-white",
-    monthly: "bg-emerald-600 text-white",
-    yearly: "bg-blue-600 text-white",
-    lifetime: "bg-purple-600 text-white",
-};
 
 function formatDate(dateStr: string): string {
     if (!dateStr) return "-";

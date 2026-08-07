@@ -16,7 +16,6 @@ export function ProfessionalTemplate({
     const isInvoice = type === 'invoice'
     const allGstIsZero = items.every(item => (item.tax_rate ?? 18) === 0)
     const hasAnyDiscount = items.some(item => (item.discount || 0) > 0 || (item.discount_rate || 0) > 0)
-    const hasPercentDiscount = items.some(item => item.discount_type === 'percent' && (item.discount || 0) > 0)
 
     const brandColor = profile?.brand_color || '#000000'
     const fontFamily = profile?.font_family || 'Inter'
@@ -24,8 +23,6 @@ export function ProfessionalTemplate({
     const paymentStatus = (data.payment_status as string) === 'draft' ? 'UNPAID' : data.payment_status === 'partially_paid' ? 'Partially Paid' : (data.payment_status || 'UNPAID')
 
     const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
-    const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
-    const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
 
     return (
         <div
@@ -48,16 +45,16 @@ export function ProfessionalTemplate({
                         </div>
                     )}
 
-                    <h1
-                        className="font-bold text-[13px] uppercase tracking-wide"
-                        style={{ color: brandColor }}
-                    >
-                        {profile?.company_name}
-                    </h1>
+                    {!allGstIsZero && (
+                        <h1
+                            className="font-bold text-[13px] uppercase tracking-wide"
+                            style={{ color: brandColor }}
+                        >
+                            {profile?.company_name}
+                        </h1>
+                    )}
                     <p>{profile?.address}</p>
-                    <p>
-                        GSTIN: {profile?.gstin} | Ph: {profile?.phone}
-                    </p>
+                    <p>{!allGstIsZero ? `GSTIN: ${profile?.gstin} | ` : ''}Ph: {profile?.phone}</p>
                     <p>{profile?.email}</p>
                 </div>
 
@@ -79,7 +76,7 @@ export function ProfessionalTemplate({
                     </p>
 
                     {/* PAYMENT STATUS TAG */}
-                    {isInvoice && (
+                    {isInvoice && data.payment_status !== 'hide' && (
                         <div className={`inline-block px-3 py-0.5 border rounded-none text-[9px] font-bold `}>
                             {paymentStatus}
                         </div>
@@ -98,7 +95,7 @@ export function ProfessionalTemplate({
                     <p className="whitespace-pre-line text-slate-600 leading-relaxed">{data.billing_address || data.customers?.billing_address}</p>
                     <div className="mt-2 space-y-1 text-slate-500 font-medium">
                         <p>Phone: {data.billing_phone || data.customers?.billing_phone || data.customers?.phone || 'N/A'}</p>
-                        <p>GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>
+                        {!allGstIsZero && <p>GSTIN: {data.billing_gstin || data.customers?.billing_gstin || data.customers?.gstin || 'N/A'}</p>}
                     </div>
                 </div>
 
@@ -111,7 +108,7 @@ export function ProfessionalTemplate({
                         <p className="whitespace-pre-line text-slate-600 leading-relaxed">{data.shipping_address || data.customers?.shipping_address}</p>
                         <div className="mt-2 space-y-1 text-slate-500 font-medium">
                             <p>Phone: {data.shipping_phone || data.customers?.shipping_phone || data.customers?.phone || 'N/A'}</p>
-                            <p>GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>
+                            {!allGstIsZero && <p>GSTIN: {data.shipping_gstin || data.customers?.shipping_gstin || data.customers?.gstin || 'N/A'}</p>}
                         </div>
                     </div>
                 )}
@@ -153,7 +150,9 @@ export function ProfessionalTemplate({
                             <td className="border px-1 py-1 text-center w-20">
                                 ₹{(item.unit_price || item.rate || 0).toLocaleString('en-IN')}
                             </td>
-                            <td className="border px-1 py-1 text-center w-10">{item.quantity}</td>
+                            <td className="border px-1 py-1 text-center w-10">
+                                {item.quantity} {item.unit && <span className="text-[8px] text-gray-500">{item.unit}</span>}
+                            </td>
                             <td className="border px-1 py-1 text-center w-24">
                                 ₹{((item.unit_price || item.rate || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
@@ -212,7 +211,7 @@ export function ProfessionalTemplate({
                                         acc[key].taxable += taxable;
                                         acc[key].tax += tax;
                                         return acc;
-                                    }, {} as Record<string, any>)).map((t: any, i: number) => (
+                                    }, {} as Record<string, { rate: number; taxable: number; tax: number }>)).map((t: { rate: number; taxable: number; tax: number }, i: number) => (
                                         <React.Fragment key={i}>
                                             <tr className="border-b border-gray-200">
                                                 <td className="py-1">GST ({t.rate}%)</td>
@@ -232,7 +231,7 @@ export function ProfessionalTemplate({
                     )}
 
 
-                    {settings.show_bank_details && bankDetails && (
+                    {!allGstIsZero && settings.show_bank_details && bankDetails && (
                         <div className="bg-gray-50 p-3 rounded-none border border-gray-100 break-inside-avoid">
                             <p className="font-bold text-[10px] mb-2 border-b pb-1">Bank Account Info:</p>
                             <div className="grid grid-cols-2 gap-y-0.5 text-[9px]">
@@ -286,7 +285,7 @@ export function ProfessionalTemplate({
                         </div>
                     )}
 
-                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: any, idx: number) => (
+                    {Array.isArray(data.custom_charges) && data.custom_charges.map((charge: { name: string; amount: number }, idx: number) => (
                         <div key={idx} className="flex justify-between text-gray-600">
                             <span className="font-bold">{charge.name || 'Misc Charge'}</span>
                             <span className="font-black text-slate-900">₹{Number(charge.amount || 0).toLocaleString('en-IN')}</span>
@@ -318,7 +317,7 @@ export function ProfessionalTemplate({
                                 </div>
                             )}
                             <div className="border-t border-slate-900 w-64 ml-auto pt-1">
-                                <p className="font-black text-slate-900 uppercase text-[9px] italic tracking-widest whitespace-nowrap">{profile?.company_name}</p>
+                                {!allGstIsZero && <p className="font-black text-slate-900 uppercase text-[9px] italic tracking-widest whitespace-nowrap">{profile?.company_name}</p>}
                             </div>
                         </div>
                     )}

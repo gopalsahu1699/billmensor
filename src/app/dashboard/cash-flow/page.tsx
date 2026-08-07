@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { 
     MdTrendingUp, MdTrendingDown, MdWallet, MdArrowUpward, 
-    MdArrowDownward, MdCalendarToday, MdRefresh, MdFilterList
+    MdArrowDownward, MdRefresh
 } from 'react-icons/md'
 
 interface CashFlowData {
@@ -122,8 +122,9 @@ export default function CashFlowPage() {
 
             setTransactions(sortedTransactions)
 
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error)
+            toast.error(message)
         } finally {
             setLoading(false)
         }
