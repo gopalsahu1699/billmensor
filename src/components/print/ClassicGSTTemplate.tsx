@@ -173,6 +173,7 @@ export function ClassicGSTTemplate({
     const totalTaxAmt = taxGroupsList.reduce((sum, g) => sum + g.tax, 0)
     const isIgstInvoice = effIgst > 0
 
+    const termsText = (data.notes || profile?.terms_and_conditions || '').trim()
     const warrantyItems = items.filter(item => (item.warranty || '').trim())
 
     const infoItems = [
@@ -318,17 +319,14 @@ export function ClassicGSTTemplate({
                             <th className="w-[4%] border border-black px-1 py-1.5 text-center">#</th>
                             <th className="w-[30%] border border-black px-1 py-1.5 text-left">Item Name</th>
                             <th className="w-[10%] border border-black px-1 py-1.5 text-center">HSN/SAC</th>
-                            <th className="w-[6%] border border-black px-1 py-1.5 text-center">Qty</th>
                             <th className="w-[6%] border border-black px-1 py-1.5 text-center">Unit</th>
                             <th className="w-[9%] border border-black px-1 py-1.5 text-right">Rate</th>
+                            <th className="w-[6%] border border-black px-1 py-1.5 text-center">Qty</th>
                             {hasAnyDiscount && (
                                 <th className="w-[8%] border border-black px-1 py-1.5 text-center">{hasPercentDiscount ? 'Disc%' : 'Disc'}</th>
                             )}
                             {!allGstIsZero && (
                                 <th className="w-[7%] border border-black px-1 py-1.5 text-center">GST%</th>
-                            )}
-                            {!allGstIsZero && (
-                                <th className="w-[9%] border border-black px-1 py-1.5 text-right">Tax Amt</th>
                             )}
                             <th className="w-[11%] border border-black px-1 py-1.5 text-right">Amount</th>
                         </tr>
@@ -346,11 +344,11 @@ export function ClassicGSTTemplate({
                                         )}
                                     </td>
                                     <td className="border border-black px-1 py-1 text-center">{item.hsn_code || '—'}</td>
-                                    <td className="border border-black px-1 py-1 text-center">{item.quantity}</td>
                                     <td className="border border-black px-1 py-1 text-center">{gstItem.unit || 'Nos'}</td>
                                     <td className="border border-black px-1 py-1 text-right">
                                         {fmtMoney(item.unit_price || item.rate || 0)}
                                     </td>
+                                    <td className="border border-black px-1 py-1 text-center">{item.quantity}</td>
                                     {hasAnyDiscount && (
                                         <td className="border border-black px-1 py-1 text-center">
                                             {item.discount_type === 'percent'
@@ -363,16 +361,13 @@ export function ClassicGSTTemplate({
                                     {!allGstIsZero && (
                                         <td className="border border-black px-1 py-1 text-center">{item.tax_rate ?? 18}%</td>
                                     )}
-                                    {!allGstIsZero && (
-                                        <td className="border border-black px-1 py-1 text-right">{fmtMoney(item.tax_amount || 0)}</td>
-                                    )}
                                     <td className="border border-black px-1 py-1 text-right font-black">{fmtMoney(item.total)}</td>
                                 </tr>
                             )
                         })}
                         {items.length === 0 && (
                             <tr>
-                                <td colSpan={10} className="border border-black px-2 py-3 text-center text-[9px] text-gray-500">
+                                <td colSpan={9} className="border border-black px-2 py-3 text-center text-[9px] text-gray-500">
                                     No items
                                 </td>
                             </tr>
@@ -452,27 +447,20 @@ export function ClassicGSTTemplate({
                         )}
 
                         <div className="space-y-3">
-                            {data.notes && (
-                                <div className="border border-black">
-                                    <SectionHeading>Notes</SectionHeading>
-                                    <p className="whitespace-pre-wrap px-2 py-1 text-[8px] leading-relaxed">{data.notes}</p>
-                                </div>
-                            )}
-
-                            {settings.show_terms && (
+                            {(data.notes || settings.show_terms) && (
                                 <div className="border border-black">
                                     <SectionHeading>Terms &amp; Conditions</SectionHeading>
                                     <div className="space-y-1 px-2 py-1 text-[8px] leading-relaxed">
-                                        {profile?.terms_and_conditions ? (
+                                        {termsText ? (
                                             <ul className="list-disc pl-4">
-                                                {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                                {termsText.split('\n').filter(t => t.trim()).map((term, i) => (
                                                     <li key={i}>{term.trim()}</li>
                                                 ))}
                                             </ul>
                                         ) : (
                                             <p>1. Goods once sold will not be taken back.</p>
                                         )}
-                                        {warrantyItems.length > 0 && (
+                                        {warrantyItems.length > 0 && !termsText.includes('Warranty Details') && (
                                             <div className="pt-1">
                                                 <p className="font-black uppercase">Warranty Details:</p>
                                                 <ul className="list-disc pl-4">
@@ -487,14 +475,6 @@ export function ClassicGSTTemplate({
                                     </div>
                                 </div>
                             )}
-
-                            <div className="border border-black">
-                                <SectionHeading>Declaration</SectionHeading>
-                                <p className="px-2 py-1 text-[8px] leading-relaxed">
-                                    We declare that this {isInvoice ? 'invoice' : 'quotation'} shows the actual price of the goods described
-                                    and that all particulars are true and correct.
-                                </p>
-                            </div>
                         </div>
                     </div>
 
@@ -557,7 +537,9 @@ export function ClassicGSTTemplate({
                 </div>
 
                 {/* FOOTER */}
-                <div className="border-t border-gray-300 pt-2"></div>
+                <div className="border-t border-gray-300 pt-2 text-center">
+                    <p className="text-[8px] text-gray-600">For installation assistance, service, warranty support, or future upgrades, {profile?.company_name} team is always here to help.</p>
+                </div>
             </div>
         </div>
     )

@@ -3,7 +3,6 @@
 
 import { Card } from '@/components/ui/card'
 import { PrintTemplateProps } from '@/types/print'
-import { BILLMENSOR_PROMO } from '@/lib/marketing'
 import QRCode from 'react-qr-code'
 
 export function ModernTemplate({
@@ -24,6 +23,7 @@ export function ModernTemplate({
     const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
     const showUPIQR = settings.show_upi_qr !== false && bankDetails?.upi_id && data.payment_status !== 'paid'
     const upiURL = bankDetails?.upi_id ? `upi://pay?pa=${bankDetails.upi_id}&pn=${encodeURIComponent(profile?.company_name || '')}&am=${data.balance_amount !== undefined ? data.balance_amount : data.total_amount}&cu=INR` : ''
+    const termsText = (data.notes || profile?.terms_and_conditions || '').trim()
 
     return (
         <Card
@@ -283,15 +283,15 @@ export function ModernTemplate({
                             </div>
                         )}
 
-                        {settings.show_terms && (
+                        {(data.notes || settings.show_terms) && (
                             <div className="px-5">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mb-2">
                                     General Terms & Conditions
                                 </p>
                                 <div className="text-[10px] text-slate-500 leading-relaxed italic">
-                                    {profile?.terms_and_conditions ? (
+                                    {termsText ? (
                                         <ul className="list-disc pl-4 space-y-1">
-                                            {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                            {termsText.split('\n').filter(t => t.trim()).map((term, i) => (
                                                 <li key={i}>{term.trim()}</li>
                                             ))}
                                         </ul>
@@ -390,12 +390,10 @@ export function ModernTemplate({
 
                 </div>
 
-                {/* PROMO FOOTER */}
-                <div className="pt-8 text-center border-t border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-medium tracking-tight">
-                        {BILLMENSOR_PROMO}
-                    </p>
-                </div>
+            </div>
+
+            <div className="pt-4 text-center border-t border-slate-100">
+                <p className="text-[10px] text-slate-500">For installation assistance, service, warranty support, or future upgrades, {profile?.company_name} team is always here to help.</p>
             </div>
         </Card>
     )

@@ -14,6 +14,7 @@ import { invoiceSchema } from '@/lib/validators'
 import { INDIAN_STATES } from '@/lib/constants'
 import { UNIT_GROUPS } from '@/lib/constants'
 import { friendlyError } from '@/lib/friendly-errors'
+import { buildTermsAndConditions, syncWarrantySection } from '@/lib/terms'
 
 type PriceType = 'selling' | 'mrp' | 'wholesale'
 
@@ -91,6 +92,8 @@ function CreateInvoiceForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const editId = searchParams.get('edit')
+
+    const termsHydratedRef = useRef(false)
 
     const [loading, setLoading] = useState(false)
     const [customers, setCustomers] = useState<Customer[]>([])
@@ -367,6 +370,54 @@ function CreateInvoiceForm() {
             }
         }
     }, [selectedCustomerId, customers, editId])
+
+    // Use the latest product warranty details (from the products table) for terms generation
+    const itemsWithLatestWarranty = React.useCallback((list: InvoiceItem[]): InvoiceItem[] => list.map(item => {
+        if (!item.product_id) return item
+        const product = products.find(p => p.id === item.product_id)
+        return product && product.warranty ? { ...item, warranty: product.warranty } : item
+    }), [products])
+
+    // Populate the terms & conditions field once, after profile and (for edits) items are loaded
+    useEffect(() => {
+        if (termsHydratedRef.current) return
+        if (!profile) return
+        if (editId && loading) return
+        termsHydratedRef.current = true
+        setNotes(buildTermsAndConditions(profile.terms_and_conditions || '', itemsWithLatestWarranty(items)))
+    }, [profile, items, editId, loading, itemsWithLatestWarranty])
+
+    // Keep the warranty section of the terms in sync when items are added/removed/changed
+    useEffect(() => {
+        if (!termsHydratedRef.current) return
+        setNotes(prev => syncWarrantySection(prev, itemsWithLatestWarranty(items)))
+    }, [items, products, itemsWithLatestWarranty])
+
+    async function handleRefreshTerms() {
+        try {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData.user) throw new Error('Not authenticated')
+
+            const [{ data: freshProfile }, { data: freshProducts }] = await Promise.all([
+                supabase.from('profiles').select('*').single(),
+                supabase.from('products').select('*').eq('user_id', userData.user.id).order('name'),
+            ])
+
+            if (freshProfile) setProfile(freshProfile)
+            if (freshProducts) setProducts(freshProducts as Product[])
+
+            termsHydratedRef.current = true
+            const freshList = (items || []).map(item => {
+                if (!item.product_id) return item
+                const product = (freshProducts as Product[] | null)?.find(p => p.id === item.product_id)
+                return product && product.warranty ? { ...item, warranty: product.warranty } : item
+            })
+            setNotes(buildTermsAndConditions(freshProfile?.terms_and_conditions || '', freshList))
+            toast.success('Latest terms & conditions loaded')
+        } catch (error: unknown) {
+            toast.error(friendlyError(error, 'Failed to refresh terms'))
+        }
+    }
 
     const getProductPrice = (product: Product, priceType: PriceType): number => {
         switch (priceType) {
@@ -1268,9 +1319,20 @@ function CreateInvoiceForm() {
                 {/* Terms and Condition */}
                 <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 h-full">
-                        <div className="flex items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
-                            <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">draw</span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Terms and Condition</h2>
+                        <div className="flex items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+                            <div className="flex items-center gap-4">
+                                <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-xl">draw</span>
+                                <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 italic uppercase">Terms and Condition</h2>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleRefreshTerms}
+                                title="Fetch the latest common terms and product warranty details"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all active:scale-95"
+                            >
+                                <MdRefresh size={14} />
+                                Load Latest Terms
+                            </button>
                         </div>
                         <textarea
                             value={notes}

@@ -1,7 +1,6 @@
 import React from 'react'
 
 import { PrintTemplateProps } from '@/types/print'
-import { BILLMENSOR_PROMO } from '@/lib/marketing'
 
 
 export function ProfessionalTemplate({
@@ -23,6 +22,8 @@ export function ProfessionalTemplate({
     const paymentStatus = (data.payment_status as string) === 'draft' ? 'UNPAID' : data.payment_status === 'partially_paid' ? 'Partially Paid' : (data.payment_status || 'UNPAID')
 
     const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
+
+    const termsText = (data.notes || profile?.terms_and_conditions || '').trim()
 
     return (
         <div
@@ -323,13 +324,13 @@ export function ProfessionalTemplate({
                     )}
                 </div>
             </div>
- {settings.show_terms && (
+ {(data.notes || settings.show_terms) && (
                         <div>
                             <p className="font-bold text-[10px] mb-1 uppercase tracking-tighter italic">Terms and Condition:</p>
                             <div className="text-[9px] leading-relaxed text-gray-600">
-                                {profile?.terms_and_conditions ? (
+                                {termsText ? (
                                     <ul className="list-decimal pl-4 space-y-1">
-                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                        {termsText.split('\n').filter(t => t.trim()).map((term, i) => (
                                             <li key={i}>{term.trim()}</li>
                                         ))}
                                     </ul>
@@ -339,13 +340,10 @@ export function ProfessionalTemplate({
                             </div>
                         </div>
                     )}
-            {/* PROMO FOOTER */}
-            <div className="mt-8 text-center border-t border-gray-100 pt-4">
-                <p className="text-[8px] text-gray-400 font-medium">
-                    {BILLMENSOR_PROMO}
-                </p>
-            </div>
 
+            <div className="mt-8 text-center border-t border-gray-100 pt-4">
+                <p className="text-[9px] text-gray-500">For installation assistance, service, warranty support, or future upgrades, {profile?.company_name} team is always here to help.</p>
+            </div>
         </div>
     )
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import { PrintTemplateProps } from '@/types/print'
-import { BILLMENSOR_PROMO } from '@/lib/marketing'
 
 export function CompactTemplate({
     data,
@@ -21,6 +20,8 @@ export function CompactTemplate({
     const fontFamily = profile?.font_family || 'Inter'
 
     const priceLabel = items.every(item => item.price_type === 'mrp') ? 'MRP' : 'Rate'
+
+    const termsText = (data.notes || profile?.terms_and_conditions || '').trim()
 
     return (
         <div
@@ -225,13 +226,13 @@ export function CompactTemplate({
 
                   
 
-                    {settings.show_terms && (
+                    {(data.notes || settings.show_terms) && (
                         <div>
                             <h4 className="font-bold text-[12px] mb-1 uppercase bg-gray-50 px-2 py-0.5 border-l-2 border-black">Terms</h4>
                             <div className="text-[10px] text-gray-600 italic">
-                                {profile?.terms_and_conditions ? (
+                                {termsText ? (
                                     <ul className="list-disc pl-4 space-y-0.5">
-                                        {profile.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                        {termsText.split('\n').filter(t => t.trim()).map((term, i) => (
                                             <li key={i}>{term.trim()}</li>
                                         ))}
                                     </ul>
@@ -301,13 +302,9 @@ export function CompactTemplate({
                 </div>
             </div>
 
-            {/* PROMO FOOTER */}
-            <div className="mt-8 text-center border-t border-gray-200 pt-6">
-                <p className="text-[10px] text-gray-400 font-medium">
-                    {BILLMENSOR_PROMO}
-                </p>
+            <div className="mt-8 text-center border-t border-gray-200 pt-4">
+                <p className="text-[10px] text-gray-500">For installation assistance, service, warranty support, or future upgrades, {profile?.company_name} team is always here to help.</p>
             </div>
-
         </div>
     )
 }

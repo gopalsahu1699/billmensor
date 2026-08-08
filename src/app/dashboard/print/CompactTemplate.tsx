@@ -69,8 +69,8 @@ export function CompactTemplate({ data, profile, items, settings, type }: PrintT
                             <p>Acc: 123456789 | IFSC: SBIN0001234</p>
                         </div>
                     )}
-                    {settings.show_terms && (
-                        <p className="text-[8px] opacity-50 italic">Terms: {profile?.terms_and_conditions || 'Goods once sold will not be taken back.'}</p>
+                    {(data.notes || settings.show_terms) && (
+                        <p className="text-[8px] opacity-50 italic">Terms: {data.notes || profile?.terms_and_conditions || 'Goods once sold will not be taken back.'}</p>
                     )}
                 </div>
                 <div className="w-1/3 text-right space-y-1">
